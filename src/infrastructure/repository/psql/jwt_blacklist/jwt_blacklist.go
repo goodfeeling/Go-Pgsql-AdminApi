@@ -7,12 +7,12 @@ import (
 )
 
 type JwtBlacklist struct {
-	ID        uint           `gorm:"primaryKey;autoIncrement" json:"id"` // 改为 uint + autoIncrement
+	ID        uint           `gorm:"primaryKey;autoIncrement" json:"id"`
 	CreatedAt *time.Time     `gorm:"column:created_at" json:"createdAt,omitempty"`
 	UpdatedAt *time.Time     `gorm:"column:updated_at" json:"updatedAt,omitempty"`
 	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at" json:"deletedAt,omitempty"`
 
-	Jwt string `gorm:"column:jwt;type:text;uniqueIndex" json:"jwt"` // 使用 uniqueIndex 标签来创建唯一索引
+	Jwt string `gorm:"column:jwt;type:text;uniqueIndex" json:"jwt"`
 }
 
 func (*JwtBlacklist) TableName() string {

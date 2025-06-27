@@ -2,12 +2,15 @@ package upload
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
+	domain "github.com/gbrayhan/microservices-go/src/domain"
 	domainFiles "github.com/gbrayhan/microservices-go/src/domain/sys/files"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	shareUtils "github.com/gbrayhan/microservices-go/src/shared/utils"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -56,6 +59,34 @@ func (u *UploadController) Single(ctx *gin.Context) {
 		_ = ctx.Error(err)
 		return
 	}
+	// calculate md5 file
+	md5Value, err := shareUtils.CalculateFileMD5(savePath)
+	if err != nil {
+		u.Logger.Error("calculate  file to md5", zap.Error(err))
+		_ = ctx.Error(err)
+		return
+	}
+	// insert to database
+	files := domainFiles.SysFiles{
+		FileName: newFilename,
+		FilePath: savePath,
+		FileMD5:  md5Value,
+	}
+	res, err := u.sysFilesUseCase.Create(&files)
+	if err != nil {
+		u.Logger.Error("insert file info to database", zap.Error(err))
+		_ = ctx.Error(err)
+		return
+	}
+	response := &domain.CommonResponse[domainFiles.SysFiles]{
+		Data:    *res,
+		Message: "Upload success",
+		Status:  200,
+	}
+
+	u.Logger.Info("upload successful", zap.String("filename", newFilename))
+
+	ctx.JSON(http.StatusOK, response)
 }
 
 func NewAuthController(sysFilesUseCase domainFiles.ISysFilesService, loggerInstance *logger.Logger) IUploadController {

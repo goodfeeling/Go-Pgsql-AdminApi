@@ -18,21 +18,21 @@ import (
 
 // Structures
 type NewUserRequest struct {
-	UserName  string `json:"user" binding:"required"`
-	Email     string `json:"email" binding:"required"`
-	FirstName string `json:"firstName" binding:"required"`
-	LastName  string `json:"lastName" binding:"required"`
-	Password  string `json:"password" binding:"required"`
-	Role      string `json:"role" binding:"required"`
+	UserName string `json:"user_name" binding:"required"`
+	Email    string `json:"email" binding:"required"`
+	Password string `json:"password" binding:"required"`
+	Role     string `json:"role" binding:"required"`
 }
 
 type ResponseUser struct {
 	ID        int       `json:"id"`
-	UserName  string    `json:"user"`
+	UUID      string    `json:"uuid"`
+	UserName  string    `json:"user_name"`
 	Email     string    `json:"email"`
-	FirstName string    `json:"firstName"`
-	LastName  string    `json:"lastName"`
+	NickName  string    `json:"nick_name"`
 	Status    bool      `json:"status"`
+	Phone     string    `json:"phone"`
+	HeaderImg string    `json:"header_img"`
 	CreatedAt time.Time `json:"createdAt,omitempty"`
 	UpdatedAt time.Time `json:"updatedAt,omitempty"`
 }
@@ -296,19 +296,25 @@ func (c *UserController) SearchByProperty(ctx *gin.Context) {
 }
 
 // Mappers
-func domainToResponseMapper(domainUser *domainUser.User) *ResponseUser {
-	return &ResponseUser{
-		ID:        domainUser.ID,
-		UserName:  domainUser.UserName,
-		Email:     domainUser.Email,
-		Status:    domainUser.Status,
-		CreatedAt: domainUser.CreatedAt,
-		UpdatedAt: domainUser.UpdatedAt,
+func domainToResponseMapper(domainUser *domainUser.User) *domain.CommonResponse[*ResponseUser] {
+	return &domain.CommonResponse[*ResponseUser]{
+		Data: &ResponseUser{
+			ID:        domainUser.ID,
+			UserName:  domainUser.UserName,
+			Email:     domainUser.Email,
+			NickName:  domainUser.NickName,
+			UUID:      domainUser.UUID,
+			Phone:     domainUser.Phone,
+			HeaderImg: domainUser.HeaderImg,
+			Status:    domainUser.Status,
+			CreatedAt: domainUser.CreatedAt,
+			UpdatedAt: domainUser.UpdatedAt,
+		},
 	}
 }
 
-func arrayDomainToResponseMapper(users *[]domainUser.User) *[]ResponseUser {
-	res := make([]ResponseUser, len(*users))
+func arrayDomainToResponseMapper(users *[]domainUser.User) *[]domain.CommonResponse[*ResponseUser] {
+	res := make([]domain.CommonResponse[*ResponseUser], len(*users))
 	for i, u := range *users {
 		res[i] = *domainToResponseMapper(&u)
 	}

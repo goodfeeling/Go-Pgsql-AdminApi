@@ -92,8 +92,8 @@ func TestDomainToResponseMapper(t *testing.T) {
 		UpdatedAt:    now,
 	}
 
-	response := domainToResponseMapper(domainUser)
-
+	responseOutlet := domainToResponseMapper(domainUser)
+	response := responseOutlet.Data
 	assert.Equal(t, domainUser.ID, response.ID)
 	assert.Equal(t, domainUser.UserName, response.UserName)
 	assert.Equal(t, domainUser.Email, response.Email)
@@ -126,20 +126,17 @@ func TestArrayDomainToResponseMapper(t *testing.T) {
 	}
 
 	responses := arrayDomainToResponseMapper(&users)
-
 	assert.Len(t, *responses, 2)
-	assert.Equal(t, users[0].ID, (*responses)[0].ID)
-	assert.Equal(t, users[1].ID, (*responses)[1].ID)
+	assert.Equal(t, users[0].ID, (*responses)[0].Data.ID)
+	assert.Equal(t, users[1].ID, (*responses)[1].Data.ID)
 }
 
 func TestToUsecaseMapper(t *testing.T) {
 	request := &NewUserRequest{
-		UserName:  "testuser",
-		Email:     "test@example.com",
-		FirstName: "Test",
-		LastName:  "User",
-		Password:  "password123",
-		Role:      "user",
+		UserName: "testuser",
+		Email:    "test@example.com",
+		Password: "password123",
+		Role:     "user",
 	}
 
 	domainUser := toUsecaseMapper(request)
@@ -226,12 +223,10 @@ func TestUserController_NewUser(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		c, w := setupGinContext()
 		request := NewUserRequest{
-			UserName:  "testuser",
-			Email:     "test@example.com",
-			FirstName: "Test",
-			LastName:  "User",
-			Password:  "password123",
-			Role:      "user",
+			UserName: "testuser",
+			Email:    "test@example.com",
+			Password: "password123",
+			Role:     "user",
 		}
 		jsonData, _ := json.Marshal(request)
 		c.Request = httptest.NewRequest("POST", "/users", bytes.NewBuffer(jsonData))
@@ -266,12 +261,10 @@ func TestUserController_NewUser(t *testing.T) {
 	t.Run("Service Error", func(t *testing.T) {
 		c, w := setupGinContext()
 		request := NewUserRequest{
-			UserName:  "testuser",
-			Email:     "test@example.com",
-			FirstName: "Test",
-			LastName:  "User",
-			Password:  "password123",
-			Role:      "user",
+			UserName: "testuser",
+			Email:    "test@example.com",
+			Password: "password123",
+			Role:     "user",
 		}
 		jsonData, _ := json.Marshal(request)
 		c.Request = httptest.NewRequest("POST", "/users", bytes.NewBuffer(jsonData))

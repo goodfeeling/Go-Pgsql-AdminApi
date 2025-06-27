@@ -15,7 +15,6 @@ import (
 	sharedUtil "github.com/gbrayhan/microservices-go/src/shared/utils"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type IAuthUseCase interface {
@@ -65,7 +64,7 @@ func (s *AuthUseCase) Login(username, password string) (*domainUser.User, *AuthT
 		return nil, nil, domainErrors.NewAppError(errors.New("username or password does not match"), domainErrors.NotAuthorized)
 	}
 
-	isAuthenticated := checkPasswordHash(password, user.HashPassword)
+	isAuthenticated := sharedUtil.CheckPasswordHash(password, user.HashPassword)
 	if !isAuthenticated {
 		s.Logger.Warn("Login failed: invalid password", zap.String("username", username))
 		return nil, nil, domainErrors.NewAppError(errors.New("username or password does not match"), domainErrors.NotAuthorized)
@@ -124,11 +123,6 @@ func (s *AuthUseCase) AccessTokenByRefreshToken(refreshToken string) (*domainUse
 
 	s.Logger.Info("Access token refreshed successfully", zap.Int("userID", user.ID))
 	return user, authTokens, nil
-}
-
-func checkPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
 }
 
 // Register implements IAuthUseCase.

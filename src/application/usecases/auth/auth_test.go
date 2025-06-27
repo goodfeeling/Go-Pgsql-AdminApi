@@ -10,6 +10,7 @@ import (
 	domainUser "github.com/gbrayhan/microservices-go/src/domain/user"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/security"
+	sharedUtil "github.com/gbrayhan/microservices-go/src/shared/utils"
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -107,11 +108,11 @@ func TestCheckPasswordHash(t *testing.T) {
 		t.Fatalf("failed to generate hash for test: %v", err)
 	}
 
-	if ok := checkPasswordHash(password, hashed); !ok {
+	if ok := sharedUtil.CheckPasswordHash(password, hashed); !ok {
 		t.Errorf("checkPasswordHash() = false, want true")
 	}
 
-	if ok := checkPasswordHash("wrongPassword", hashed); ok {
+	if ok := sharedUtil.CheckPasswordHash("wrongPassword", hashed); ok {
 		t.Errorf("checkPasswordHash() = true, want false")
 	}
 }

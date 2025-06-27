@@ -28,7 +28,7 @@ type User struct {
 	OriginSetting string     `gorm:"column:origin_setting;type:text"`
 	CreatedAt     time.Time  `gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt     time.Time  `gorm:"column:updated_at;autoUpdateTime:milli"`
-	DeletedAt     *time.Time `gorm:"column:deleted_at;index"` // 支持软删除
+	DeletedAt     *time.Time `gorm:"column:deleted_at;index"`
 }
 
 func (User) TableName() string {
@@ -36,15 +36,19 @@ func (User) TableName() string {
 }
 
 var ColumnsUserMapping = map[string]string{
-	"id":           "id",
-	"userName":     "user_name",
-	"email":        "email",
-	"firstName":    "first_name",
-	"lastName":     "last_name",
-	"status":       "status",
-	"hashPassword": "hash_password",
-	"createdAt":    "created_at",
-	"updatedAt":    "updated_at",
+	"id":            "id",
+	"uuid":          "uuid",
+	"userName":      "user_name",
+	"nickName":      "nick_name",
+	"headerImg":     "header_img",
+	"authorityId":   "authority_id",
+	"phone":         "phone",
+	"originSetting": "origin_setting",
+	"email":         "email",
+	"status":        "status",
+	"hashPassword":  "hash_password",
+	"createdAt":     "created_at",
+	"updatedAt":     "updated_at",
 }
 
 // UserRepositoryInterface defines the interface for user repository operations
@@ -161,7 +165,7 @@ func (r *Repository) Update(id int, userMap map[string]interface{}) (*domainUser
 	var userObj User
 	userObj.ID = id
 	err := r.DB.Model(&userObj).
-		Select("user_name", "email", "first_name", "last_name", "status", "role").
+		Select("user_name", "email", "nick_name", "phone", "header_img").
 		Updates(userMap).Error
 	if err != nil {
 		r.Logger.Error("Error updating user", zap.Error(err), zap.Int("id", id))
@@ -317,7 +321,10 @@ func (u *User) toDomainMapper() *domainUser.User {
 		ID:           u.ID,
 		UserName:     u.UserName,
 		Email:        u.Email,
+		NickName:     u.NickName,
+		HeaderImg:    u.HeaderImg,
 		Status:       u.Status,
+		Phone:        u.Phone,
 		HashPassword: u.HashPassword,
 		CreatedAt:    u.CreatedAt,
 		UpdatedAt:    u.UpdatedAt,

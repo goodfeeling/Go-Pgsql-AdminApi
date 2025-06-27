@@ -5,7 +5,7 @@ import (
 
 	authUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/auth"
 	medicineUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/medicine"
-	uploadUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/upload"
+	filesUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/files"
 	userUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/user"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql"
@@ -39,7 +39,7 @@ type ApplicationContext struct {
 	AuthUseCase     authUseCase.IAuthUseCase
 	UserUseCase     userUseCase.IUserUseCase
 	MedicineUseCase medicineUseCase.IMedicineUseCase
-	UploadUseCase   uploadUseCase.IUploadUseCase
+	FilesUseCase    filesUseCase.ISysFilesService
 }
 
 var (
@@ -75,13 +75,13 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	authUC := authUseCase.NewAuthUseCase(userRepo, jwtService, loggerInstance, jwtBlackListRepo)
 	userUC := userUseCase.NewUserUseCase(userRepo, loggerInstance)
 	medicineUC := medicineUseCase.NewMedicineUseCase(medicineRepo, loggerInstance)
-	uploadUC := uploadUseCase.NewMedicineUseCase(filesRepo, loggerInstance)
+	filesUC := filesUseCase.NewSysFilesUseCase(filesRepo, loggerInstance)
 
 	// Initialize controllers with logger
 	authController := authController.NewAuthController(authUC, loggerInstance)
 	userController := userController.NewUserController(userUC, loggerInstance)
 	medicineController := medicineController.NewMedicineController(medicineUC, loggerInstance)
-	uploadController := uploadController.NewAuthController(uploadUC, loggerInstance)
+	uploadController := uploadController.NewAuthController(filesUC, loggerInstance)
 
 	return &ApplicationContext{
 		DB:     db,
@@ -100,7 +100,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		AuthUseCase:     authUC,
 		UserUseCase:     userUC,
 		MedicineUseCase: medicineUC,
-		UploadUseCase:   uploadUC,
+		FilesUseCase:    filesUC,
 	}, nil
 }
 

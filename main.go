@@ -90,6 +90,7 @@ func setupRouter(appContext *di.ApplicationContext, logger *logger.Logger) *gin.
 
 	// set file upload configuration
 	router.MaxMultipartMemory = 10 << 20 // 10 MB
+	router.Static("/public", "./public")
 
 	// Agregar middlewares de recuperación y logger personalizados
 	router.Use(gin.Recovery())

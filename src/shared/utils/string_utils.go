@@ -7,13 +7,19 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// 将一个字符串转换hash
+// password to hash
 func StringToHash(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}
 	return string(hash), nil
+}
+
+// check password
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }
 
 // get env

@@ -23,11 +23,11 @@ type User struct {
 	UpdatedAt     time.Time
 }
 type SearchResultUser struct {
-	Data       *[]User
-	Total      int64
-	Page       int
-	PageSize   int
-	TotalPages int
+	Data       *[]User `json:"data"`
+	Total      int64   `json:"total"`
+	Page       int     `json:"page"`
+	PageSize   int     `json:"page_size"`
+	TotalPages int     `json:"total_page"`
 }
 
 type IUserService interface {

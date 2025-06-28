@@ -34,3 +34,11 @@ type CommonResponse[T interface{}] struct {
 	Message string `json:"message"`
 	Status  int    `json:"status"`
 }
+type PageResultResponse[T interface{}] struct {
+	Data       T           `json:"data"`
+	Total      int64       `json:"total"`
+	Page       int         `json:"page"`
+	PageSize   int         `json:"page_size"`
+	TotalPages int         `json:"total_page"`
+	Filters    DataFilters `json:"filters"`
+}

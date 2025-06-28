@@ -92,8 +92,7 @@ func TestDomainToResponseMapper(t *testing.T) {
 		UpdatedAt:    now,
 	}
 
-	responseOutlet := domainToResponseMapper(domainUser)
-	response := responseOutlet.Data
+	response := domainToResponseMapper(domainUser)
 	assert.Equal(t, domainUser.ID, response.ID)
 	assert.Equal(t, domainUser.UserName, response.UserName)
 	assert.Equal(t, domainUser.Email, response.Email)
@@ -125,10 +124,11 @@ func TestArrayDomainToResponseMapper(t *testing.T) {
 		},
 	}
 
-	responses := arrayDomainToResponseMapper(&users)
+	responsesList := arrayDomainToResponseMapper(&users)
+	responses := responsesList
 	assert.Len(t, *responses, 2)
-	assert.Equal(t, users[0].ID, (*responses)[0].Data.ID)
-	assert.Equal(t, users[1].ID, (*responses)[1].Data.ID)
+	assert.Equal(t, users[0].ID, (*responses)[0].ID)
+	assert.Equal(t, users[1].ID, (*responses)[1].ID)
 }
 
 func TestToUsecaseMapper(t *testing.T) {

@@ -319,6 +319,7 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 func (u *User) toDomainMapper() *domainUser.User {
 	return &domainUser.User{
 		ID:           u.ID,
+		UUID:         u.UUID,
 		UserName:     u.UserName,
 		Email:        u.Email,
 		NickName:     u.NickName,

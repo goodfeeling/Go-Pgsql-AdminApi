@@ -86,7 +86,9 @@ func (c *UserController) GetAllUsers(ctx *gin.Context) {
 		return
 	}
 	c.Logger.Info("Successfully retrieved all users", zap.Int("count", len(*users)))
-	ctx.JSON(http.StatusOK, arrayDomainToResponseMapper(users))
+	ctx.JSON(http.StatusOK, domain.CommonResponse[*[]*ResponseUser]{
+		Data: arrayDomainToResponseMapper(users),
+	})
 }
 
 func (c *UserController) GetUsersByID(ctx *gin.Context) {
@@ -241,13 +243,13 @@ func (c *UserController) SearchPaginated(ctx *gin.Context) {
 		return
 	}
 
-	response := gin.H{
-		"data":       arrayDomainToResponseMapper(result.Data),
-		"total":      result.Total,
-		"page":       result.Page,
-		"pageSize":   result.PageSize,
-		"totalPages": result.TotalPages,
-		"filters":    filters,
+	response := domain.PageResultResponse[*[]*ResponseUser]{
+		Data:       arrayDomainToResponseMapper(result.Data),
+		Total:      result.Total,
+		Page:       result.Page,
+		PageSize:   result.PageSize,
+		TotalPages: result.TotalPages,
+		Filters:    filters,
 	}
 
 	c.Logger.Info("Successfully searched users",
@@ -296,27 +298,25 @@ func (c *UserController) SearchByProperty(ctx *gin.Context) {
 }
 
 // Mappers
-func domainToResponseMapper(domainUser *domainUser.User) *domain.CommonResponse[*ResponseUser] {
-	return &domain.CommonResponse[*ResponseUser]{
-		Data: &ResponseUser{
-			ID:        domainUser.ID,
-			UserName:  domainUser.UserName,
-			Email:     domainUser.Email,
-			NickName:  domainUser.NickName,
-			UUID:      domainUser.UUID,
-			Phone:     domainUser.Phone,
-			HeaderImg: domainUser.HeaderImg,
-			Status:    domainUser.Status,
-			CreatedAt: domainUser.CreatedAt,
-			UpdatedAt: domainUser.UpdatedAt,
-		},
+func domainToResponseMapper(domainUser *domainUser.User) *ResponseUser {
+	return &ResponseUser{
+		ID:        domainUser.ID,
+		UserName:  domainUser.UserName,
+		Email:     domainUser.Email,
+		NickName:  domainUser.NickName,
+		UUID:      domainUser.UUID,
+		Phone:     domainUser.Phone,
+		HeaderImg: domainUser.HeaderImg,
+		Status:    domainUser.Status,
+		CreatedAt: domainUser.CreatedAt,
+		UpdatedAt: domainUser.UpdatedAt,
 	}
 }
 
-func arrayDomainToResponseMapper(users *[]domainUser.User) *[]domain.CommonResponse[*ResponseUser] {
-	res := make([]domain.CommonResponse[*ResponseUser], len(*users))
+func arrayDomainToResponseMapper(users *[]domainUser.User) *[]*ResponseUser {
+	res := make([]*ResponseUser, len(*users))
 	for i, u := range *users {
-		res[i] = *domainToResponseMapper(&u)
+		res[i] = domainToResponseMapper(&u)
 	}
 	return &res
 }

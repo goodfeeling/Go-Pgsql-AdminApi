@@ -33,8 +33,8 @@ type ResponseUser struct {
 	Status    bool      `json:"status"`
 	Phone     string    `json:"phone"`
 	HeaderImg string    `json:"header_img"`
-	CreatedAt time.Time `json:"createdAt,omitempty"`
-	UpdatedAt time.Time `json:"updatedAt,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 }
 
 type IUserController interface {
@@ -229,6 +229,8 @@ func (c *UserController) SearchPaginated(ctx *gin.Context) {
 	sortBy := ctx.QueryArray("sortBy")
 	if len(sortBy) > 0 {
 		filters.SortBy = sortBy
+	} else {
+		filters.SortBy = []string{}
 	}
 
 	sortDirection := domain.SortDirection(ctx.DefaultQuery("sortDirection", "asc"))
@@ -243,13 +245,17 @@ func (c *UserController) SearchPaginated(ctx *gin.Context) {
 		return
 	}
 
-	response := domain.PageResultResponse[*[]*ResponseUser]{
-		Data:       arrayDomainToResponseMapper(result.Data),
-		Total:      result.Total,
-		Page:       result.Page,
-		PageSize:   result.PageSize,
-		TotalPages: result.TotalPages,
-		Filters:    filters,
+	response := domain.CommonResponse[domain.PageList[*[]*ResponseUser]]{
+		Data: domain.PageList[*[]*ResponseUser]{
+			List:       arrayDomainToResponseMapper(result.Data),
+			Total:      result.Total,
+			Page:       result.Page,
+			PageSize:   result.PageSize,
+			TotalPages: result.TotalPages,
+			Filters:    filters,
+		},
+		Message: "success",
+		Status:  0,
 	}
 
 	c.Logger.Info("Successfully searched users",

@@ -98,9 +98,9 @@ func setupRouter(appContext *di.ApplicationContext, logger *logger.Logger) *gin.
 
 	// Add middlewares
 	router.Use(middlewares.ErrorHandler())
-	// router.Use(middlewares.GinBodyLogMiddleware(appContext.DB))
+	router.Use(middlewares.GinBodyLogMiddleware(appContext.DB))
 	router.Use(middlewares.SecurityHeaders())
-
+	router.RedirectTrailingSlash = false
 	// Add logger middleware
 	router.Use(logger.GinZapLogger())
 

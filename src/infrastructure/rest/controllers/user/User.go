@@ -60,6 +60,8 @@ func NewUserController(userService domainUser.IUserService, loggerInstance *logg
 }
 
 func (c *UserController) NewUser(ctx *gin.Context) {
+	ctx.JSON(200, gin.H{})
+	return
 	c.Logger.Info("Creating new user")
 	var request NewUserRequest
 	if err := controllers.BindJSON(ctx, &request); err != nil {

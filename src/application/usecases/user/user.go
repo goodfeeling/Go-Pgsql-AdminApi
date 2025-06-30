@@ -1,10 +1,13 @@
 package user
 
 import (
+	"fmt"
+
 	"github.com/gbrayhan/microservices-go/src/domain"
 	userDomain "github.com/gbrayhan/microservices-go/src/domain/user"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -56,8 +59,9 @@ func (s *UserUseCase) Create(newUser *userDomain.User) (*userDomain.User, error)
 		return &userDomain.User{}, err
 	}
 	newUser.HashPassword = string(hash)
+	newUser.UUID = uuid.New().String()
 	newUser.Status = true
-
+	fmt.Println("UUID", newUser.UUID)
 	return s.userRepository.Create(newUser)
 }
 

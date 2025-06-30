@@ -165,7 +165,7 @@ func (r *Repository) Update(id int, userMap map[string]interface{}) (*domainUser
 	var userObj User
 	userObj.ID = id
 	err := r.DB.Model(&userObj).
-		Select("user_name", "email", "nick_name", "phone", "header_img").
+		Select("user_name", "email", "nick_name", "status", "phone", "header_img").
 		Updates(userMap).Error
 	if err != nil {
 		r.Logger.Error("Error updating user", zap.Error(err), zap.Int("id", id))

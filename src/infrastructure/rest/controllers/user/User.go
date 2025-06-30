@@ -18,23 +18,26 @@ import (
 
 // Structures
 type NewUserRequest struct {
-	UserName string `json:"user_name" binding:"required"`
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
-	Role     string `json:"role" binding:"required"`
+	ID        int    `json:"id"`
+	HeaderImg string `json:"header_img"`
+	UserName  string `json:"user_name" binding:"required"`
+	Email     string `json:"email" binding:"required"`
+	Phone     string `json:"phone"`
+	Status    bool   `json:"status"`
+	NickName  string `json:"nick_name"`
 }
 
 type ResponseUser struct {
-	ID        int       `json:"id"`
-	UUID      string    `json:"uuid"`
-	UserName  string    `json:"user_name"`
-	Email     string    `json:"email"`
-	NickName  string    `json:"nick_name"`
-	Status    bool      `json:"status"`
-	Phone     string    `json:"phone"`
-	HeaderImg string    `json:"header_img"`
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	ID        int               `json:"id"`
+	UUID      string            `json:"uuid"`
+	UserName  string            `json:"user_name"`
+	Email     string            `json:"email"`
+	NickName  string            `json:"nick_name"`
+	Status    bool              `json:"status"`
+	Phone     string            `json:"phone"`
+	HeaderImg string            `json:"header_img"`
+	CreatedAt domain.CustomTime `json:"created_at,omitempty"`
+	UpdatedAt domain.CustomTime `json:"updated_at,omitempty"`
 }
 
 type IUserController interface {
@@ -71,8 +74,13 @@ func (c *UserController) NewUser(ctx *gin.Context) {
 		_ = ctx.Error(err)
 		return
 	}
-	userResponse := domainToResponseMapper(userModel)
+	userResponse := controllers.NewCommonResponseBuilder[*ResponseUser]().
+		Data(domainToResponseMapper(userModel)).
+		Message("success").
+		Status(0).
+		Build()
 	c.Logger.Info("User created successfully", zap.String("email", request.Email), zap.Int("id", userModel.ID))
+
 	ctx.JSON(http.StatusOK, userResponse)
 }
 
@@ -139,8 +147,13 @@ func (c *UserController) UpdateUser(ctx *gin.Context) {
 		_ = ctx.Error(err)
 		return
 	}
+	response := controllers.NewCommonResponseBuilder[*ResponseUser]().
+		Data(domainToResponseMapper(userUpdated)).
+		Message("success").
+		Status(0).
+		Build()
 	c.Logger.Info("User updated successfully", zap.Int("id", userID))
-	ctx.JSON(http.StatusOK, domainToResponseMapper(userUpdated))
+	ctx.JSON(http.StatusOK, response)
 }
 
 func (c *UserController) DeleteUser(ctx *gin.Context) {
@@ -159,7 +172,7 @@ func (c *UserController) DeleteUser(ctx *gin.Context) {
 		return
 	}
 	c.Logger.Info("User deleted successfully", zap.Int("id", userID))
-	ctx.JSON(http.StatusOK, gin.H{"message": "resource deleted successfully"})
+	ctx.JSON(http.StatusOK, gin.H{"message": "resource deleted successfully", "status": 0, "data": ""})
 }
 
 func (c *UserController) SearchPaginated(ctx *gin.Context) {
@@ -244,19 +257,19 @@ func (c *UserController) SearchPaginated(ctx *gin.Context) {
 		_ = ctx.Error(err)
 		return
 	}
-
-	response := domain.CommonResponse[domain.PageList[*[]*ResponseUser]]{
-		Data: domain.PageList[*[]*ResponseUser]{
+	type PageResult = domain.PageList[*[]*ResponseUser]
+	response := controllers.NewCommonResponseBuilder[PageResult]().
+		Data(PageResult{
 			List:       arrayDomainToResponseMapper(result.Data),
 			Total:      result.Total,
 			Page:       result.Page,
 			PageSize:   result.PageSize,
 			TotalPages: result.TotalPages,
 			Filters:    filters,
-		},
-		Message: "success",
-		Status:  0,
-	}
+		}).
+		Message("success").
+		Status(0).
+		Build()
 
 	c.Logger.Info("Successfully searched users",
 		zap.Int64("total", result.Total),
@@ -314,8 +327,8 @@ func domainToResponseMapper(domainUser *domainUser.User) *ResponseUser {
 		Phone:     domainUser.Phone,
 		HeaderImg: domainUser.HeaderImg,
 		Status:    domainUser.Status,
-		CreatedAt: domainUser.CreatedAt,
-		UpdatedAt: domainUser.UpdatedAt,
+		CreatedAt: domain.CustomTime{Time: domainUser.CreatedAt},
+		UpdatedAt: domain.CustomTime{Time: domainUser.UpdatedAt},
 	}
 }
 
@@ -329,8 +342,11 @@ func arrayDomainToResponseMapper(users *[]domainUser.User) *[]*ResponseUser {
 
 func toUsecaseMapper(req *NewUserRequest) *domainUser.User {
 	return &domainUser.User{
-		UserName: req.UserName,
-		Email:    req.Email,
-		Password: req.Password,
+		UserName:  req.UserName,
+		NickName:  req.NickName,
+		Email:     req.Email,
+		HeaderImg: req.HeaderImg,
+		Phone:     req.Phone,
+		Status:    req.Status,
 	}
 }

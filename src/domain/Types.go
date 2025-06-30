@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+)
 
 type DateRangeFilter struct {
 	Field string     `json:"field"`
@@ -34,6 +38,7 @@ type CommonResponse[T interface{}] struct {
 	Message string `json:"message"`
 	Status  int    `json:"status"`
 }
+
 type PageList[T interface{}] struct {
 	List       T           `json:"list"`
 	Total      int64       `json:"total"`
@@ -41,4 +46,29 @@ type PageList[T interface{}] struct {
 	PageSize   int         `json:"page_size"`
 	TotalPages int         `json:"total_page"`
 	Filters    DataFilters `json:"filters"`
+}
+
+type CustomTime struct {
+	time.Time
+}
+
+func (ct *CustomTime) MarshalJSON() ([]byte, error) {
+	if ct == nil || ct.IsZero() {
+		return []byte("null"), nil
+	}
+
+	return []byte(fmt.Sprintf(`"%s"`, ct.Format("2006-01-02 15:04:05"))), nil
+}
+
+func (ct *CustomTime) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	t, err := time.Parse("2006-01-02 15:04:05", s)
+	if err != nil {
+		return err
+	}
+	ct.Time = t
+	return nil
 }

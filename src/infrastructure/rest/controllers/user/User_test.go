@@ -135,15 +135,12 @@ func TestToUsecaseMapper(t *testing.T) {
 	request := &NewUserRequest{
 		UserName: "testuser",
 		Email:    "test@example.com",
-		Password: "password123",
-		Role:     "user",
 	}
 
 	domainUser := toUsecaseMapper(request)
 
 	assert.Equal(t, request.UserName, domainUser.UserName)
 	assert.Equal(t, request.Email, domainUser.Email)
-	assert.Equal(t, request.Password, domainUser.Password)
 }
 
 func TestUpdateValidation(t *testing.T) {
@@ -225,8 +222,6 @@ func TestUserController_NewUser(t *testing.T) {
 		request := NewUserRequest{
 			UserName: "testuser",
 			Email:    "test@example.com",
-			Password: "password123",
-			Role:     "user",
 		}
 		jsonData, _ := json.Marshal(request)
 		c.Request = httptest.NewRequest("POST", "/users", bytes.NewBuffer(jsonData))
@@ -263,8 +258,6 @@ func TestUserController_NewUser(t *testing.T) {
 		request := NewUserRequest{
 			UserName: "testuser",
 			Email:    "test@example.com",
-			Password: "password123",
-			Role:     "user",
 		}
 		jsonData, _ := json.Marshal(request)
 		c.Request = httptest.NewRequest("POST", "/users", bytes.NewBuffer(jsonData))

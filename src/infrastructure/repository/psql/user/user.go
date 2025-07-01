@@ -15,20 +15,20 @@ import (
 )
 
 type User struct {
-	ID            int        `gorm:"primaryKey;column:id;type:numeric(20,0)"`
-	UUID          string     `gorm:"column:uuid;type:text"`
-	UserName      string     `gorm:"column:user_name;type:text;uniqueIndex:uni_sys_users_user_name"`
-	NickName      string     `gorm:"column:nick_name;type:text"`
-	Email         string     `gorm:"column:email;type:text;uniqueIndex:uni_sys_users_email"`
-	HashPassword  string     `gorm:"column:hash_password;type:text"`
-	HeaderImg     string     `gorm:"column:header_img;type:text"`
-	AuthorityId   int64      `gorm:"column:authority_id;type:bigint"`
-	Phone         string     `gorm:"column:phone;type:text"`
-	Status        bool       `gorm:"column:status"`
-	OriginSetting string     `gorm:"column:origin_setting;type:text"`
-	CreatedAt     time.Time  `gorm:"column:created_at;autoCreateTime:milli"`
-	UpdatedAt     time.Time  `gorm:"column:updated_at;autoUpdateTime:milli"`
-	DeletedAt     *time.Time `gorm:"column:deleted_at;index"`
+	ID            int            `gorm:"primaryKey;column:id;type:numeric(20,0)"`
+	UUID          string         `gorm:"column:uuid;type:text"`
+	UserName      string         `gorm:"column:user_name;type:text;uniqueIndex:uni_sys_users_user_name"`
+	NickName      string         `gorm:"column:nick_name;type:text"`
+	Email         string         `gorm:"column:email;type:text;uniqueIndex:uni_sys_users_email"`
+	HashPassword  string         `gorm:"column:hash_password;type:text"`
+	HeaderImg     string         `gorm:"column:header_img;type:text"`
+	RoleId        int64          `gorm:"column:role_id;type:bigint"`
+	Phone         string         `gorm:"column:phone;type:text"`
+	Status        bool           `gorm:"column:status"`
+	OriginSetting string         `gorm:"column:origin_setting;type:text"`
+	CreatedAt     time.Time      `gorm:"column:created_at;autoCreateTime:milli"`
+	UpdatedAt     time.Time      `gorm:"column:updated_at;autoUpdateTime:milli"`
+	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at;index"`
 }
 
 func (User) TableName() string {
@@ -41,7 +41,7 @@ var ColumnsUserMapping = map[string]string{
 	"userName":      "user_name",
 	"nickName":      "nick_name",
 	"headerImg":     "header_img",
-	"authorityId":   "authority_id",
+	"roleId":        "role_id",
 	"phone":         "phone",
 	"originSetting": "origin_setting",
 	"email":         "email",
@@ -338,7 +338,7 @@ func fromDomainMapper(u *domainUser.User) *User {
 		UUID:          u.UUID,
 		NickName:      u.NickName,
 		HeaderImg:     u.HeaderImg,
-		AuthorityId:   u.AuthorityId,
+		RoleId:        u.RoleId,
 		Phone:         u.Phone,
 		OriginSetting: u.OriginSetting,
 		UserName:      u.UserName,

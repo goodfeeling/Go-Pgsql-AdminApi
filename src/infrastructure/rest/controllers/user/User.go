@@ -60,8 +60,6 @@ func NewUserController(userService domainUser.IUserService, loggerInstance *logg
 }
 
 func (c *UserController) NewUser(ctx *gin.Context) {
-	ctx.JSON(200, gin.H{})
-	return
 	c.Logger.Info("Creating new user")
 	var request NewUserRequest
 	if err := controllers.BindJSON(ctx, &request); err != nil {
@@ -82,7 +80,6 @@ func (c *UserController) NewUser(ctx *gin.Context) {
 		Status(0).
 		Build()
 	c.Logger.Info("User created successfully", zap.String("email", request.Email), zap.Int("id", userModel.ID))
-
 	ctx.JSON(http.StatusOK, userResponse)
 }
 
@@ -174,7 +171,7 @@ func (c *UserController) DeleteUser(ctx *gin.Context) {
 		return
 	}
 	c.Logger.Info("User deleted successfully", zap.Int("id", userID))
-	ctx.JSON(http.StatusOK, gin.H{"message": "resource deleted successfully", "status": 0, "data": ""})
+	ctx.JSON(http.StatusOK, gin.H{"message": "resource deleted successfully", "status": 0, "data": userID})
 }
 
 func (c *UserController) SearchPaginated(ctx *gin.Context) {

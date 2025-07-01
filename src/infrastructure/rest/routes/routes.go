@@ -21,4 +21,5 @@ func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
 	UserRoutes(v1, appContext.UserController)
 	MedicineRoutes(v1, appContext.MedicineController)
 	UploadRoutes(v1, appContext.UploadController)
+	RoleRoutes(v1, appContext.RoleController)
 }

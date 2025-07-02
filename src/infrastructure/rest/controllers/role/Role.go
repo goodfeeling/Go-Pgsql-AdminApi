@@ -2,6 +2,7 @@ package role
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -47,6 +48,7 @@ type IRoleController interface {
 	DeleteRole(ctx *gin.Context)
 	SearchPaginated(ctx *gin.Context)
 	SearchByProperty(ctx *gin.Context)
+	GetTreeRoles(ctx *gin.Context)
 }
 type RoleController struct {
 	roleService domainRole.IRoleService
@@ -207,6 +209,7 @@ func (c *RoleController) SearchPaginated(ctx *gin.Context) {
 			matches[field] = values
 		}
 	}
+	fmt.Println(matches)
 	filters.Matches = matches
 
 	// Parse date range filters
@@ -311,6 +314,22 @@ func (c *RoleController) SearchByProperty(ctx *gin.Context) {
 		zap.String("property", property),
 		zap.Int("results", len(*coincidences)))
 	ctx.JSON(http.StatusOK, coincidences)
+}
+
+// GetTreeRoles implements IRoleController.
+func (c *RoleController) GetTreeRoles(ctx *gin.Context) {
+	c.Logger.Info("Getting all roles tree")
+	roles, err := c.roleService.GetTreeRoles()
+	if err != nil {
+		c.Logger.Error("Error getting all roles tree", zap.Error(err))
+		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
+		_ = ctx.Error(appError)
+		return
+	}
+	c.Logger.Info("Successfully retrieved all roles tree", zap.Int("count", len(roles)))
+	ctx.JSON(http.StatusOK, domain.CommonResponse[[]*domainRole.RoleNode]{
+		Data: roles,
+	})
 }
 
 // Mappers

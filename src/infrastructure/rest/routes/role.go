@@ -17,5 +17,6 @@ func RoleRoutes(router *gin.RouterGroup, controller role.IRoleController) {
 		u.DELETE("/:id", controller.DeleteRole)
 		u.GET("/search", controller.SearchPaginated)
 		u.GET("/search-property", controller.SearchByProperty)
+		u.GET("/tree", controller.GetTreeRoles)
 	}
 }

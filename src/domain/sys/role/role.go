@@ -26,6 +26,13 @@ type SearchResultRole struct {
 	TotalPages int     `json:"total_page"`
 }
 
+type RoleNode struct {
+	ID       string      `json:"value"`
+	Name     string      `json:"title"`
+	Key      string      `json:"key"`
+	Children []*RoleNode `json:"children"`
+}
+
 type IRoleService interface {
 	GetAll() (*[]Role, error)
 	GetByID(id int) (*Role, error)
@@ -35,4 +42,5 @@ type IRoleService interface {
 	SearchPaginated(filters domain.DataFilters) (*SearchResultRole, error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*Role, error)
+	GetTreeRoles() ([]*RoleNode, error)
 }

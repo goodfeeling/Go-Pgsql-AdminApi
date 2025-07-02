@@ -1,6 +1,8 @@
 package role
 
 import (
+	"strconv"
+
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	roleRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
 
@@ -19,6 +21,7 @@ type ISysRoleService interface {
 	SearchPaginated(filters domain.DataFilters) (*roleDomain.SearchResultRole, error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*roleDomain.Role, error)
+	GetTreeRoles() ([]*roleDomain.RoleNode, error)
 }
 
 type SysRoleUseCase struct {
@@ -79,4 +82,40 @@ func (s *SysRoleUseCase) SearchByProperty(property string, searchText string) (*
 
 func (s *SysRoleUseCase) GetOneByMap(userMap map[string]interface{}) (*roleDomain.Role, error) {
 	return s.sysRoleRepository.GetOneByMap(userMap)
+}
+
+// GetTreeRoles implements ISysRoleService.
+func (s *SysRoleUseCase) GetTreeRoles() ([]*roleDomain.RoleNode, error) {
+	roles, err := s.sysRoleRepository.GetAll()
+	if err != nil {
+		return nil, err
+	}
+	roleMap := make(map[string]*roleDomain.RoleNode)
+	var roots []*roleDomain.RoleNode
+
+	// First traversal: Create all nodes and put them into the map.
+	for _, role := range *roles {
+		id := strconv.Itoa(int(role.ID))
+		node := &roleDomain.RoleNode{
+			ID:       id,
+			Name:     role.Name,
+			Key:      id,
+			Children: []*roleDomain.RoleNode{},
+		}
+		roleMap[id] = node
+	}
+
+	// Second traversal: Establish parent-child relationships.
+	for _, role := range *roles {
+		id := strconv.Itoa(int(role.ID))
+		node := roleMap[id]
+		if role.ParentID == 0 {
+			roots = append(roots, node)
+		} else {
+			if parentNode, exists := roleMap[strconv.Itoa(int(role.ParentID))]; exists {
+				parentNode.Children = append(parentNode.Children, node)
+			}
+		}
+	}
+	return roots, nil
 }

@@ -12,7 +12,7 @@ import (
 )
 
 type ISysRoleService interface {
-	GetAll() (*[]roleDomain.Role, error)
+	GetAll() ([]*roleDomain.RoleTree, error)
 	GetByID(id int) (*roleDomain.Role, error)
 	GetByName(name string) (*roleDomain.Role, error)
 	Create(newRole *roleDomain.Role) (*roleDomain.Role, error)
@@ -21,7 +21,7 @@ type ISysRoleService interface {
 	SearchPaginated(filters domain.DataFilters) (*roleDomain.SearchResultRole, error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*roleDomain.Role, error)
-	GetTreeRoles() ([]*roleDomain.RoleNode, error)
+	GetTreeRoles() (*roleDomain.RoleNode, error)
 }
 
 type SysRoleUseCase struct {
@@ -36,9 +36,52 @@ func NewSysFilesUseCase(sysRoleRepository roleRepo.ISysRolesRepository, loggerIn
 	}
 }
 
-func (s *SysRoleUseCase) GetAll() (*[]roleDomain.Role, error) {
+func (s *SysRoleUseCase) GetAll() ([]*roleDomain.RoleTree, error) {
+
 	s.Logger.Info("Getting all roles")
-	return s.sysRoleRepository.GetAll()
+	roles, err := s.sysRoleRepository.GetAll()
+	if err != nil {
+		return nil, err
+	}
+	roleMap := make(map[int64]*roleDomain.RoleTree)
+	var roots []*roleDomain.RoleTree
+
+	// First traversal: Create all nodes and put them into the map.
+	for _, role := range *roles {
+		node := &roleDomain.RoleTree{
+			ID:            role.ID,
+			Name:          role.Name,
+			ParentID:      role.ParentID,
+			DefaultRouter: role.DefaultRouter,
+			Status:        role.Status,
+			Order:         role.Order,
+			Label:         role.Label,
+			Description:   role.Description,
+			CreatedAt:     role.CreatedAt,
+			UpdatedAt:     role.UpdatedAt,
+			Path:          []int64{},
+			Children:      []*roleDomain.RoleTree{},
+		}
+		roleMap[role.ID] = node
+	}
+
+	// Second traversal: Establish parent-child relationships.
+	for _, role := range *roles {
+		node := roleMap[role.ID]
+		if role.ParentID == 0 {
+			node.Path = []int64{role.ID}
+			roots = append(roots, node)
+		} else {
+			if parentNode, exists := roleMap[role.ParentID]; exists {
+				// path handle
+				node.Path = append(node.Path, parentNode.Path...)
+				node.Path = append(node.Path, role.ID)
+
+				parentNode.Children = append(parentNode.Children, node)
+			}
+		}
+	}
+	return roots, nil
 }
 
 func (s *SysRoleUseCase) GetByID(id int) (*roleDomain.Role, error) {
@@ -85,12 +128,12 @@ func (s *SysRoleUseCase) GetOneByMap(userMap map[string]interface{}) (*roleDomai
 }
 
 // GetTreeRoles implements ISysRoleService.
-func (s *SysRoleUseCase) GetTreeRoles() ([]*roleDomain.RoleNode, error) {
+func (s *SysRoleUseCase) GetTreeRoles() (*roleDomain.RoleNode, error) {
 	roles, err := s.sysRoleRepository.GetAll()
 	if err != nil {
 		return nil, err
 	}
-	roleMap := make(map[string]*roleDomain.RoleNode)
+	roleMap := make(map[int64]*roleDomain.RoleNode)
 	var roots []*roleDomain.RoleNode
 
 	// First traversal: Create all nodes and put them into the map.
@@ -102,20 +145,24 @@ func (s *SysRoleUseCase) GetTreeRoles() ([]*roleDomain.RoleNode, error) {
 			Key:      id,
 			Children: []*roleDomain.RoleNode{},
 		}
-		roleMap[id] = node
+		roleMap[role.ID] = node
 	}
 
 	// Second traversal: Establish parent-child relationships.
 	for _, role := range *roles {
-		id := strconv.Itoa(int(role.ID))
-		node := roleMap[id]
+		node := roleMap[role.ID]
 		if role.ParentID == 0 {
 			roots = append(roots, node)
 		} else {
-			if parentNode, exists := roleMap[strconv.Itoa(int(role.ParentID))]; exists {
+			if parentNode, exists := roleMap[role.ParentID]; exists {
 				parentNode.Children = append(parentNode.Children, node)
 			}
 		}
 	}
-	return roots, nil
+	return &roleDomain.RoleNode{
+		ID:       "0",
+		Name:     "根节点",
+		Key:      "0",
+		Children: roots,
+	}, nil
 }

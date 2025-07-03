@@ -33,8 +33,23 @@ type RoleNode struct {
 	Children []*RoleNode `json:"children"`
 }
 
+type RoleTree struct {
+	ID            int64       `json:"id"`
+	Name          string      `json:"name"`
+	ParentID      int64       `json:"parent_id"`
+	DefaultRouter string      `json:"default_router"`
+	Status        bool        `json:"status"`
+	Order         int64       `json:"order"`
+	Label         string      `json:"label"`
+	Description   string      `json:"description"`
+	CreatedAt     time.Time   `json:"created_at"`
+	UpdatedAt     time.Time   `json:"updated_at"`
+	Path          []int64     `json:"path"`
+	Children      []*RoleTree `json:"children"`
+}
+
 type IRoleService interface {
-	GetAll() (*[]Role, error)
+	GetAll() ([]*RoleTree, error)
 	GetByID(id int) (*Role, error)
 	Create(newRole *Role) (*Role, error)
 	Delete(id int) error
@@ -42,5 +57,5 @@ type IRoleService interface {
 	SearchPaginated(filters domain.DataFilters) (*SearchResultRole, error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*Role, error)
-	GetTreeRoles() ([]*RoleNode, error)
+	GetTreeRoles() (*RoleNode, error)
 }

@@ -15,7 +15,7 @@ import (
 )
 
 type Roles struct {
-	ID            int64          `gorm:"primaryKey;column:id;type:numeric(20,0)"`
+	ID            int64          `gorm:"column:id;primary_key;autoIncrement" json:"id,omitempty"`
 	CreatedAt     time.Time      `gorm:"column:created_at"`
 	UpdatedAt     time.Time      `gorm:"column:updated_at"`
 	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at;index"`

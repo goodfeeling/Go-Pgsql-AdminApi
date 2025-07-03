@@ -92,9 +92,9 @@ func (c *RoleController) GetAllRoles(ctx *gin.Context) {
 		_ = ctx.Error(appError)
 		return
 	}
-	c.Logger.Info("Successfully retrieved all roles", zap.Int("count", len(*roles)))
-	ctx.JSON(http.StatusOK, domain.CommonResponse[*[]*ResponseRole]{
-		Data: arrayDomainToResponseMapper(roles),
+	c.Logger.Info("Successfully retrieved all roles", zap.Int("count", len(roles)))
+	ctx.JSON(http.StatusOK, domain.CommonResponse[[]*domainRole.RoleTree]{
+		Data: roles,
 	})
 }
 
@@ -326,8 +326,8 @@ func (c *RoleController) GetTreeRoles(ctx *gin.Context) {
 		_ = ctx.Error(appError)
 		return
 	}
-	c.Logger.Info("Successfully retrieved all roles tree", zap.Int("count", len(roles)))
-	ctx.JSON(http.StatusOK, domain.CommonResponse[[]*domainRole.RoleNode]{
+	c.Logger.Info("Successfully retrieved all roles tree", zap.Int("count", len(roles.Children)))
+	ctx.JSON(http.StatusOK, domain.CommonResponse[*domainRole.RoleNode]{
 		Data: roles,
 	})
 }

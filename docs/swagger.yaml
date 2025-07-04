@@ -74,7 +74,20 @@ definitions:
     type: object
   controllers.CommonResponseBuilder:
     type: object
+  controllers.CommonResponseBuilder-role_ResponseRole:
+    type: object
   controllers.CommonResponseBuilder-user_ResponseUser:
+    type: object
+  domain.CommonResponse-array_role_RoleTree:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/role.RoleTree'
+        type: array
+      message:
+        type: string
+      status:
+        type: integer
     type: object
   domain.CommonResponse-array_user_ResponseUser:
     properties:
@@ -105,10 +118,28 @@ definitions:
       status:
         type: integer
     type: object
+  domain.CommonResponse-github_com_gbrayhan_microservices-go_src_domain_sys_files_SysFiles:
+    properties:
+      data:
+        $ref: '#/definitions/github_com_gbrayhan_microservices-go_src_domain_sys_files.SysFiles'
+      message:
+        type: string
+      status:
+        type: integer
+    type: object
   domain.CommonResponse-int:
     properties:
       data:
         type: integer
+      message:
+        type: string
+      status:
+        type: integer
+    type: object
+  domain.CommonResponse-role_RoleNode:
+    properties:
+      data:
+        $ref: '#/definitions/role.RoleNode'
       message:
         type: string
       status:
@@ -166,6 +197,23 @@ definitions:
       start:
         type: string
     type: object
+  domain.PageList-array_role_ResponseRole:
+    properties:
+      filters:
+        $ref: '#/definitions/domain.DataFilters'
+      list:
+        items:
+          $ref: '#/definitions/role.ResponseRole'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+      total_page:
+        type: integer
+    type: object
   domain.PageList-array_user_ResponseUser:
     properties:
       filters:
@@ -191,6 +239,110 @@ definitions:
     x-enum-varnames:
     - SortAsc
     - SortDesc
+  github_com_gbrayhan_microservices-go_src_domain_sys_files.SysFiles:
+    properties:
+      file_md5:
+        type: string
+      file_name:
+        type: string
+      file_path:
+        type: string
+      file_url:
+        type: string
+      id:
+        type: integer
+    type: object
+  role.NewRoleRequest:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      label:
+        type: string
+      name:
+        type: string
+      order:
+        type: integer
+      parent_id:
+        type: integer
+      status:
+        type: boolean
+    required:
+    - name
+    - parent_id
+    type: object
+  role.ResponseRole:
+    properties:
+      created_at:
+        $ref: '#/definitions/domain.CustomTime'
+      default_router:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      label:
+        type: string
+      name:
+        type: string
+      order:
+        type: integer
+      parent_id:
+        type: integer
+      status:
+        type: boolean
+      updated_at:
+        $ref: '#/definitions/domain.CustomTime'
+    type: object
+  role.RoleNode:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/role.RoleNode'
+        type: array
+      key:
+        type: string
+      path:
+        items:
+          type: integer
+        type: array
+      title:
+        type: string
+      value:
+        type: string
+    type: object
+  role.RoleTree:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/role.RoleTree'
+        type: array
+      created_at:
+        type: string
+      default_router:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      label:
+        type: string
+      name:
+        type: string
+      order:
+        type: integer
+      parent_id:
+        type: integer
+      path:
+        items:
+          type: integer
+        type: array
+      status:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
   user.NewUserRequest:
     properties:
       email:
@@ -334,6 +486,165 @@ paths:
       summary: register new user
       tags:
       - register user
+  /v1/role:
+    get:
+      consumes:
+      - application/json
+      description: get  all roles by where
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.CommonResponse-array_role_RoleTree'
+      summary: get all roles by
+      tags:
+      - roles
+    post:
+      consumes:
+      - application/json
+      description: create role
+      parameters:
+      - description: JSON Data
+        in: body
+        name: book
+        required: true
+        schema:
+          $ref: '#/definitions/role.NewRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.CommonResponseBuilder'
+      summary: create role
+      tags:
+      - role create
+    put:
+      consumes:
+      - application/json
+      description: update role
+      parameters:
+      - description: JSON Data
+        in: body
+        name: book
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/controllers.CommonResponseBuilder-role_ResponseRole'
+            type: array
+      summary: update role
+      tags:
+      - role
+  /v1/role/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: delete role by id
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.CommonResponse-int'
+      summary: delete role
+      tags:
+      - role
+    get:
+      consumes:
+      - application/json
+      description: get roles by id
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/role.ResponseRole'
+      summary: get roles
+      tags:
+      - roles
+  /v1/role/search:
+    get:
+      consumes:
+      - application/json
+      description: search roles by query
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PageList-array_role_ResponseRole'
+      summary: search roles
+      tags:
+      - search roles
+  /v1/role/search-property:
+    get:
+      consumes:
+      - application/json
+      description: search by property
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              items:
+                type: string
+              type: array
+            type: array
+      summary: search by property
+      tags:
+      - search
+  /v1/role/tree:
+    get:
+      consumes:
+      - application/json
+      description: get tree roles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.CommonResponse-role_RoleNode'
+      summary: get tree roles
+      tags:
+      - tree roles
+  /v1/upload/single:
+    post:
+      consumes:
+      - multipart/form-data
+      description: upload single file get file info
+      parameters:
+      - description: fileResource
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.CommonResponse-github_com_gbrayhan_microservices-go_src_domain_sys_files_SysFiles'
+      summary: single file upload
+      tags:
+      - upload
   /v1/user:
     get:
       consumes:
@@ -352,7 +663,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: create suer
+      description: create user
       parameters:
       - description: JSON Data
         in: body

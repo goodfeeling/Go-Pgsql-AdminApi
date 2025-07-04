@@ -152,6 +152,248 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/role": {
+            "get": {
+                "description": "get  all roles by where",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "get all roles by",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.CommonResponse-array_role_RoleTree"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "update role",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "role"
+                ],
+                "summary": "update role",
+                "parameters": [
+                    {
+                        "description": "JSON Data",
+                        "name": "book",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/controllers.CommonResponseBuilder-role_ResponseRole"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "create role",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "role create"
+                ],
+                "summary": "create role",
+                "parameters": [
+                    {
+                        "description": "JSON Data",
+                        "name": "book",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/role.NewRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.CommonResponseBuilder"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/role/search": {
+            "get": {
+                "description": "search roles by query",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "search roles"
+                ],
+                "summary": "search roles",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.PageList-array_role_ResponseRole"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/role/search-property": {
+            "get": {
+                "description": "search by property",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "search"
+                ],
+                "summary": "search by property",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/role/tree": {
+            "get": {
+                "description": "get tree roles",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tree roles"
+                ],
+                "summary": "get tree roles",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.CommonResponse-role_RoleNode"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/role/{id}": {
+            "get": {
+                "description": "get roles by id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "get roles",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/role.ResponseRole"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "delete role by id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "role"
+                ],
+                "summary": "delete role",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.CommonResponse-int"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/upload/single": {
+            "post": {
+                "description": "upload single file get file info",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "upload"
+                ],
+                "summary": "single file upload",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "fileResource",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.CommonResponse-github_com_gbrayhan_microservices-go_src_domain_sys_files_SysFiles"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/user": {
             "get": {
                 "description": "get  all users by where",
@@ -211,7 +453,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "create suer",
+                "description": "create user",
                 "consumes": [
                     "application/json"
                 ],
@@ -492,8 +734,28 @@ const docTemplate = `{
         "controllers.CommonResponseBuilder": {
             "type": "object"
         },
+        "controllers.CommonResponseBuilder-role_ResponseRole": {
+            "type": "object"
+        },
         "controllers.CommonResponseBuilder-user_ResponseUser": {
             "type": "object"
+        },
+        "domain.CommonResponse-array_role_RoleTree": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/role.RoleTree"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
         },
         "domain.CommonResponse-array_user_ResponseUser": {
             "type": "object",
@@ -540,11 +802,39 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.CommonResponse-github_com_gbrayhan_microservices-go_src_domain_sys_files_SysFiles": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_gbrayhan_microservices-go_src_domain_sys_files.SysFiles"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
         "domain.CommonResponse-int": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "domain.CommonResponse-role_RoleNode": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/role.RoleNode"
                 },
                 "message": {
                     "type": "string"
@@ -634,6 +924,32 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.PageList-array_role_ResponseRole": {
+            "type": "object",
+            "properties": {
+                "filters": {
+                    "$ref": "#/definitions/domain.DataFilters"
+                },
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/role.ResponseRole"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_page": {
+                    "type": "integer"
+                }
+            }
+        },
         "domain.PageList-array_user_ResponseUser": {
             "type": "object",
             "properties": {
@@ -670,6 +986,164 @@ const docTemplate = `{
                 "SortAsc",
                 "SortDesc"
             ]
+        },
+        "github_com_gbrayhan_microservices-go_src_domain_sys_files.SysFiles": {
+            "type": "object",
+            "properties": {
+                "file_md5": {
+                    "type": "string"
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "file_path": {
+                    "type": "string"
+                },
+                "file_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "role.NewRoleRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "parent_id"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "parent_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "role.ResponseRole": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "$ref": "#/definitions/domain.CustomTime"
+                },
+                "default_router": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "parent_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "boolean"
+                },
+                "updated_at": {
+                    "$ref": "#/definitions/domain.CustomTime"
+                }
+            }
+        },
+        "role.RoleNode": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/role.RoleNode"
+                    }
+                },
+                "key": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "role.RoleTree": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/role.RoleTree"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "default_router": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "parent_id": {
+                    "type": "integer"
+                },
+                "path": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "status": {
+                    "type": "boolean"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
         },
         "user.NewUserRequest": {
             "type": "object",

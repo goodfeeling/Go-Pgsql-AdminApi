@@ -59,6 +59,15 @@ func NewRoleController(roleService domainRole.IRoleService, loggerInstance *logg
 	return &RoleController{roleService: roleService, Logger: loggerInstance}
 }
 
+// CreateRole
+// @Summary create role
+// @Description create role
+// @Tags role create
+// @Accept json
+// @Produce json
+// @Param book body NewRoleRequest true  "JSON Data"
+// @Success 200 {object} controllers.CommonResponseBuilder
+// @Router /v1/role [post]
 func (c *RoleController) NewRole(ctx *gin.Context) {
 	c.Logger.Info("Creating new role")
 	var request NewRoleRequest
@@ -83,6 +92,14 @@ func (c *RoleController) NewRole(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, roleResponse)
 }
 
+// GetAllRoles
+// @Summary get all roles by
+// @Description get  all roles by where
+// @Tags roles
+// @Accept json
+// @Produce json
+// @Success 200 {object} domain.CommonResponse[[]domainRole.RoleTree]
+// @Router /v1/role [get]
 func (c *RoleController) GetAllRoles(ctx *gin.Context) {
 	c.Logger.Info("Getting all roles")
 	roles, err := c.roleService.GetAll()
@@ -98,6 +115,14 @@ func (c *RoleController) GetAllRoles(ctx *gin.Context) {
 	})
 }
 
+// GetRolesByID
+// @Summary get roles
+// @Description get roles by id
+// @Tags roles
+// @Accept json
+// @Produce json
+// @Success 200 {object} ResponseRole
+// @Router /v1/role/{id} [get]
 func (c *RoleController) GetRolesByID(ctx *gin.Context) {
 	roleID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -117,6 +142,15 @@ func (c *RoleController) GetRolesByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, domainToResponseMapper(role))
 }
 
+// UpdateRole
+// @Summary update role
+// @Description update role
+// @Tags role
+// @Accept json
+// @Produce json
+// @Param book body map[string]any  true  "JSON Data"
+// @Success 200 {array} controllers.CommonResponseBuilder[ResponseRole]
+// @Router /v1/role [put]
 func (c *RoleController) UpdateRole(ctx *gin.Context) {
 	roleID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -155,6 +189,14 @@ func (c *RoleController) UpdateRole(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
+// DeleteRole
+// @Summary delete role
+// @Description delete role by id
+// @Tags role
+// @Accept json
+// @Produce json
+// @Success 200 {object} domain.CommonResponse[int]
+// @Router /v1/role/{id} [delete]
 func (c *RoleController) DeleteRole(ctx *gin.Context) {
 	roleID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -171,9 +213,21 @@ func (c *RoleController) DeleteRole(ctx *gin.Context) {
 		return
 	}
 	c.Logger.Info("Role deleted successfully", zap.Int("id", roleID))
-	ctx.JSON(http.StatusOK, gin.H{"message": "resource deleted successfully", "status": 0, "data": roleID})
+	ctx.JSON(http.StatusOK, domain.CommonResponse[int]{
+		Data:    roleID,
+		Message: "resource deleted successfully",
+		Status:  0,
+	})
 }
 
+// SearchRolePageList
+// @Summary search roles
+// @Description search roles by query
+// @Tags search roles
+// @Accept json
+// @Produce json
+// @Success 200 {object} domain.PageList[[]ResponseRole]
+// @Router /v1/role/search [get]
 func (c *RoleController) SearchPaginated(ctx *gin.Context) {
 	c.Logger.Info("Searching roles with pagination")
 
@@ -277,6 +331,14 @@ func (c *RoleController) SearchPaginated(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
+// SearchByProperty
+// @Summary  search by property
+// @Description search by property
+// @Tags search
+// @Accept json
+// @Produce json
+// @Success 200 {array} []string
+// @Router /v1/role/search-property [get]
 func (c *RoleController) SearchByProperty(ctx *gin.Context) {
 	property := ctx.Query("property")
 	searchText := ctx.Query("searchText")
@@ -316,7 +378,14 @@ func (c *RoleController) SearchByProperty(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, coincidences)
 }
 
-// GetTreeRoles implements IRoleController.
+// GetTreeRoles
+// @Summary get tree roles
+// @Description get tree roles
+// @Tags tree roles
+// @Accept json
+// @Produce json
+// @Success 200 {object} domain.CommonResponse[domainRole.RoleNode]
+// @Router /v1/role/tree [get]
 func (c *RoleController) GetTreeRoles(ctx *gin.Context) {
 	c.Logger.Info("Getting all roles tree")
 	roles, err := c.roleService.GetTreeRoles()

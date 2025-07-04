@@ -30,7 +30,15 @@ func (u *UploadController) Multiple(ctx *gin.Context) {
 	panic("unimplemented")
 }
 
-// single implements IUploadController.
+// SingleUpload
+// @Summary single file upload
+// @Description upload single file get file info
+// @Tags upload
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "fileResource"
+// @Success 200 {object} domain.CommonResponse[domainFiles.SysFiles]
+// @Router /v1/upload/single [post]
 func (u *UploadController) Single(ctx *gin.Context) {
 	file, err := ctx.FormFile("file")
 	if err != nil {

@@ -61,7 +61,7 @@ func NewUserController(userService domainUser.IUserService, loggerInstance *logg
 
 // CreateUser
 // @Summary create user
-// @Description create suer
+// @Description create user
 // @Tags user create
 // @Accept json
 // @Produce json

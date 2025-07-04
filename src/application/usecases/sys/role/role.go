@@ -143,6 +143,7 @@ func (s *SysRoleUseCase) GetTreeRoles() (*roleDomain.RoleNode, error) {
 			ID:       id,
 			Name:     role.Name,
 			Key:      id,
+			Path:     []int64{},
 			Children: []*roleDomain.RoleNode{},
 		}
 		roleMap[role.ID] = node
@@ -152,9 +153,13 @@ func (s *SysRoleUseCase) GetTreeRoles() (*roleDomain.RoleNode, error) {
 	for _, role := range *roles {
 		node := roleMap[role.ID]
 		if role.ParentID == 0 {
+			node.Path = []int64{role.ID}
 			roots = append(roots, node)
 		} else {
 			if parentNode, exists := roleMap[role.ParentID]; exists {
+				// path handle
+				node.Path = append(node.Path, parentNode.Path...)
+				node.Path = append(node.Path, role.ID)
 				parentNode.Children = append(parentNode.Children, node)
 			}
 		}

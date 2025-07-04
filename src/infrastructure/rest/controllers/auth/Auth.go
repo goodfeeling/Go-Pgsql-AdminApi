@@ -26,7 +26,16 @@ type AuthController struct {
 	Logger      *logger.Logger
 }
 
-// Register implements IAuthController.
+// RegisterUser godoc
+//
+//	@Summary		register new user
+//	@Description	register new user
+//	@Tags			register user
+//	@Accept			json
+//	@Produce		json
+//	@Param			book	body	RegisterRequest	true	"JSON Data"
+//	@Success		200		{array}	domain.CommonResponse[useCaseAuth.SecurityRegisterUser]
+//	@Router			/v1/auth/signup [get]
 func (c *AuthController) Register(ctx *gin.Context) {
 	var request RegisterRequest
 	if err := controllers.BindJSON(ctx, &request); err != nil {
@@ -49,7 +58,14 @@ func (c *AuthController) Register(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, registerUser)
 }
 
-// Logout implements IAuthController.
+// UserLogout
+// @Summary user logout
+// @Description user logout
+// @Tags logout
+// @Accept json
+// @Produce json
+// @Success 200 {object} domain.CommonResponse[string]
+// @Router /v1/auth/logout [get]
 func (c *AuthController) Logout(ctx *gin.Context) {
 	rawtoken := ctx.Request.Header.Get("Authorization")
 	tokens := strings.Split(rawtoken, " ")
@@ -74,6 +90,15 @@ func NewAuthController(authUsecase useCaseAuth.IAuthUseCase, loggerInstance *log
 	}
 }
 
+// Login godoc
+// @Summary login godoc
+// @Description login
+// @Tags login
+// @Accept json
+// @Produce json
+// @Param book body LoginRequest  true  "JSON Data"
+// @Success 200 {object} domain.CommonResponse[useCaseAuth.SecurityAuthenticatedUser]
+// @Router /v1/auth/signin [get]
 func (c *AuthController) Login(ctx *gin.Context) {
 	c.Logger.Info("User login request")
 	var request LoginRequest
@@ -115,6 +140,15 @@ func (c *AuthController) Login(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
+// RefreshUserToken
+// @Summary refresh token
+// @Description refresh token
+// @Tags refresh_token
+// @Accept json
+// @Produce json
+// @Param book body AccessTokenRequest  true  "JSON Data"
+// @Success 200 {object} domain.CommonResponse[useCaseAuth.SecurityAuthenticatedUser]
+// @Router /v1/auth/access-token [get]
 func (c *AuthController) GetAccessTokenByRefreshToken(ctx *gin.Context) {
 	c.Logger.Info("Token refresh request")
 	var request AccessTokenRequest

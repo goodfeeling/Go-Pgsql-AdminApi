@@ -30,6 +30,7 @@ type RoleNode struct {
 	ID       string      `json:"value"`
 	Name     string      `json:"title"`
 	Key      string      `json:"key"`
+	Path     []int64     `json:"path"`
 	Children []*RoleNode `json:"children"`
 }
 

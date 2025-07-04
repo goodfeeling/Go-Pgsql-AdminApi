@@ -59,6 +59,15 @@ func NewUserController(userService domainUser.IUserService, loggerInstance *logg
 	return &UserController{userService: userService, Logger: loggerInstance}
 }
 
+// CreateUser
+// @Summary create user
+// @Description create suer
+// @Tags user create
+// @Accept json
+// @Produce json
+// @Param book body NewUserRequest true  "JSON Data"
+// @Success 200 {object} controllers.CommonResponseBuilder
+// @Router /v1/user [post]
 func (c *UserController) NewUser(ctx *gin.Context) {
 	c.Logger.Info("Creating new user")
 	var request NewUserRequest
@@ -83,6 +92,14 @@ func (c *UserController) NewUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, userResponse)
 }
 
+// GetAllUsers
+// @Summary get all users by
+// @Description get  all users by where
+// @Tags users
+// @Accept json
+// @Produce json
+// @Success 200 {object} domain.CommonResponse[[]ResponseUser]
+// @Router /v1/user [get]
 func (c *UserController) GetAllUsers(ctx *gin.Context) {
 	c.Logger.Info("Getting all users")
 	users, err := c.userService.GetAll()
@@ -98,6 +115,14 @@ func (c *UserController) GetAllUsers(ctx *gin.Context) {
 	})
 }
 
+// GetUserByID
+// @Summary get users
+// @Description get users by id
+// @Tags users
+// @Accept json
+// @Produce json
+// @Success 200 {object} ResponseUser
+// @Router /v1/user/{id} [get]
 func (c *UserController) GetUsersByID(ctx *gin.Context) {
 	userID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -117,6 +142,15 @@ func (c *UserController) GetUsersByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, domainToResponseMapper(user))
 }
 
+// UpdateUserInfo
+// @Summary update userinfo
+// @Description update userinfo
+// @Tags userinfo
+// @Accept json
+// @Produce json
+// @Param book body map[string]any  true  "JSON Data"
+// @Success 200 {array} controllers.CommonResponseBuilder[ResponseUser]
+// @Router /v1/user [put]
 func (c *UserController) UpdateUser(ctx *gin.Context) {
 	userID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -155,6 +189,14 @@ func (c *UserController) UpdateUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
+// DeleteUser
+// @Summary delete user
+// @Description delete user by id
+// @Tags user
+// @Accept json
+// @Produce json
+// @Success 200 {object} domain.CommonResponse[int]
+// @Router /v1/user/{id} [delete]
 func (c *UserController) DeleteUser(ctx *gin.Context) {
 	userID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -171,9 +213,27 @@ func (c *UserController) DeleteUser(ctx *gin.Context) {
 		return
 	}
 	c.Logger.Info("User deleted successfully", zap.Int("id", userID))
-	ctx.JSON(http.StatusOK, gin.H{"message": "resource deleted successfully", "status": 0, "data": userID})
+	ctx.JSON(http.StatusOK, domain.CommonResponse[int]{
+		Data:    userID,
+		Message: "success",
+		Status:  0,
+	})
 }
 
+// SearchUsersPageList
+// @Summary search users
+// @Description search users by query
+// @Tags search users
+// @Accept json
+// @Produce json
+// @Param page query string false "page"
+// @Param pageSize query string false "PageSize"
+// @Param sortBy query string false "sortBy"
+// @Param sortDirection query string false "sortDirection"
+// @Param status_match query string  false "status"
+// @Param user_name_like query string false "userName"
+// @Success 200 {object} domain.PageList[[]ResponseUser]
+// @Router /v1/user/search [get]
 func (c *UserController) SearchPaginated(ctx *gin.Context) {
 	c.Logger.Info("Searching users with pagination")
 
@@ -276,6 +336,14 @@ func (c *UserController) SearchPaginated(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
+// SearchByProperty
+// @Summary  search by property
+// @Description search by property
+// @Tags search
+// @Accept json
+// @Produce json
+// @Success 200 {array} []string
+// @Router /v1/user/search-property [get]
 func (c *UserController) SearchByProperty(ctx *gin.Context) {
 	property := ctx.Query("property")
 	searchText := ctx.Query("searchText")

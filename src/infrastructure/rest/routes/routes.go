@@ -5,6 +5,8 @@ import (
 
 	"github.com/gbrayhan/microservices-go/src/infrastructure/di"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"     // swagger embed files
+	ginSwagger "github.com/swaggo/gin-swagger" // gin-swagger middleware
 )
 
 func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
@@ -22,4 +24,5 @@ func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
 	MedicineRoutes(v1, appContext.MedicineController)
 	UploadRoutes(v1, appContext.UploadController)
 	RoleRoutes(v1, appContext.RoleController)
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }

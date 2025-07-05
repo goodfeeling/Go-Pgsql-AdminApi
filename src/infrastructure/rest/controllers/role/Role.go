@@ -21,7 +21,7 @@ import (
 type NewRoleRequest struct {
 	ID          int64  `json:"id"`
 	Name        string `json:"name" binding:"required"`
-	ParentID    int64  `json:"parent_id" binding:"required"`
+	ParentID    int64  `json:"parent_id"`
 	Order       int64  `json:"order"`
 	Label       string `json:"label"`
 	Status      bool   `json:"status"`

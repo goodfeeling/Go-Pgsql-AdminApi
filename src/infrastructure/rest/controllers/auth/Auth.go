@@ -58,7 +58,7 @@ func (c *AuthController) Register(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, registerUser)
 }
 
-// UserLogout
+// UserLogout godoc
 // @Summary user logout
 // @Description user logout
 // @Tags logout

@@ -15,7 +15,6 @@ type User struct {
 	Status        bool
 	HashPassword  string
 	HeaderImg     string
-	RoleId        int64
 	Phone         string
 	OriginSetting string
 	Password      string

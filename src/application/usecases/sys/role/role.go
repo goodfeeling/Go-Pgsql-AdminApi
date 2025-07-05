@@ -29,7 +29,7 @@ type SysRoleUseCase struct {
 	Logger            *logger.Logger
 }
 
-func NewSysFilesUseCase(sysRoleRepository roleRepo.ISysRolesRepository, loggerInstance *logger.Logger) ISysRoleService {
+func NewSysRoleUseCase(sysRoleRepository roleRepo.ISysRolesRepository, loggerInstance *logger.Logger) ISysRoleService {
 	return &SysRoleUseCase{
 		sysRoleRepository: sysRoleRepository,
 		Logger:            loggerInstance,

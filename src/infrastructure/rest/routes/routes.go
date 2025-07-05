@@ -10,6 +10,9 @@ import (
 )
 
 func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	v1 := router.Group("/v1")
 
 	v1.GET("/health", func(c *gin.Context) {
@@ -24,5 +27,5 @@ func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
 	MedicineRoutes(v1, appContext.MedicineController)
 	UploadRoutes(v1, appContext.UploadController)
 	RoleRoutes(v1, appContext.RoleController)
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	ApiRouters(v1, appContext.ApiController)
 }

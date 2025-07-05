@@ -48,6 +48,14 @@ type PageList[T interface{}] struct {
 	Filters    DataFilters `json:"filters"`
 }
 
+type PaginatedResult[T any] struct {
+	Data       *[]T  `json:"data"`
+	Total      int64 `json:"total"`
+	Page       int   `json:"page"`
+	PageSize   int   `json:"pageSize"`
+	TotalPages int   `json:"totalPages"`
+}
+
 type CustomTime struct {
 	time.Time
 }

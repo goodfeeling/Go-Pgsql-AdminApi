@@ -22,7 +22,6 @@ type User struct {
 	Email         string         `gorm:"column:email;type:text;uniqueIndex:uni_sys_users_email"`
 	HashPassword  string         `gorm:"column:hash_password;type:text"`
 	HeaderImg     string         `gorm:"column:header_img;type:text"`
-	RoleId        int64          `gorm:"column:role_id;type:bigint"`
 	Phone         string         `gorm:"column:phone;type:text"`
 	Status        bool           `gorm:"column:status"`
 	OriginSetting string         `gorm:"column:origin_setting;type:text"`
@@ -338,7 +337,6 @@ func fromDomainMapper(u *domainUser.User) *User {
 		UUID:          u.UUID,
 		NickName:      u.NickName,
 		HeaderImg:     u.HeaderImg,
-		RoleId:        u.RoleId,
 		Phone:         u.Phone,
 		OriginSetting: u.OriginSetting,
 		UserName:      u.UserName,

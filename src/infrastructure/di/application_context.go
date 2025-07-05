@@ -5,6 +5,7 @@ import (
 
 	authUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/auth"
 	medicineUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/medicine"
+	apiUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/api"
 	filesUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/files"
 	roleUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/role"
 	userUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/user"
@@ -12,9 +13,11 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/jwt_blacklist"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/medicine"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/files"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
+	apiController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/api"
 	authController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/auth"
 	medicineController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/medicine"
 	roleController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/role"
@@ -34,19 +37,21 @@ type ApplicationContext struct {
 	MedicineController medicineController.IMedicineController
 	UploadController   uploadController.IUploadController
 	RoleController     roleController.IRoleController
-
-	JWTService security.IJWTService
+	ApiController      apiController.IApiController
+	JWTService         security.IJWTService
 	// repository
 	UserRepository     user.UserRepositoryInterface
 	MedicineRepository medicine.MedicineRepositoryInterface
 	FilesRepository    files.ISysFilesRepository
 	RoleRepository     role.ISysRolesRepository
+	ApiRepository      api.ApiRepositoryInterface
 	// application
 	AuthUseCase     authUseCase.IAuthUseCase
 	UserUseCase     userUseCase.IUserUseCase
 	MedicineUseCase medicineUseCase.IMedicineUseCase
 	FilesUseCase    filesUseCase.ISysFilesService
 	RoleUseCase     roleUseCase.ISysRoleService
+	ApiUseCase      apiUseCase.ISysApiService
 }
 
 var (
@@ -78,13 +83,15 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	jwtBlackListRepo := jwt_blacklist.NewUJwtBlacklistRepository(db)
 	filesRepo := files.NewSysFilesRepository(db, loggerInstance)
 	roleRepo := role.NewSysRolesRepository(db, loggerInstance)
+	apiRepo := api.NewApiRepository(db, loggerInstance)
 
 	// Initialize use cases with logger
 	authUC := authUseCase.NewAuthUseCase(userRepo, jwtService, loggerInstance, jwtBlackListRepo)
 	userUC := userUseCase.NewUserUseCase(userRepo, loggerInstance)
 	medicineUC := medicineUseCase.NewMedicineUseCase(medicineRepo, loggerInstance)
 	filesUC := filesUseCase.NewSysFilesUseCase(filesRepo, loggerInstance)
-	roleUC := roleUseCase.NewSysFilesUseCase(roleRepo, loggerInstance)
+	roleUC := roleUseCase.NewSysRoleUseCase(roleRepo, loggerInstance)
+	apiUC := apiUseCase.NewSysApiUseCase(apiRepo, loggerInstance)
 
 	// Initialize controllers with logger
 	authController := authController.NewAuthController(authUC, loggerInstance)
@@ -92,6 +99,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	medicineController := medicineController.NewMedicineController(medicineUC, loggerInstance)
 	uploadController := uploadController.NewAuthController(filesUC, loggerInstance)
 	roleController := roleController.NewRoleController(roleUC, loggerInstance)
+	apiController := apiController.NewApiController(apiUC, loggerInstance)
 
 	return &ApplicationContext{
 		DB:     db,
@@ -102,18 +110,21 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		MedicineController: medicineController,
 		UploadController:   uploadController,
 		RoleController:     roleController,
+		ApiController:      apiController,
 		JWTService:         jwtService,
 		// repository
 		UserRepository:     userRepo,
 		MedicineRepository: medicineRepo,
 		FilesRepository:    filesRepo,
 		RoleRepository:     roleRepo,
+		ApiRepository:      apiRepo,
 		// application
 		AuthUseCase:     authUC,
 		UserUseCase:     userUC,
 		MedicineUseCase: medicineUC,
 		FilesUseCase:    filesUC,
 		RoleUseCase:     roleUC,
+		ApiUseCase:      apiUC,
 	}, nil
 }
 

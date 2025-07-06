@@ -1,4 +1,4 @@
-package base_menus
+package base_menu
 
 import (
 	"encoding/json"

@@ -7,6 +7,7 @@ import (
 	medicineUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/medicine"
 	apiUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/api"
 	filesUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/files"
+	menuUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/menu"
 	roleUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/role"
 	userUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/user"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
@@ -14,12 +15,14 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/jwt_blacklist"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/medicine"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/files"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
 	apiController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/api"
 	authController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/auth"
 	medicineController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/medicine"
+	menuController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menu"
 	roleController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/role"
 	uploadController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/upload"
 	userController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/user"
@@ -39,12 +42,14 @@ type ApplicationContext struct {
 	RoleController     roleController.IRoleController
 	ApiController      apiController.IApiController
 	JWTService         security.IJWTService
+	MenuController     menuController.IMenuController
 	// repository
 	UserRepository     user.UserRepositoryInterface
 	MedicineRepository medicine.MedicineRepositoryInterface
 	FilesRepository    files.ISysFilesRepository
 	RoleRepository     role.ISysRolesRepository
 	ApiRepository      api.ApiRepositoryInterface
+	MenuRepository     base_menu.MenuRepositoryInterface
 	// application
 	AuthUseCase     authUseCase.IAuthUseCase
 	UserUseCase     userUseCase.IUserUseCase
@@ -52,6 +57,7 @@ type ApplicationContext struct {
 	FilesUseCase    filesUseCase.ISysFilesService
 	RoleUseCase     roleUseCase.ISysRoleService
 	ApiUseCase      apiUseCase.ISysApiService
+	MenuUseCase     menuUseCase.ISysMenuService
 }
 
 var (

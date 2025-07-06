@@ -58,7 +58,7 @@ func (s *SysDictionaryUseCase) Update(id int, userMap map[string]interface{}) (*
 }
 
 func (s *SysDictionaryUseCase) SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[dictionaryDomain.Dictionary], error) {
-	s.Logger.Info("Searching dictionarys with pagination",
+	s.Logger.Info("Searching dictionary with pagination",
 		zap.Int("page", filters.Page),
 		zap.Int("pageSize", filters.PageSize))
 	return s.sysDictionaryRepository.SearchPaginated(filters)

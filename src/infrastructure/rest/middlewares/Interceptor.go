@@ -7,6 +7,7 @@ import (
 	"time"
 
 	operationRecordsDomain "github.com/gbrayhan/microservices-go/src/domain/sys/operation_records"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	operationRecordsRepository "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/operation_records"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -22,7 +23,7 @@ func (w bodyLogWriter) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
-func GinBodyLogMiddleware(db *gorm.DB) gin.HandlerFunc {
+func GinBodyLogMiddleware(db *gorm.DB, logger *logger.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var reqBody string
 		var resp string
@@ -49,7 +50,7 @@ func GinBodyLogMiddleware(db *gorm.DB) gin.HandlerFunc {
 		c.Next()
 		latency := time.Since(start).Milliseconds()
 
-		operationRecordsRepository := operationRecordsRepository.NewUserRepository(db)
+		operationRecordsRepository := operationRecordsRepository.NewOperationRepository(db, logger)
 
 		// handle user Id
 		userIdRaw, exist := c.Get("user_id")

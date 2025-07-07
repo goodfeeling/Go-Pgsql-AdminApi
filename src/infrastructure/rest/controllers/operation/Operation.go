@@ -18,31 +18,30 @@ import (
 )
 
 // Structures
-type NewOperationRequest struct {
-	ID             int    `json:"id"`
-	Path           string `json:"path" binding:"required"`
-	OperationGroup string `json:"operation_group" binding:"required"`
-	Method         string `json:"method" binding:"required"`
-	Description    string `json:"description" binding:"required"`
+type DeleteBatchOperationRequest struct {
+	IDS []int `json:"ids"`
 }
 
 type ResponseOperation struct {
-	ID             int               `json:"id"`
-	Path           string            `json:"path"`
-	OperationGroup string            `json:"operation_group"`
-	Method         string            `json:"method"`
-	Description    string            `json:"description"`
-	CreatedAt      domain.CustomTime `json:"created_at,omitempty"`
-	UpdatedAt      domain.CustomTime `json:"updated_at,omitempty"`
+	ID           int               `json:"id"`
+	IP           string            `json:"ip"`
+	Path         string            `json:"path"`
+	Method       string            `json:"method"`
+	Status       int8              `json:"status"`
+	Latency      int64             `json:"latency"`
+	Agent        string            `json:"agent"`
+	ErrorMessage string            `json:"error_message"`
+	Body         string            `json:"body"`
+	Resp         string            `json:"resp"`
+	CreatedAt    domain.CustomTime `json:"created_at,omitempty"`
+	UpdatedAt    domain.CustomTime `json:"updated_at,omitempty"`
 }
 type IOperationController interface {
-	NewOperation(ctx *gin.Context)
 	GetAllOperations(ctx *gin.Context)
 	GetOperationsByID(ctx *gin.Context)
-	UpdateOperation(ctx *gin.Context)
 	DeleteOperation(ctx *gin.Context)
+	DeleteOperations(ctx *gin.Context)
 	SearchPaginated(ctx *gin.Context)
-	SearchByProperty(ctx *gin.Context)
 }
 type OperationController struct {
 	operationService domainOperation.ISysOperationRecordService
@@ -51,39 +50,6 @@ type OperationController struct {
 
 func NewOperationController(operationService domainOperation.ISysOperationRecordService, loggerInstance *logger.Logger) IOperationController {
 	return &OperationController{operationService: operationService, Logger: loggerInstance}
-}
-
-// CreateOperation
-// @Summary create operation
-// @Description create operation
-// @Tags operation create
-// @Accept json
-// @Produce json
-// @Param book body NewOperationRequest true  "JSON Data"
-// @Success 200 {object} controllers.CommonResponseBuilder
-// @Router /v1/operation [post]
-func (c *OperationController) NewOperation(ctx *gin.Context) {
-	c.Logger.Info("Creating new operation")
-	var request NewOperationRequest
-	if err := controllers.BindJSON(ctx, &request); err != nil {
-		c.Logger.Error("Error binding JSON for new operation", zap.Error(err))
-		appError := domainErrors.NewAppError(err, domainErrors.ValidationError)
-		_ = ctx.Error(appError)
-		return
-	}
-	operationModel, err := c.operationService.Create(toUsecaseMapper(&request))
-	if err != nil {
-		c.Logger.Error("Error creating operation", zap.Error(err), zap.String("path", request.Path))
-		_ = ctx.Error(err)
-		return
-	}
-	operationResponse := controllers.NewCommonResponseBuilder[*ResponseOperation]().
-		Data(domainToResponseMapper(operationModel)).
-		Message("success").
-		Status(0).
-		Build()
-	c.Logger.Info("Operation created successfully", zap.String("path", request.Path), zap.Int("id", int(operationModel.ID)))
-	ctx.JSON(http.StatusOK, operationResponse)
 }
 
 // GetAllOperations
@@ -136,53 +102,6 @@ func (c *OperationController) GetOperationsByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, domainToResponseMapper(operation))
 }
 
-// UpdateOperation
-// @Summary update operation
-// @Description update operation
-// @Tags operation
-// @Accept json
-// @Produce json
-// @Param book body map[string]any  true  "JSON Data"
-// @Success 200 {array} controllers.CommonResponseBuilder[ResponseOperation]
-// @Router /v1/operation [put]
-func (c *OperationController) UpdateOperation(ctx *gin.Context) {
-	operationID, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		c.Logger.Error("Invalid operation ID parameter for update", zap.Error(err), zap.String("id", ctx.Param("id")))
-		appError := domainErrors.NewAppError(errors.New("param id is necessary"), domainErrors.ValidationError)
-		_ = ctx.Error(appError)
-		return
-	}
-	c.Logger.Info("Updating operation", zap.Int("id", operationID))
-	var requestMap map[string]any
-	err = controllers.BindJSONMap(ctx, &requestMap)
-	if err != nil {
-		c.Logger.Error("Error binding JSON for operation update", zap.Error(err), zap.Int("id", operationID))
-		appError := domainErrors.NewAppError(err, domainErrors.ValidationError)
-		_ = ctx.Error(appError)
-		return
-	}
-	err = updateValidation(requestMap)
-	if err != nil {
-		c.Logger.Error("Validation error for operation update", zap.Error(err), zap.Int("id", operationID))
-		_ = ctx.Error(err)
-		return
-	}
-	operationUpdated, err := c.operationService.Update(operationID, requestMap)
-	if err != nil {
-		c.Logger.Error("Error updating operation", zap.Error(err), zap.Int("id", operationID))
-		_ = ctx.Error(err)
-		return
-	}
-	response := controllers.NewCommonResponseBuilder[*ResponseOperation]().
-		Data(domainToResponseMapper(operationUpdated)).
-		Message("success").
-		Status(0).
-		Build()
-	c.Logger.Info("Operation updated successfully", zap.Int("id", operationID))
-	ctx.JSON(http.StatusOK, response)
-}
-
 // DeleteOperation
 // @Summary delete operation
 // @Description delete operation by id
@@ -200,7 +119,7 @@ func (c *OperationController) DeleteOperation(ctx *gin.Context) {
 		return
 	}
 	c.Logger.Info("Deleting operation", zap.Int("id", operationID))
-	err = c.operationService.Delete(operationID)
+	err = c.operationService.Delete([]int{operationID})
 	if err != nil {
 		c.Logger.Error("Error deleting operation", zap.Error(err), zap.Int("id", operationID))
 		_ = ctx.Error(err)
@@ -209,6 +128,40 @@ func (c *OperationController) DeleteOperation(ctx *gin.Context) {
 	c.Logger.Info("Operation deleted successfully", zap.Int("id", operationID))
 	ctx.JSON(http.StatusOK, domain.CommonResponse[int]{
 		Data:    operationID,
+		Message: "resource deleted successfully",
+		Status:  0,
+	})
+}
+
+// BatchDeleteOperation
+// @Summary delete operations
+// @Description delete operations by id
+// @Tags batch delete
+// @Accept json
+// @Produce json
+// @Param book body DeleteBatchOperationRequest true  "JSON Data"
+// @Success 200 {object} domain.CommonResponse[int]
+// @Router /v1/operation/delete-batch [post]
+func (c *OperationController) DeleteOperations(ctx *gin.Context) {
+	c.Logger.Info("Creating new dictionary")
+	var request DeleteBatchOperationRequest
+	var err error
+	if err = controllers.BindJSON(ctx, &request); err != nil {
+		c.Logger.Error("Error binding JSON for new dictionary", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	c.Logger.Info("Deleting operation", zap.String("ids", fmt.Sprintf("%v", request.IDS)))
+	err = c.operationService.Delete(request.IDS)
+	if err != nil {
+		c.Logger.Error("Error deleting operation", zap.Error(err), zap.String("ids", fmt.Sprintf("%v", request.IDS)))
+		_ = ctx.Error(err)
+		return
+	}
+	c.Logger.Info("Operation deleted successfully", zap.String("ids", fmt.Sprintf("%v", request.IDS)))
+	ctx.JSON(http.StatusOK, domain.CommonResponse[[]int]{
+		Data:    request.IDS,
 		Message: "resource deleted successfully",
 		Status:  0,
 	})
@@ -298,6 +251,7 @@ func (c *OperationController) SearchPaginated(ctx *gin.Context) {
 	if sortDirection.IsValid() {
 		filters.SortDirection = sortDirection
 	}
+	fmt.Println(sortBy, sortDirection)
 
 	result, err := c.operationService.SearchPaginated(filters)
 	if err != nil {
@@ -325,62 +279,22 @@ func (c *OperationController) SearchPaginated(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// SearchByProperty
-// @Summary  search by property
-// @Description search by property
-// @Tags search
-// @Accept json
-// @Produce json
-// @Success 200 {array} []string
-// @Router /v1/operation/search-property [get]
-func (c *OperationController) SearchByProperty(ctx *gin.Context) {
-	property := ctx.Query("property")
-	searchText := ctx.Query("searchText")
-
-	if property == "" || searchText == "" {
-		c.Logger.Error("Missing property or searchText parameter")
-		appError := domainErrors.NewAppError(errors.New("missing property or searchText parameter"), domainErrors.ValidationError)
-		_ = ctx.Error(appError)
-		return
-	}
-
-	// Validate property
-	allowed := map[string]bool{
-		"operationName": true,
-		"email":         true,
-		"firstName":     true,
-		"lastName":      true,
-		"status":        true,
-	}
-	if !allowed[property] {
-		c.Logger.Error("Invalid property for search", zap.String("property", property))
-		appError := domainErrors.NewAppError(errors.New("invalid property"), domainErrors.ValidationError)
-		_ = ctx.Error(appError)
-		return
-	}
-
-	coincidences, err := c.operationService.SearchByProperty(property, searchText)
-	if err != nil {
-		c.Logger.Error("Error searching by property", zap.Error(err), zap.String("property", property))
-		_ = ctx.Error(err)
-		return
-	}
-
-	c.Logger.Info("Successfully searched by property",
-		zap.String("property", property),
-		zap.Int("results", len(*coincidences)))
-	ctx.JSON(http.StatusOK, coincidences)
-}
-
 // Mappers
 func domainToResponseMapper(domainOperation *domainOperation.SysOperationRecord) *ResponseOperation {
 
 	return &ResponseOperation{
-		ID:        domainOperation.ID,
-		Path:      domainOperation.Path,
-		Method:    domainOperation.Method,
-		CreatedAt: domain.CustomTime{Time: domainOperation.CreatedAt},
-		UpdatedAt: domain.CustomTime{Time: domainOperation.UpdatedAt},
+		ID:           domainOperation.ID,
+		IP:           domainOperation.IP,
+		Path:         domainOperation.Path,
+		Method:       domainOperation.Method,
+		Status:       domainOperation.Status,
+		Latency:      domainOperation.Latency,
+		Agent:        domainOperation.Agent,
+		ErrorMessage: domainOperation.ErrorMessage,
+		Body:         domainOperation.Body,
+		Resp:         domainOperation.Resp,
+		CreatedAt:    domainOperation.CreatedAt,
+		UpdatedAt:    domainOperation.UpdatedAt,
 	}
 }
 
@@ -390,11 +304,4 @@ func arrayDomainToResponseMapper(operations *[]domainOperation.SysOperationRecor
 		res[i] = domainToResponseMapper(&u)
 	}
 	return &res
-}
-
-func toUsecaseMapper(req *NewOperationRequest) *domainOperation.SysOperationRecord {
-	return &domainOperation.SysOperationRecord{
-		Path:   req.Path,
-		Method: req.Method,
-	}
 }

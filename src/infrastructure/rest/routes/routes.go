@@ -28,4 +28,5 @@ func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
 	UploadRoutes(v1, appContext.UploadController)
 	RoleRoutes(v1, appContext.RoleController)
 	ApiRouters(v1, appContext.ApiController)
+	OperationRouters(v1, appContext.OperationController)
 }

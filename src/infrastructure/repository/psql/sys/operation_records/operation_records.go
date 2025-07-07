@@ -54,7 +54,7 @@ type OperationRepositoryInterface interface {
 	Create(apiDomain *domainOperation.SysOperationRecord) (*domainOperation.SysOperationRecord, error)
 	GetByID(id int) (*domainOperation.SysOperationRecord, error)
 	Update(id int, apiMap map[string]interface{}) (*domainOperation.SysOperationRecord, error)
-	Delete(id int) error
+	Delete(ids []int) error
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainOperation.SysOperationRecord], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(apiMap map[string]interface{}) (*domainOperation.SysOperationRecord, error)
@@ -150,17 +150,20 @@ func (r *Repository) Update(id int, apiMap map[string]interface{}) (*domainOpera
 	return apiObj.toDomainMapper(), nil
 }
 
-func (r *Repository) Delete(id int) error {
-	tx := r.DB.Delete(&SysOperationRecord{}, id)
+func (r *Repository) Delete(ids []int) error {
+	tx := r.DB.Where("id IN ?", ids).Delete(&SysOperationRecord{})
+
 	if tx.Error != nil {
-		r.Logger.Error("Error deleting api", zap.Error(tx.Error), zap.Int("id", id))
+		r.Logger.Error("Error deleting records", zap.Error(tx.Error), zap.Ints("ids", ids))
 		return domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
+
 	if tx.RowsAffected == 0 {
-		r.Logger.Warn("Operation not found for deletion", zap.Int("id", id))
+		r.Logger.Warn("No records found for deletion", zap.Ints("ids", ids))
 		return domainErrors.NewAppErrorWithType(domainErrors.NotFound)
 	}
-	r.Logger.Info("Successfully deleted api", zap.Int("id", id))
+
+	r.Logger.Info("Successfully deleted records", zap.Ints("ids", ids))
 	return nil
 }
 
@@ -278,11 +281,18 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 
 func (u *SysOperationRecord) toDomainMapper() *domainOperation.SysOperationRecord {
 	return &domainOperation.SysOperationRecord{
-		ID:        u.ID,
-		Path:      u.Path,
-		Method:    u.Method,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		ID:           u.ID,
+		IP:           u.IP,
+		Path:         u.Path,
+		Method:       u.Method,
+		Status:       u.Status,
+		Latency:      u.Latency,
+		Agent:        u.Agent,
+		ErrorMessage: u.ErrorMessage,
+		Body:         u.Body,
+
+		CreatedAt: domain.CustomTime{Time: u.CreatedAt},
+		UpdatedAt: domain.CustomTime{Time: u.UpdatedAt},
 	}
 }
 
@@ -310,7 +320,7 @@ func (r *Repository) GetOneByMap(apiMap map[string]interface{}) (*domainOperatio
 
 func fromDomainMapper(u *domainOperation.SysOperationRecord) *SysOperationRecord {
 	return &SysOperationRecord{
-		CreatedAt:    u.CreatedAt,
+		CreatedAt:    u.CreatedAt.Time,
 		IP:           u.IP,
 		Method:       u.Method,
 		Path:         u.Path,

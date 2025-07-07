@@ -17,5 +17,6 @@ func ApiRouters(router *gin.RouterGroup, controller api.IApiController) {
 		u.DELETE("/:id", controller.DeleteApi)
 		u.GET("/search", controller.SearchPaginated)
 		u.GET("/search-property", controller.SearchByProperty)
+		u.GET("/groups", controller.GetGroups)
 	}
 }

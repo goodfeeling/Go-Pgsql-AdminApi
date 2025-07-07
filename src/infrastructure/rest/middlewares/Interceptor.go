@@ -6,6 +6,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/gbrayhan/microservices-go/src/domain"
 	operationRecordsDomain "github.com/gbrayhan/microservices-go/src/domain/sys/operation_records"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	operationRecordsRepository "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/operation_records"
@@ -84,7 +85,7 @@ func GinBodyLogMiddleware(db *gorm.DB, logger *logger.Logger) gin.HandlerFunc {
 			ErrorMessage: c.Errors.String(),
 			UserID:       userId,
 			Latency:      latency,
-			CreatedAt:    time.Now().In(loc),
+			CreatedAt:    domain.CustomTime{Time: time.Now().In(loc)},
 		})
 
 		allDataIO := map[string]any{

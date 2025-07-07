@@ -1,8 +1,6 @@
 package role
 
 import (
-	"time"
-
 	"github.com/gbrayhan/microservices-go/src/domain"
 )
 
@@ -15,8 +13,8 @@ type Role struct {
 	Order         int64
 	Label         string
 	Description   string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	CreatedAt     domain.CustomTime
+	UpdatedAt     domain.CustomTime
 }
 type SearchResultRole struct {
 	Data       *[]Role `json:"data"`
@@ -35,18 +33,18 @@ type RoleNode struct {
 }
 
 type RoleTree struct {
-	ID            int64       `json:"id"`
-	Name          string      `json:"name"`
-	ParentID      int64       `json:"parent_id"`
-	DefaultRouter string      `json:"default_router"`
-	Status        bool        `json:"status"`
-	Order         int64       `json:"order"`
-	Label         string      `json:"label"`
-	Description   string      `json:"description"`
-	CreatedAt     time.Time   `json:"created_at"`
-	UpdatedAt     time.Time   `json:"updated_at"`
-	Path          []int64     `json:"path"`
-	Children      []*RoleTree `json:"children"`
+	ID            int64             `json:"id"`
+	Name          string            `json:"name"`
+	ParentID      int64             `json:"parent_id"`
+	DefaultRouter string            `json:"default_router"`
+	Status        bool              `json:"status"`
+	Order         int64             `json:"order"`
+	Label         string            `json:"label"`
+	Description   string            `json:"description"`
+	CreatedAt     domain.CustomTime `json:"created_at"`
+	UpdatedAt     domain.CustomTime `json:"updated_at"`
+	Path          []int64           `json:"path"`
+	Children      []*RoleTree       `json:"children"`
 }
 
 type IRoleService interface {

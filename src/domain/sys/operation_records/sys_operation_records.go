@@ -18,15 +18,15 @@ type SysOperationRecord struct {
 	Body         string
 	Resp         string
 	UserID       int64
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	CreatedAt    domain.CustomTime
+	UpdatedAt    domain.CustomTime
 	DeletedAt    time.Time
 }
 type ISysOperationRecordService interface {
 	GetAll() (*[]SysOperationRecord, error)
 	GetByID(id int) (*SysOperationRecord, error)
 	Create(newSysOperationRecord *SysOperationRecord) (*SysOperationRecord, error)
-	Delete(id int) error
+	Delete(ids []int) error
 	Update(id int, userMap map[string]interface{}) (*SysOperationRecord, error)
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[SysOperationRecord], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)

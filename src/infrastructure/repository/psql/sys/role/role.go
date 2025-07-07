@@ -299,8 +299,8 @@ func (u *Roles) toDomainMapper() *domainRole.Role {
 		Label:       u.Label,
 		Description: u.Description,
 		Status:      u.Status,
-		CreatedAt:   u.CreatedAt,
-		UpdatedAt:   u.UpdatedAt,
+		CreatedAt:   domain.CustomTime{Time: u.CreatedAt},
+		UpdatedAt:   domain.CustomTime{Time: u.UpdatedAt},
 	}
 }
 
@@ -313,8 +313,6 @@ func fromDomainMapper(u *domainRole.Role) *Roles {
 		Label:       u.Label,
 		Description: u.Description,
 		Status:      u.Status,
-		CreatedAt:   u.CreatedAt,
-		UpdatedAt:   u.UpdatedAt,
 	}
 }
 

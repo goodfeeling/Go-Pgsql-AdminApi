@@ -43,6 +43,7 @@ type IApiController interface {
 	DeleteApi(ctx *gin.Context)
 	SearchPaginated(ctx *gin.Context)
 	SearchByProperty(ctx *gin.Context)
+	GetGroups(ctx *gin.Context)
 }
 type ApiController struct {
 	apiService domainApi.IApiService
@@ -370,6 +371,28 @@ func (c *ApiController) SearchByProperty(ctx *gin.Context) {
 		zap.String("property", property),
 		zap.Int("results", len(*coincidences)))
 	ctx.JSON(http.StatusOK, coincidences)
+}
+
+// GetGroups
+// @Summary get api groups
+// @Description get api groups
+// @Tags groups
+// @Accept json
+// @Produce json
+// @Success 200 {object} domain.CommonResponse[map[int]string]
+// @Router /v1/api/groups [get]
+func (c *ApiController) GetGroups(ctx *gin.Context) {
+	c.Logger.Info("Getting api groups")
+	apiResponse := controllers.NewCommonResponseBuilder[domainApi.ApiGroupType]().
+		Data(domainApi.ApiGroupType{
+			ApiGroup: domainApi.GetApiGroup(),
+			Names:    domainApi.GetApiGroupNames(),
+		}).
+		Message("success").
+		Status(0).
+		Build()
+	c.Logger.Info("Successfully get groups")
+	ctx.JSON(http.StatusOK, apiResponse)
 }
 
 // Mappers

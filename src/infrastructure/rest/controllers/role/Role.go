@@ -2,16 +2,13 @@ package role
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainRole "github.com/gbrayhan/microservices-go/src/domain/sys/role"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
-	roleRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -46,8 +43,6 @@ type IRoleController interface {
 	GetRolesByID(ctx *gin.Context)
 	UpdateRole(ctx *gin.Context)
 	DeleteRole(ctx *gin.Context)
-	SearchPaginated(ctx *gin.Context)
-	SearchByProperty(ctx *gin.Context)
 	GetTreeRoles(ctx *gin.Context)
 }
 type RoleController struct {
@@ -109,10 +104,13 @@ func (c *RoleController) GetAllRoles(ctx *gin.Context) {
 		_ = ctx.Error(appError)
 		return
 	}
+	response := controllers.NewCommonResponseBuilder[[]*domainRole.RoleTree]().
+		Data(roles).
+		Message("success").
+		Status(0).
+		Build()
 	c.Logger.Info("Successfully retrieved all roles", zap.Int("count", len(roles)))
-	ctx.JSON(http.StatusOK, domain.CommonResponse[[]*domainRole.RoleTree]{
-		Data: roles,
-	})
+	ctx.JSON(http.StatusOK, response)
 }
 
 // GetRolesByID
@@ -220,164 +218,6 @@ func (c *RoleController) DeleteRole(ctx *gin.Context) {
 	})
 }
 
-// SearchRolePageList
-// @Summary search roles
-// @Description search roles by query
-// @Tags search roles
-// @Accept json
-// @Produce json
-// @Success 200 {object} domain.PageList[[]ResponseRole]
-// @Router /v1/role/search [get]
-func (c *RoleController) SearchPaginated(ctx *gin.Context) {
-	c.Logger.Info("Searching roles with pagination")
-
-	// Parse query parameters
-	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
-	if page < 1 {
-		page = 1
-	}
-	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("pageSize", "10"))
-	if pageSize < 1 {
-		pageSize = 10
-	}
-
-	// Build filters
-	filters := domain.DataFilters{
-		Page:     page,
-		PageSize: pageSize,
-	}
-
-	// Parse like filters
-	likeFilters := make(map[string][]string)
-	for field := range roleRepo.ColumnsRoleMapping {
-		if values := ctx.QueryArray(field + "_like"); len(values) > 0 {
-			likeFilters[field] = values
-		}
-	}
-	filters.LikeFilters = likeFilters
-
-	// Parse exact matches
-	matches := make(map[string][]string)
-	for field := range roleRepo.ColumnsRoleMapping {
-		if values := ctx.QueryArray(field + "_match"); len(values) > 0 {
-			matches[field] = values
-		}
-	}
-	fmt.Println(matches)
-	filters.Matches = matches
-
-	// Parse date range filters
-	var dateRanges []domain.DateRangeFilter
-	for field := range roleRepo.ColumnsRoleMapping {
-		startStr := ctx.Query(field + "_start")
-		endStr := ctx.Query(field + "_end")
-
-		if startStr != "" || endStr != "" {
-			dateRange := domain.DateRangeFilter{Field: field}
-
-			if startStr != "" {
-				if startTime, err := time.Parse(time.RFC3339, startStr); err == nil {
-					dateRange.Start = &startTime
-				}
-			}
-
-			if endStr != "" {
-				if endTime, err := time.Parse(time.RFC3339, endStr); err == nil {
-					dateRange.End = &endTime
-				}
-			}
-
-			dateRanges = append(dateRanges, dateRange)
-		}
-	}
-	filters.DateRangeFilters = dateRanges
-
-	// Parse sorting
-	sortBy := ctx.QueryArray("sortBy")
-	if len(sortBy) > 0 {
-		filters.SortBy = sortBy
-	} else {
-		filters.SortBy = []string{}
-	}
-
-	sortDirection := domain.SortDirection(ctx.DefaultQuery("sortDirection", "asc"))
-	if sortDirection.IsValid() {
-		filters.SortDirection = sortDirection
-	}
-
-	result, err := c.roleService.SearchPaginated(filters)
-	if err != nil {
-		c.Logger.Error("Error searching roles", zap.Error(err))
-		_ = ctx.Error(err)
-		return
-	}
-	type PageResult = domain.PageList[*[]*ResponseRole]
-	response := controllers.NewCommonResponseBuilder[PageResult]().
-		Data(PageResult{
-			List:       arrayDomainToResponseMapper(result.Data),
-			Total:      result.Total,
-			Page:       result.Page,
-			PageSize:   result.PageSize,
-			TotalPages: result.TotalPages,
-			Filters:    filters,
-		}).
-		Message("success").
-		Status(0).
-		Build()
-
-	c.Logger.Info("Successfully searched roles",
-		zap.Int64("total", result.Total),
-		zap.Int("page", result.Page))
-	ctx.JSON(http.StatusOK, response)
-}
-
-// SearchByProperty
-// @Summary  search by property
-// @Description search by property
-// @Tags search
-// @Accept json
-// @Produce json
-// @Success 200 {array} []string
-// @Router /v1/role/search-property [get]
-func (c *RoleController) SearchByProperty(ctx *gin.Context) {
-	property := ctx.Query("property")
-	searchText := ctx.Query("searchText")
-
-	if property == "" || searchText == "" {
-		c.Logger.Error("Missing property or searchText parameter")
-		appError := domainErrors.NewAppError(errors.New("missing property or searchText parameter"), domainErrors.ValidationError)
-		_ = ctx.Error(appError)
-		return
-	}
-
-	// Validate property
-	allowed := map[string]bool{
-		"roleName":  true,
-		"email":     true,
-		"firstName": true,
-		"lastName":  true,
-		"status":    true,
-	}
-	if !allowed[property] {
-		c.Logger.Error("Invalid property for search", zap.String("property", property))
-		appError := domainErrors.NewAppError(errors.New("invalid property"), domainErrors.ValidationError)
-		_ = ctx.Error(appError)
-		return
-	}
-
-	coincidences, err := c.roleService.SearchByProperty(property, searchText)
-	if err != nil {
-		c.Logger.Error("Error searching by property", zap.Error(err), zap.String("property", property))
-		_ = ctx.Error(err)
-		return
-	}
-
-	c.Logger.Info("Successfully searched by property",
-		zap.String("property", property),
-		zap.Int("results", len(*coincidences)))
-	ctx.JSON(http.StatusOK, coincidences)
-}
-
 // GetTreeRoles
 // @Summary get tree roles
 // @Description get tree roles
@@ -411,17 +251,9 @@ func domainToResponseMapper(domainRole *domainRole.Role) *ResponseRole {
 		Label:       domainRole.Label,
 		Description: domainRole.Description,
 		Status:      domainRole.Status,
-		CreatedAt:   domain.CustomTime{Time: domainRole.CreatedAt},
-		UpdatedAt:   domain.CustomTime{Time: domainRole.UpdatedAt},
+		CreatedAt:   domainRole.CreatedAt,
+		UpdatedAt:   domainRole.UpdatedAt,
 	}
-}
-
-func arrayDomainToResponseMapper(roles *[]domainRole.Role) *[]*ResponseRole {
-	res := make([]*ResponseRole, len(*roles))
-	for i, u := range *roles {
-		res[i] = domainToResponseMapper(&u)
-	}
-	return &res
 }
 
 func toUsecaseMapper(req *NewRoleRequest) *domainRole.Role {

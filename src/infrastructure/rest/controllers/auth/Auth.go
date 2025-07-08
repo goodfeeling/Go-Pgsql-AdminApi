@@ -162,7 +162,8 @@ func (c *AuthController) GetAccessTokenByRefreshToken(ctx *gin.Context) {
 	domainUser, authTokens, err := c.authUseCase.AccessTokenByRefreshToken(request.RefreshToken)
 	if err != nil {
 		c.Logger.Error("Token refresh failed", zap.Error(err))
-		_ = ctx.Error(err)
+		appError := domainErrors.NewAppError(err, domainErrors.TokenExpired)
+		_ = ctx.Error(appError)
 		return
 	}
 

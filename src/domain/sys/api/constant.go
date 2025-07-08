@@ -3,39 +3,57 @@ package api
 import "sync"
 
 var (
-	ApiGroup map[string]string
+	ApiGroup ApiGroupType
 	once     sync.Once
 )
 
+type ApiGroupResponse struct {
+	ApiGroup ApiGroupType `json:"api_group"`
+	Groups   []string     `json:"groups"`
+}
+
 type ApiGroupType struct {
-	ApiGroup map[string]string `json:"api_group"`
-	Names    []string          `json:"groups"`
+	Auth             string `json:"auth"`
+	Api              string `json:"api"`
+	Role             string `json:"role"`
+	Upload           string `json:"upload"`
+	Menu             string `json:"menu"`
+	Dictionary       string `json:"dictionary"`
+	DictionaryDetail string `json:"dictionary_detail"`
+	Operation        string `json:"operation"`
+	User             string `json:"user"`
 }
 
 func initApiGroup() {
-	ApiGroup = map[string]string{
-		"auth":             "鉴权",
-		"api":              "api",
-		"role":             "角色",
-		"upload":           "文件上传与下载",
-		"menu":             "菜单",
-		"dictionary":       "系统字典",
-		"dictionaryDetail": "系统字典详情",
-		"operation":        "操作记录",
-		"user":             "系统用户",
+	ApiGroup = ApiGroupType{
+		Auth:             "鉴权",
+		Api:              "api",
+		Role:             "角色",
+		Upload:           "文件上传与下载",
+		Menu:             "菜单",
+		Dictionary:       "系统字典",
+		DictionaryDetail: "系统字典详情",
+		Operation:        "操作记录",
+		User:             "系统用户",
 	}
 }
 
-func GetApiGroup() map[string]string {
+func GetApiGroup() ApiGroupType {
 	once.Do(initApiGroup)
 	return ApiGroup
 }
 
 func GetApiGroupNames() []string {
-	once.Do(initApiGroup)
-	var names []string
-	for _, name := range ApiGroup {
-		names = append(names, name)
+	group := GetApiGroup()
+	return []string{
+		group.Auth,
+		group.Api,
+		group.Role,
+		group.Upload,
+		group.Menu,
+		group.Dictionary,
+		group.DictionaryDetail,
+		group.Operation,
+		group.User,
 	}
-	return names
 }

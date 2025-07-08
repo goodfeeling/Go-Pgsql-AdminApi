@@ -27,7 +27,7 @@ type ResponseOperation struct {
 	IP           string            `json:"ip"`
 	Path         string            `json:"path"`
 	Method       string            `json:"method"`
-	Status       int8              `json:"status"`
+	Status       int64             `json:"status"`
 	Latency      int64             `json:"latency"`
 	Agent        string            `json:"agent"`
 	ErrorMessage string            `json:"error_message"`

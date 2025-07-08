@@ -11,7 +11,7 @@ type SysOperationRecord struct {
 	IP           string
 	Method       string
 	Path         string
-	Status       int8
+	Status       int64
 	Latency      int64
 	Agent        string
 	ErrorMessage string

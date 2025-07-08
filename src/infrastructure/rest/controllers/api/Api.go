@@ -26,6 +26,11 @@ type NewApiRequest struct {
 	Description string `json:"description" binding:"required"`
 }
 
+// Structures
+type DeleteBatchOperationRequest struct {
+	IDS []int `json:"ids"`
+}
+
 type ResponseApi struct {
 	ID          int               `json:"id"`
 	Path        string            `json:"path"`
@@ -44,6 +49,7 @@ type IApiController interface {
 	SearchPaginated(ctx *gin.Context)
 	SearchByProperty(ctx *gin.Context)
 	GetGroups(ctx *gin.Context)
+	DeleteOperations(ctx *gin.Context)
 }
 type ApiController struct {
 	apiService domainApi.IApiService
@@ -201,7 +207,7 @@ func (c *ApiController) DeleteApi(ctx *gin.Context) {
 		return
 	}
 	c.Logger.Info("Deleting api", zap.Int("id", apiID))
-	err = c.apiService.Delete(apiID)
+	err = c.apiService.Delete([]int{apiID})
 	if err != nil {
 		c.Logger.Error("Error deleting api", zap.Error(err), zap.Int("id", apiID))
 		_ = ctx.Error(err)
@@ -258,6 +264,7 @@ func (c *ApiController) SearchPaginated(ctx *gin.Context) {
 			matches[field] = values
 		}
 	}
+
 	fmt.Println(matches)
 	filters.Matches = matches
 
@@ -383,16 +390,50 @@ func (c *ApiController) SearchByProperty(ctx *gin.Context) {
 // @Router /v1/api/groups [get]
 func (c *ApiController) GetGroups(ctx *gin.Context) {
 	c.Logger.Info("Getting api groups")
-	apiResponse := controllers.NewCommonResponseBuilder[domainApi.ApiGroupType]().
-		Data(domainApi.ApiGroupType{
+	apiResponse := controllers.NewCommonResponseBuilder[domainApi.ApiGroupResponse]().
+		Data(domainApi.ApiGroupResponse{
 			ApiGroup: domainApi.GetApiGroup(),
-			Names:    domainApi.GetApiGroupNames(),
+			Groups:   domainApi.GetApiGroupNames(),
 		}).
 		Message("success").
 		Status(0).
 		Build()
 	c.Logger.Info("Successfully get groups")
 	ctx.JSON(http.StatusOK, apiResponse)
+}
+
+// BatchDeleteOperation
+// @Summary delete operations
+// @Description delete operations by id
+// @Tags batch delete
+// @Accept json
+// @Produce json
+// @Param book body DeleteBatchOperationRequest true  "JSON Data"
+// @Success 200 {object} domain.CommonResponse[int]
+// @Router /v1/operation/delete-batch [post]
+func (c *ApiController) DeleteOperations(ctx *gin.Context) {
+	c.Logger.Info("Creating new dictionary")
+	var request DeleteBatchOperationRequest
+	var err error
+	if err = controllers.BindJSON(ctx, &request); err != nil {
+		c.Logger.Error("Error binding JSON for new dictionary", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	c.Logger.Info("Deleting operation", zap.String("ids", fmt.Sprintf("%v", request.IDS)))
+	err = c.apiService.Delete(request.IDS)
+	if err != nil {
+		c.Logger.Error("Error deleting operation", zap.Error(err), zap.String("ids", fmt.Sprintf("%v", request.IDS)))
+		_ = ctx.Error(err)
+		return
+	}
+	c.Logger.Info("Operation deleted successfully", zap.String("ids", fmt.Sprintf("%v", request.IDS)))
+	ctx.JSON(http.StatusOK, domain.CommonResponse[[]int]{
+		Data:    request.IDS,
+		Message: "resource deleted successfully",
+		Status:  0,
+	})
 }
 
 // Mappers

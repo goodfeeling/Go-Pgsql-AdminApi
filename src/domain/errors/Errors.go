@@ -36,7 +36,11 @@ const (
 	UserNotExist ErrorType = "The user does not exist"
 	UserExists   ErrorType = "The user already exists"
 
-	TokenError ErrorType = "token error"
+	TokenError        ErrorType    = "TokenError"
+	TokenErrorMessage ErrorMessage = "error in token"
+
+	TokenExpired        ErrorType    = "TokenIsExpired"
+	TokenExpiredMessage ErrorMessage = "token is expired"
 )
 
 type AppError struct {
@@ -69,6 +73,10 @@ func NewAppErrorWithType(errType ErrorType) *AppError {
 		err = errors.New(string(notAuthorizedErrorMessage))
 	case TokenGeneratorError:
 		err = errors.New(string(tokenGeneratorErrorMessage))
+	case TokenError:
+		err = errors.New(string(TokenErrorMessage))
+	case TokenExpired:
+		err = errors.New(string(TokenExpiredMessage))
 	default:
 		err = errors.New(string(unknownErrorMessage))
 	}
@@ -96,6 +104,10 @@ func AppErrorToHTTP(appErr *AppError) (int, string) {
 		return http.StatusUnauthorized, appErr.Error()
 	case NotAuthorized:
 		return http.StatusForbidden, appErr.Error()
+	case TokenError:
+		return http.StatusUnauthorized, appErr.Error()
+	case TokenExpired:
+		return http.StatusUnauthorized, appErr.Error()
 	default:
 		return http.StatusInternalServerError, "Internal Server Error"
 	}

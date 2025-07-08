@@ -24,7 +24,7 @@ type SysOperationRecord struct {
 	IP           string         `gorm:"column:ip" json:"ip,omitempty"`
 	Method       string         `gorm:"column:method" json:"method,omitempty"`
 	Path         string         `gorm:"column:path" json:"path,omitempty"`
-	Status       int8           `gorm:"column:status" json:"status,omitempty"`
+	Status       int64          `gorm:"column:status" json:"status,omitempty"`
 	Latency      int64          `gorm:"column:latency" json:"latency,omitempty"`
 	Agent        string         `gorm:"column:agent" json:"agent,omitempty"`
 	ErrorMessage string         `gorm:"column:error_message" json:"errorMessage,omitempty"`

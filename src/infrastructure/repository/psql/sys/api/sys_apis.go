@@ -48,7 +48,7 @@ type ApiRepositoryInterface interface {
 	Create(apiDomain *domainApi.Api) (*domainApi.Api, error)
 	GetByID(id int) (*domainApi.Api, error)
 	Update(id int, apiMap map[string]interface{}) (*domainApi.Api, error)
-	Delete(id int) error
+	Delete(ids []int) error
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainApi.Api], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(apiMap map[string]interface{}) (*domainApi.Api, error)
@@ -144,17 +144,18 @@ func (r *Repository) Update(id int, apiMap map[string]interface{}) (*domainApi.A
 	return apiObj.toDomainMapper(), nil
 }
 
-func (r *Repository) Delete(id int) error {
-	tx := r.DB.Delete(&SysApi{}, id)
+func (r *Repository) Delete(ids []int) error {
+	tx := r.DB.Where("id IN ?", ids).Delete(&SysApi{})
+
 	if tx.Error != nil {
-		r.Logger.Error("Error deleting api", zap.Error(tx.Error), zap.Int("id", id))
+		r.Logger.Error("Error deleting api", zap.Error(tx.Error), zap.String("ids", fmt.Sprintf("%v", ids)))
 		return domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 	if tx.RowsAffected == 0 {
-		r.Logger.Warn("Api not found for deletion", zap.Int("id", id))
+		r.Logger.Warn("Api not found for deletion", zap.String("ids", fmt.Sprintf("%v", ids)))
 		return domainErrors.NewAppErrorWithType(domainErrors.NotFound)
 	}
-	r.Logger.Info("Successfully deleted api", zap.Int("id", id))
+	r.Logger.Info("Successfully deleted api", zap.String("ids", fmt.Sprintf("%v", ids)))
 	return nil
 }
 

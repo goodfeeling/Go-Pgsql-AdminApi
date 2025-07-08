@@ -20,7 +20,7 @@ type IApiService interface {
 	GetAll() (*[]Api, error)
 	GetByID(id int) (*Api, error)
 	Create(newApi *Api) (*Api, error)
-	Delete(id int) error
+	Delete(ids []int) error
 	Update(id int, userMap map[string]interface{}) (*Api, error)
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[Api], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)

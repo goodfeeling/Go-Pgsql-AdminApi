@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	apiRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
 
@@ -13,7 +15,7 @@ type ISysApiService interface {
 	GetAll() (*[]apiDomain.Api, error)
 	GetByID(id int) (*apiDomain.Api, error)
 	Create(newApi *apiDomain.Api) (*apiDomain.Api, error)
-	Delete(id int) error
+	Delete(ids []int) error
 	Update(id int, userMap map[string]interface{}) (*apiDomain.Api, error)
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[apiDomain.Api], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
@@ -47,9 +49,9 @@ func (s *SysApiUseCase) Create(newApi *apiDomain.Api) (*apiDomain.Api, error) {
 	return s.sysApiRepository.Create(newApi)
 }
 
-func (s *SysApiUseCase) Delete(id int) error {
-	s.Logger.Info("Deleting api", zap.Int("id", id))
-	return s.sysApiRepository.Delete(id)
+func (s *SysApiUseCase) Delete(ids []int) error {
+	s.Logger.Info("Deleting api", zap.String("ids", fmt.Sprintf("%v", ids)))
+	return s.sysApiRepository.Delete(ids)
 }
 
 func (s *SysApiUseCase) Update(id int, userMap map[string]interface{}) (*apiDomain.Api, error) {

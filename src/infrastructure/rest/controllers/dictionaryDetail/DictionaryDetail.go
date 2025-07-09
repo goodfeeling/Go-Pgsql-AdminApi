@@ -9,9 +9,9 @@ import (
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
-	domainDictionary "github.com/gbrayhan/microservices-go/src/domain/sys/dictionary"
+	domainDictionary "github.com/gbrayhan/microservices-go/src/domain/sys/dictionary_detail"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
-	dictionaryRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary"
+	dictionaryRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary_detail"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -20,22 +20,26 @@ import (
 // Structures
 type NewDictionaryRequest struct {
 	ID              int    `json:"id"`
-	Path            string `json:"path" binding:"required"`
-	DictionaryGroup string `json:"dictionary_group" binding:"required"`
-	Method          string `json:"method" binding:"required"`
-	Description     string `json:"description" binding:"required"`
+	Label           string `json:"label"  binding:"required"`
+	Value           string `json:"value"  binding:"required"`
+	Extend          string `json:"extend"  binding:"required"`
+	Status          int16  `json:"status"  binding:"required"`
+	Sort            int8   `json:"sort"  binding:"required"`
+	SysDictionaryID int64  `json:"sys_dictionary_id"  binding:"required"`
 }
 
 type ResponseDictionary struct {
 	ID              int               `json:"id"`
-	Path            string            `json:"path"`
-	DictionaryGroup string            `json:"dictionary_group"`
-	Method          string            `json:"method"`
-	Description     string            `json:"description"`
+	Label           string            `json:"label"`
+	Value           string            `json:"value"`
+	Extend          string            `json:"extend"`
+	Status          int16             `json:"status"`
+	Sort            int8              `json:"sort"`
+	SysDictionaryID int64             `json:"sys_dictionary_id"`
 	CreatedAt       domain.CustomTime `json:"created_at,omitempty"`
 	UpdatedAt       domain.CustomTime `json:"updated_at,omitempty"`
 }
-type IDictionaryController interface {
+type IIDictionaryDetailController interface {
 	NewDictionary(ctx *gin.Context)
 	GetAllDictionaries(ctx *gin.Context)
 	GetDictionariesByID(ctx *gin.Context)
@@ -44,13 +48,13 @@ type IDictionaryController interface {
 	SearchPaginated(ctx *gin.Context)
 	SearchByProperty(ctx *gin.Context)
 }
-type DictionaryController struct {
+type DictionaryDetailController struct {
 	dictionaryService domainDictionary.IDictionaryService
 	Logger            *logger.Logger
 }
 
-func NewDictionaryController(dictionaryService domainDictionary.IDictionaryService, loggerInstance *logger.Logger) IDictionaryController {
-	return &DictionaryController{dictionaryService: dictionaryService, Logger: loggerInstance}
+func NewIDictionaryDetailController(dictionaryService domainDictionary.IDictionaryService, loggerInstance *logger.Logger) IIDictionaryDetailController {
+	return &DictionaryDetailController{dictionaryService: dictionaryService, Logger: loggerInstance}
 }
 
 // CreateDictionary
@@ -62,7 +66,7 @@ func NewDictionaryController(dictionaryService domainDictionary.IDictionaryServi
 // @Param book body NewDictionaryRequest true  "JSON Data"
 // @Success 200 {object} controllers.CommonResponseBuilder
 // @Router /v1/dictionary [post]
-func (c *DictionaryController) NewDictionary(ctx *gin.Context) {
+func (c *DictionaryDetailController) NewDictionary(ctx *gin.Context) {
 	c.Logger.Info("Creating new dictionary")
 	var request NewDictionaryRequest
 	if err := controllers.BindJSON(ctx, &request); err != nil {
@@ -73,7 +77,7 @@ func (c *DictionaryController) NewDictionary(ctx *gin.Context) {
 	}
 	dictionaryModel, err := c.dictionaryService.Create(toUsecaseMapper(&request))
 	if err != nil {
-		c.Logger.Error("Error creating dictionary", zap.Error(err), zap.String("path", request.Path))
+		c.Logger.Error("Error creating dictionary", zap.Error(err), zap.String("Label", request.Label))
 		_ = ctx.Error(err)
 		return
 	}
@@ -82,7 +86,7 @@ func (c *DictionaryController) NewDictionary(ctx *gin.Context) {
 		Message("success").
 		Status(0).
 		Build()
-	c.Logger.Info("Dictionary created successfully", zap.String("path", request.Path), zap.Int("id", int(dictionaryModel.ID)))
+	c.Logger.Info("Dictionary created successfully", zap.String("Label", request.Label), zap.Int("id", int(dictionaryModel.ID)))
 	ctx.JSON(http.StatusOK, dictionaryResponse)
 }
 
@@ -94,7 +98,7 @@ func (c *DictionaryController) NewDictionary(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {object} domain.CommonResponse[[]domainDictionary.Dictionary]
 // @Router /v1/dictionary [get]
-func (c *DictionaryController) GetAllDictionaries(ctx *gin.Context) {
+func (c *DictionaryDetailController) GetAllDictionaries(ctx *gin.Context) {
 	c.Logger.Info("Getting all dictionaries")
 	dictionaries, err := c.dictionaryService.GetAll()
 	if err != nil {
@@ -117,7 +121,7 @@ func (c *DictionaryController) GetAllDictionaries(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {object} ResponseDictionary
 // @Router /v1/dictionary/{id} [get]
-func (c *DictionaryController) GetDictionariesByID(ctx *gin.Context) {
+func (c *DictionaryDetailController) GetDictionariesByID(ctx *gin.Context) {
 	dictionaryID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		c.Logger.Error("Invalid dictionary ID parameter", zap.Error(err), zap.String("id", ctx.Param("id")))
@@ -145,7 +149,7 @@ func (c *DictionaryController) GetDictionariesByID(ctx *gin.Context) {
 // @Param book body map[string]any  true  "JSON Data"
 // @Success 200 {array} controllers.CommonResponseBuilder[ResponseDictionary]
 // @Router /v1/dictionary [put]
-func (c *DictionaryController) UpdateDictionary(ctx *gin.Context) {
+func (c *DictionaryDetailController) UpdateDictionary(ctx *gin.Context) {
 	dictionaryID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		c.Logger.Error("Invalid dictionary ID parameter for update", zap.Error(err), zap.String("id", ctx.Param("id")))
@@ -191,7 +195,7 @@ func (c *DictionaryController) UpdateDictionary(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {object} domain.CommonResponse[int]
 // @Router /v1/dictionary/{id} [delete]
-func (c *DictionaryController) DeleteDictionary(ctx *gin.Context) {
+func (c *DictionaryDetailController) DeleteDictionary(ctx *gin.Context) {
 	dictionaryID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		c.Logger.Error("Invalid dictionary ID parameter for deletion", zap.Error(err), zap.String("id", ctx.Param("id")))
@@ -222,7 +226,7 @@ func (c *DictionaryController) DeleteDictionary(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {object} domain.PageList[[]ResponseDictionary]
 // @Router /v1/dictionary/search [get]
-func (c *DictionaryController) SearchPaginated(ctx *gin.Context) {
+func (c *DictionaryDetailController) SearchPaginated(ctx *gin.Context) {
 	c.Logger.Info("Searching dictionaries with pagination")
 
 	// Parse query parameters
@@ -333,7 +337,7 @@ func (c *DictionaryController) SearchPaginated(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {array} []string
 // @Router /v1/dictionary/search-property [get]
-func (c *DictionaryController) SearchByProperty(ctx *gin.Context) {
+func (c *DictionaryDetailController) SearchByProperty(ctx *gin.Context) {
 	property := ctx.Query("property")
 	searchText := ctx.Query("searchText")
 
@@ -377,10 +381,12 @@ func domainToResponseMapper(domainDictionary *domainDictionary.Dictionary) *Resp
 
 	return &ResponseDictionary{
 		ID:              domainDictionary.ID,
-		Path:            domainDictionary.Path,
-		DictionaryGroup: domainDictionary.DictionaryGroup,
-		Method:          domainDictionary.Method,
-		Description:     domainDictionary.Description,
+		Label:           domainDictionary.Label,
+		Value:           domainDictionary.Value,
+		Extend:          domainDictionary.Extend,
+		Status:          domainDictionary.Status,
+		Sort:            domainDictionary.Sort,
+		SysDictionaryID: domainDictionary.SysDictionaryID,
 		CreatedAt:       domain.CustomTime{Time: domainDictionary.CreatedAt},
 		UpdatedAt:       domain.CustomTime{Time: domainDictionary.UpdatedAt},
 	}
@@ -396,9 +402,11 @@ func arrayDomainToResponseMapper(dictionaries *[]domainDictionary.Dictionary) *[
 
 func toUsecaseMapper(req *NewDictionaryRequest) *domainDictionary.Dictionary {
 	return &domainDictionary.Dictionary{
-		Path:            req.Path,
-		DictionaryGroup: req.DictionaryGroup,
-		Method:          req.Method,
-		Description:     req.Description,
+		Label:           req.Label,
+		Value:           req.Value,
+		Extend:          req.Extend,
+		Status:          req.Status,
+		Sort:            req.Sort,
+		SysDictionaryID: req.SysDictionaryID,
 	}
 }

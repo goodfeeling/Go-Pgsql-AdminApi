@@ -6,6 +6,8 @@ import (
 	authUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/auth"
 	medicineUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/medicine"
 	apiUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/api"
+	dictionaryUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/dictionary"
+	dictionaryDetailUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/dictionary_detail"
 	filesUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/files"
 	menuUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/menu"
 	operationUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/operation_record"
@@ -17,12 +19,16 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/medicine"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary_detail"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/files"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/operation_records"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
 	apiController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/api"
 	authController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/auth"
+	dictionaryController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/dictionary"
+	dictionaryDetailController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/dictionaryDetail"
 	medicineController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/medicine"
 	menuController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menu"
 	operationController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/operation"
@@ -38,32 +44,38 @@ type ApplicationContext struct {
 	DB     *gorm.DB
 	Logger *logger.Logger
 	// controller
-	AuthController      authController.IAuthController
-	UserController      userController.IUserController
-	MedicineController  medicineController.IMedicineController
-	UploadController    uploadController.IUploadController
-	RoleController      roleController.IRoleController
-	ApiController       apiController.IApiController
-	JWTService          security.IJWTService
-	MenuController      menuController.IMenuController
-	OperationController operationController.IOperationController
+	AuthController             authController.IAuthController
+	UserController             userController.IUserController
+	MedicineController         medicineController.IMedicineController
+	UploadController           uploadController.IUploadController
+	RoleController             roleController.IRoleController
+	ApiController              apiController.IApiController
+	JWTService                 security.IJWTService
+	MenuController             menuController.IMenuController
+	OperationController        operationController.IOperationController
+	DictionaryController       dictionaryController.IDictionaryController
+	DictionaryDetailController dictionaryDetailController.IIDictionaryDetailController
 	// repository
-	UserRepository      user.UserRepositoryInterface
-	MedicineRepository  medicine.MedicineRepositoryInterface
-	FilesRepository     files.ISysFilesRepository
-	RoleRepository      role.ISysRolesRepository
-	ApiRepository       api.ApiRepositoryInterface
-	MenuRepository      base_menu.MenuRepositoryInterface
-	OperationRepository operation_records.OperationRepositoryInterface
+	UserRepository             user.UserRepositoryInterface
+	MedicineRepository         medicine.MedicineRepositoryInterface
+	FilesRepository            files.ISysFilesRepository
+	RoleRepository             role.ISysRolesRepository
+	ApiRepository              api.ApiRepositoryInterface
+	MenuRepository             base_menu.MenuRepositoryInterface
+	OperationRepository        operation_records.OperationRepositoryInterface
+	DictionaryRepository       dictionary.DictionaryRepositoryInterface
+	DictionaryDetailRepository dictionary_detail.DictionaryRepositoryInterface
 	// application
-	AuthUseCase      authUseCase.IAuthUseCase
-	UserUseCase      userUseCase.IUserUseCase
-	MedicineUseCase  medicineUseCase.IMedicineUseCase
-	FilesUseCase     filesUseCase.ISysFilesService
-	RoleUseCase      roleUseCase.ISysRoleService
-	ApiUseCase       apiUseCase.ISysApiService
-	MenuUseCase      menuUseCase.ISysMenuService
-	OperationUseCase operationUseCase.ISysOperationService
+	AuthUseCase             authUseCase.IAuthUseCase
+	UserUseCase             userUseCase.IUserUseCase
+	MedicineUseCase         medicineUseCase.IMedicineUseCase
+	FilesUseCase            filesUseCase.ISysFilesService
+	RoleUseCase             roleUseCase.ISysRoleService
+	ApiUseCase              apiUseCase.ISysApiService
+	MenuUseCase             menuUseCase.ISysMenuService
+	OperationUseCase        operationUseCase.ISysOperationService
+	DictionaryUseCase       dictionaryUseCase.ISysDictionaryService
+	DictionaryDetailUseCase dictionaryDetailUseCase.ISysDictionaryService
 }
 
 var (
@@ -97,6 +109,8 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	roleRepo := role.NewSysRolesRepository(db, loggerInstance)
 	apiRepo := api.NewApiRepository(db, loggerInstance)
 	operationRepo := operation_records.NewOperationRepository(db, loggerInstance)
+	dictionaryRepo := dictionary.NewDictionaryRepository(db, loggerInstance)
+	dictionaryDetailRepo := dictionary_detail.NewDictionaryRepository(db, loggerInstance)
 
 	// Initialize use cases with logger
 	authUC := authUseCase.NewAuthUseCase(userRepo, jwtService, loggerInstance, jwtBlackListRepo)
@@ -106,6 +120,8 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	roleUC := roleUseCase.NewSysRoleUseCase(roleRepo, loggerInstance)
 	apiUC := apiUseCase.NewSysApiUseCase(apiRepo, loggerInstance)
 	operationUC := operationUseCase.NewSysOperationUseCase(operationRepo, loggerInstance)
+	dictionaryUC := dictionaryUseCase.NewSysDictionaryUseCase(dictionaryRepo, loggerInstance)
+	dictionaryDetailUC := dictionaryDetailUseCase.NewSysDictionaryUseCase(dictionaryDetailRepo, loggerInstance)
 
 	// Initialize controllers with logger
 	authController := authController.NewAuthController(authUC, loggerInstance)
@@ -115,34 +131,42 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	roleController := roleController.NewRoleController(roleUC, loggerInstance)
 	apiController := apiController.NewApiController(apiUC, loggerInstance)
 	operationController := operationController.NewOperationController(operationUC, loggerInstance)
+	dictionaryController := dictionaryController.NewDictionaryController(dictionaryUC, loggerInstance)
+	dictionaryDetailController := dictionaryDetailController.NewIDictionaryDetailController(dictionaryDetailUC, loggerInstance)
 
 	return &ApplicationContext{
 		DB:     db,
 		Logger: loggerInstance,
 		// controller
-		AuthController:      authController,
-		UserController:      userController,
-		MedicineController:  medicineController,
-		UploadController:    uploadController,
-		RoleController:      roleController,
-		ApiController:       apiController,
-		OperationController: operationController,
-		JWTService:          jwtService,
+		AuthController:             authController,
+		UserController:             userController,
+		MedicineController:         medicineController,
+		UploadController:           uploadController,
+		RoleController:             roleController,
+		ApiController:              apiController,
+		OperationController:        operationController,
+		DictionaryController:       dictionaryController,
+		DictionaryDetailController: dictionaryDetailController,
 		// repository
-		UserRepository:      userRepo,
-		MedicineRepository:  medicineRepo,
-		FilesRepository:     filesRepo,
-		RoleRepository:      roleRepo,
-		ApiRepository:       apiRepo,
-		OperationRepository: operationRepo,
+		UserRepository:             userRepo,
+		MedicineRepository:         medicineRepo,
+		FilesRepository:            filesRepo,
+		RoleRepository:             roleRepo,
+		ApiRepository:              apiRepo,
+		OperationRepository:        operationRepo,
+		DictionaryRepository:       dictionaryRepo,
+		DictionaryDetailRepository: dictionaryDetailRepo,
 		// application
-		AuthUseCase:      authUC,
-		UserUseCase:      userUC,
-		MedicineUseCase:  medicineUC,
-		FilesUseCase:     filesUC,
-		RoleUseCase:      roleUC,
-		ApiUseCase:       apiUC,
-		OperationUseCase: operationUC,
+		AuthUseCase:             authUC,
+		UserUseCase:             userUC,
+		MedicineUseCase:         medicineUC,
+		FilesUseCase:            filesUC,
+		RoleUseCase:             roleUC,
+		ApiUseCase:              apiUC,
+		OperationUseCase:        operationUC,
+		DictionaryUseCase:       dictionaryUC,
+		DictionaryDetailUseCase: dictionaryDetailUC,
+		JWTService:              jwtService,
 	}, nil
 }
 

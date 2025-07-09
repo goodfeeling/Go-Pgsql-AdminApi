@@ -29,4 +29,6 @@ func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
 	RoleRoutes(v1, appContext.RoleController)
 	ApiRouters(v1, appContext.ApiController)
 	OperationRouters(v1, appContext.OperationController)
+	DictionaryRouters(v1, appContext.DictionaryController)
+	DictionaryDetailRouters(v1, appContext.DictionaryDetailController)
 }

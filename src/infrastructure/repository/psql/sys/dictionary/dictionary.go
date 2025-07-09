@@ -76,12 +76,12 @@ func (r *Repository) GetAll() (*[]domainDictionary.Dictionary, error) {
 }
 
 func (r *Repository) Create(dictionaryDomain *domainDictionary.Dictionary) (*domainDictionary.Dictionary, error) {
-	r.Logger.Info("Creating new dictionary", zap.String("path", dictionaryDomain.Path))
+	r.Logger.Info("Creating new dictionary", zap.String("Name", dictionaryDomain.Name))
 	dictionaryRepository := fromDomainMapper(dictionaryDomain)
 	txDb := r.DB.Create(dictionaryRepository)
 	err := txDb.Error
 	if err != nil {
-		r.Logger.Error("Error creating dictionary", zap.Error(err), zap.String("Path", dictionaryDomain.Path))
+		r.Logger.Error("Error creating dictionary", zap.Error(err), zap.String("Name", dictionaryDomain.Name))
 		byteErr, _ := json.Marshal(err)
 		var newError domainErrors.GormErr
 		errUnmarshal := json.Unmarshal(byteErr, &newError)
@@ -96,7 +96,7 @@ func (r *Repository) Create(dictionaryDomain *domainDictionary.Dictionary) (*dom
 			err = domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 		}
 	}
-	r.Logger.Info("Successfully created dictionary", zap.String("Path", dictionaryDomain.Path), zap.Int("id", int(dictionaryRepository.ID)))
+	r.Logger.Info("Successfully created dictionary", zap.String("Name", dictionaryDomain.Name), zap.Int("id", int(dictionaryRepository.ID)))
 	return dictionaryRepository.toDomainMapper(), err
 }
 
@@ -275,6 +275,10 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 func (u *SysDictionary) toDomainMapper() *domainDictionary.Dictionary {
 	return &domainDictionary.Dictionary{
 		ID:        u.ID,
+		Name:      u.Name,
+		Desc:      u.Desc,
+		Type:      u.Type,
+		Status:    u.Status,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}
@@ -283,6 +287,10 @@ func (u *SysDictionary) toDomainMapper() *domainDictionary.Dictionary {
 func fromDomainMapper(u *domainDictionary.Dictionary) *SysDictionary {
 	return &SysDictionary{
 		ID:        u.ID,
+		Name:      u.Name,
+		Desc:      u.Desc,
+		Type:      u.Type,
+		Status:    u.Status,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}

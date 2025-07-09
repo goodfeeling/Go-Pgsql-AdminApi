@@ -19,21 +19,21 @@ import (
 
 // Structures
 type NewDictionaryRequest struct {
-	ID              int    `json:"id"`
-	Path            string `json:"path" binding:"required"`
-	DictionaryGroup string `json:"dictionary_group" binding:"required"`
-	Method          string `json:"method" binding:"required"`
-	Description     string `json:"description" binding:"required"`
+	ID     int    `json:"id"`
+	Name   string `json:"name"  binding:"required"`
+	Type   string `json:"type"  binding:"required"`
+	Status int16  `json:"status"  binding:"required"`
+	Desc   string `json:"desc"  binding:"required"`
 }
 
 type ResponseDictionary struct {
-	ID              int               `json:"id"`
-	Path            string            `json:"path"`
-	DictionaryGroup string            `json:"dictionary_group"`
-	Method          string            `json:"method"`
-	Description     string            `json:"description"`
-	CreatedAt       domain.CustomTime `json:"created_at,omitempty"`
-	UpdatedAt       domain.CustomTime `json:"updated_at,omitempty"`
+	ID        int               `json:"id"`
+	Name      string            `json:"name"`
+	Type      string            `json:"type"`
+	Status    int16             `json:"status"`
+	Desc      string            `json:"desc"`
+	CreatedAt domain.CustomTime `json:"created_at,omitempty"`
+	UpdatedAt domain.CustomTime `json:"updated_at,omitempty"`
 }
 type IDictionaryController interface {
 	NewDictionary(ctx *gin.Context)
@@ -73,7 +73,7 @@ func (c *DictionaryController) NewDictionary(ctx *gin.Context) {
 	}
 	dictionaryModel, err := c.dictionaryService.Create(toUsecaseMapper(&request))
 	if err != nil {
-		c.Logger.Error("Error creating dictionary", zap.Error(err), zap.String("path", request.Path))
+		c.Logger.Error("Error creating dictionary", zap.Error(err), zap.String("Name", request.Name))
 		_ = ctx.Error(err)
 		return
 	}
@@ -82,7 +82,7 @@ func (c *DictionaryController) NewDictionary(ctx *gin.Context) {
 		Message("success").
 		Status(0).
 		Build()
-	c.Logger.Info("Dictionary created successfully", zap.String("path", request.Path), zap.Int("id", int(dictionaryModel.ID)))
+	c.Logger.Info("Dictionary created successfully", zap.String("Name", request.Name), zap.Int("id", int(dictionaryModel.ID)))
 	ctx.JSON(http.StatusOK, dictionaryResponse)
 }
 
@@ -376,13 +376,13 @@ func (c *DictionaryController) SearchByProperty(ctx *gin.Context) {
 func domainToResponseMapper(domainDictionary *domainDictionary.Dictionary) *ResponseDictionary {
 
 	return &ResponseDictionary{
-		ID:              domainDictionary.ID,
-		Path:            domainDictionary.Path,
-		DictionaryGroup: domainDictionary.DictionaryGroup,
-		Method:          domainDictionary.Method,
-		Description:     domainDictionary.Description,
-		CreatedAt:       domain.CustomTime{Time: domainDictionary.CreatedAt},
-		UpdatedAt:       domain.CustomTime{Time: domainDictionary.UpdatedAt},
+		ID:        domainDictionary.ID,
+		Name:      domainDictionary.Name,
+		Type:      domainDictionary.Type,
+		Status:    domainDictionary.Status,
+		Desc:      domainDictionary.Desc,
+		CreatedAt: domain.CustomTime{Time: domainDictionary.CreatedAt},
+		UpdatedAt: domain.CustomTime{Time: domainDictionary.UpdatedAt},
 	}
 }
 
@@ -396,9 +396,9 @@ func arrayDomainToResponseMapper(dictionaries *[]domainDictionary.Dictionary) *[
 
 func toUsecaseMapper(req *NewDictionaryRequest) *domainDictionary.Dictionary {
 	return &domainDictionary.Dictionary{
-		Path:            req.Path,
-		DictionaryGroup: req.DictionaryGroup,
-		Method:          req.Method,
-		Description:     req.Description,
+		Name:   req.Name,
+		Type:   req.Type,
+		Status: req.Status,
+		Desc:   req.Desc,
 	}
 }

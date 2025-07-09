@@ -1,11 +1,11 @@
-package dictionary
+package dictionary_detail
 
 import (
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
-	dictionaryRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary"
+	dictionaryRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary_detail"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
-	dictionaryDomain "github.com/gbrayhan/microservices-go/src/domain/sys/dictionary"
+	dictionaryDomain "github.com/gbrayhan/microservices-go/src/domain/sys/dictionary_detail"
 	"go.uber.org/zap"
 )
 
@@ -43,7 +43,7 @@ func (s *SysDictionaryUseCase) GetByID(id int) (*dictionaryDomain.Dictionary, er
 }
 
 func (s *SysDictionaryUseCase) Create(newDictionary *dictionaryDomain.Dictionary) (*dictionaryDomain.Dictionary, error) {
-	s.Logger.Info("Creating new dictionary", zap.String("Name", newDictionary.Name))
+	s.Logger.Info("Creating new dictionary", zap.String("Label", newDictionary.Label))
 	return s.sysDictionaryRepository.Create(newDictionary)
 }
 

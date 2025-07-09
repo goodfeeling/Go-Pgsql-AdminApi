@@ -1,4 +1,4 @@
-package dictionary
+package dictionary_detail
 
 import (
 	"time"
@@ -7,13 +7,15 @@ import (
 )
 
 type Dictionary struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	Type      string    `json:"type"`
-	Status    int16     `json:"status"`
-	Desc      string    `json:"desc"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID              int       `json:"id"`
+	Label           string    `json:"label"`
+	Value           string    `json:"value"`
+	Extend          string    `json:"extend"`
+	Status          int16     `json:"status"`
+	Sort            int8      `json:"sort"`
+	SysDictionaryID int64     `json:"sys_dictionary_id"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 type IDictionaryService interface {

@@ -15,5 +15,7 @@ func DictionaryRouters(router *gin.RouterGroup, controller dictionary.IDictionar
 		u.GET("/:id", controller.GetDictionariesByID)
 		u.PUT("/:id", controller.UpdateDictionary)
 		u.DELETE("/:id", controller.DeleteDictionary)
+		u.GET("/search", controller.SearchPaginated)
+		u.GET("/search-property", controller.SearchByProperty)
 	}
 }

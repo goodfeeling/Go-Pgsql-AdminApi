@@ -32,8 +32,8 @@ type ResponseDictionary struct {
 	Type      string            `json:"type"`
 	Status    int16             `json:"status"`
 	Desc      string            `json:"desc"`
-	CreatedAt domain.CustomTime `json:"created_at,omitempty"`
-	UpdatedAt domain.CustomTime `json:"updated_at,omitempty"`
+	CreatedAt domain.CustomTime `json:"created_at"`
+	UpdatedAt domain.CustomTime `json:"updated_at"`
 }
 type IDictionaryController interface {
 	NewDictionary(ctx *gin.Context)

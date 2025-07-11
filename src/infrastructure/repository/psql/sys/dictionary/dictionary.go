@@ -34,14 +34,13 @@ func (SysDictionary) TableName() string {
 }
 
 var ColumnsDictionaryMapping = map[string]string{
-	"id":              "id",
-	"path":            "path",
-	"dictionaryName":  "dictionary_name",
-	"description":     "description",
-	"dictionaryGroup": "dictionary_group",
-	"method":          "method",
-	"createdAt":       "created_at",
-	"updatedAt":       "updated_at",
+	"id":             "id",
+	"path":           "path",
+	"dictionaryName": "dictionary_name",
+	"selectedDictId": "dictionary_group",
+	"method":         "method",
+	"createdAt":      "created_at",
+	"updatedAt":      "updated_at",
 }
 
 // DictionaryRepositoryInterface defines the interface for dictionary repository operations
@@ -121,7 +120,6 @@ func (r *Repository) Update(id int, dictionaryMap map[string]interface{}) (*doma
 	var dictionaryObj SysDictionary
 	dictionaryObj.ID = id
 	err := r.DB.Model(&dictionaryObj).
-		Select("dictionary_name", "email", "nick_name", "status", "phone", "header_img").
 		Updates(dictionaryMap).Error
 	if err != nil {
 		r.Logger.Error("Error updating dictionary", zap.Error(err), zap.Int("id", id))

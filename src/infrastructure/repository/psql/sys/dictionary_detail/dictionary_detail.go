@@ -36,14 +36,10 @@ func (SysDictionaryDetail) TableName() string {
 }
 
 var ColumnsDictionaryMapping = map[string]string{
-	"id":              "id",
-	"path":            "path",
-	"dictionaryName":  "dictionary_name",
-	"description":     "description",
-	"dictionaryGroup": "dictionary_group",
-	"method":          "method",
-	"createdAt":       "created_at",
-	"updatedAt":       "updated_at",
+	"id":             "id",
+	"selectedDictId": "sys_dictionary_id",
+	"createdAt":      "created_at",
+	"updatedAt":      "updated_at",
 }
 
 // DictionaryRepositoryInterface defines the interface for dictionary repository operations
@@ -52,7 +48,7 @@ type DictionaryRepositoryInterface interface {
 	Create(dictionaryDomain *domainDictionary.Dictionary) (*domainDictionary.Dictionary, error)
 	GetByID(id int) (*domainDictionary.Dictionary, error)
 	Update(id int, dictionaryMap map[string]interface{}) (*domainDictionary.Dictionary, error)
-	Delete(id int) error
+	Delete(ids []int) error
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainDictionary.Dictionary], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(dictionaryMap map[string]interface{}) (*domainDictionary.Dictionary, error)
@@ -123,7 +119,6 @@ func (r *Repository) Update(id int, dictionaryMap map[string]interface{}) (*doma
 	var dictionaryObj SysDictionaryDetail
 	dictionaryObj.ID = id
 	err := r.DB.Model(&dictionaryObj).
-		Select("dictionary_name", "email", "nick_name", "status", "phone", "header_img").
 		Updates(dictionaryMap).Error
 	if err != nil {
 		r.Logger.Error("Error updating dictionary", zap.Error(err), zap.Int("id", id))
@@ -148,17 +143,18 @@ func (r *Repository) Update(id int, dictionaryMap map[string]interface{}) (*doma
 	return dictionaryObj.toDomainMapper(), nil
 }
 
-func (r *Repository) Delete(id int) error {
-	tx := r.DB.Delete(&SysDictionaryDetail{}, id)
+func (r *Repository) Delete(ids []int) error {
+	tx := r.DB.Where("id IN ?", ids).Delete(&SysDictionaryDetail{})
+
 	if tx.Error != nil {
-		r.Logger.Error("Error deleting dictionary", zap.Error(tx.Error), zap.Int("id", id))
+		r.Logger.Error("Error deleting dictionary details", zap.Error(tx.Error), zap.String("ids", fmt.Sprintf("%v", ids)))
 		return domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 	if tx.RowsAffected == 0 {
-		r.Logger.Warn("Dictionary not found for deletion", zap.Int("id", id))
+		r.Logger.Warn("Api not found for deletion", zap.String("ids", fmt.Sprintf("%v", ids)))
 		return domainErrors.NewAppErrorWithType(domainErrors.NotFound)
 	}
-	r.Logger.Info("Successfully deleted dictionary", zap.Int("id", id))
+	r.Logger.Info("Successfully deleted dictionary details", zap.String("ids", fmt.Sprintf("%v", ids)))
 	return nil
 }
 

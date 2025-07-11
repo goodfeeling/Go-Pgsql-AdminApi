@@ -18,6 +18,11 @@ import (
 )
 
 // Structures
+type DeleteBatchDictionaryDetailRequest struct {
+	IDS []int `json:"ids"`
+}
+
+// Structures
 type NewDictionaryRequest struct {
 	ID              int    `json:"id"`
 	Label           string `json:"label"  binding:"required"`
@@ -47,6 +52,7 @@ type IIDictionaryDetailController interface {
 	DeleteDictionary(ctx *gin.Context)
 	SearchPaginated(ctx *gin.Context)
 	SearchByProperty(ctx *gin.Context)
+	DeleteDictionaryDetails(ctx *gin.Context)
 }
 type DictionaryDetailController struct {
 	dictionaryService domainDictionary.IDictionaryService
@@ -204,7 +210,7 @@ func (c *DictionaryDetailController) DeleteDictionary(ctx *gin.Context) {
 		return
 	}
 	c.Logger.Info("Deleting dictionary", zap.Int("id", dictionaryID))
-	err = c.dictionaryService.Delete(dictionaryID)
+	err = c.dictionaryService.Delete([]int{dictionaryID})
 	if err != nil {
 		c.Logger.Error("Error deleting dictionary", zap.Error(err), zap.Int("id", dictionaryID))
 		_ = ctx.Error(err)
@@ -374,6 +380,40 @@ func (c *DictionaryDetailController) SearchByProperty(ctx *gin.Context) {
 		zap.String("property", property),
 		zap.Int("results", len(*coincidences)))
 	ctx.JSON(http.StatusOK, coincidences)
+}
+
+// BatchDeleteOperation
+// @Summary delete operations
+// @Description delete operations by id
+// @Tags batch delete
+// @Accept json
+// @Produce json
+// @Param book body DeleteBatchOperationRequest true  "JSON Data"
+// @Success 200 {object} domain.CommonResponse[int]
+// @Router /v1/operation/delete-batch [post]
+func (c *DictionaryDetailController) DeleteDictionaryDetails(ctx *gin.Context) {
+	c.Logger.Info("Creating new dictionary")
+	var request DeleteBatchDictionaryDetailRequest
+	var err error
+	if err = controllers.BindJSON(ctx, &request); err != nil {
+		c.Logger.Error("Error binding JSON for new dictionary", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	c.Logger.Info("Deleting operation", zap.String("ids", fmt.Sprintf("%v", request.IDS)))
+	err = c.dictionaryService.Delete(request.IDS)
+	if err != nil {
+		c.Logger.Error("Error deleting operation", zap.Error(err), zap.String("ids", fmt.Sprintf("%v", request.IDS)))
+		_ = ctx.Error(err)
+		return
+	}
+	c.Logger.Info("Operation deleted successfully", zap.String("ids", fmt.Sprintf("%v", request.IDS)))
+	ctx.JSON(http.StatusOK, domain.CommonResponse[[]int]{
+		Data:    request.IDS,
+		Message: "resource deleted successfully",
+		Status:  0,
+	})
 }
 
 // Mappers

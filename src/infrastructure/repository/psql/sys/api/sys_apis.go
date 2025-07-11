@@ -119,7 +119,6 @@ func (r *Repository) Update(id int, apiMap map[string]interface{}) (*domainApi.A
 	var apiObj SysApi
 	apiObj.ID = id
 	err := r.DB.Model(&apiObj).
-		Select("api_name", "email", "nick_name", "status", "phone", "header_img").
 		Updates(apiMap).Error
 	if err != nil {
 		r.Logger.Error("Error updating api", zap.Error(err), zap.Int("id", id))

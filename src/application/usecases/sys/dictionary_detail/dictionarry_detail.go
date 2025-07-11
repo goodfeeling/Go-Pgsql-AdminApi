@@ -1,6 +1,8 @@
 package dictionary_detail
 
 import (
+	"fmt"
+
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	dictionaryRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary_detail"
 
@@ -13,7 +15,7 @@ type ISysDictionaryService interface {
 	GetAll() (*[]dictionaryDomain.Dictionary, error)
 	GetByID(id int) (*dictionaryDomain.Dictionary, error)
 	Create(newDictionary *dictionaryDomain.Dictionary) (*dictionaryDomain.Dictionary, error)
-	Delete(id int) error
+	Delete(ids []int) error
 	Update(id int, userMap map[string]interface{}) (*dictionaryDomain.Dictionary, error)
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[dictionaryDomain.Dictionary], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
@@ -47,9 +49,9 @@ func (s *SysDictionaryUseCase) Create(newDictionary *dictionaryDomain.Dictionary
 	return s.sysDictionaryRepository.Create(newDictionary)
 }
 
-func (s *SysDictionaryUseCase) Delete(id int) error {
-	s.Logger.Info("Deleting dictionary", zap.Int("id", id))
-	return s.sysDictionaryRepository.Delete(id)
+func (s *SysDictionaryUseCase) Delete(ids []int) error {
+	s.Logger.Info("Deleting dictionary", zap.String("ids", fmt.Sprintf("%v", ids)))
+	return s.sysDictionaryRepository.Delete(ids)
 }
 
 func (s *SysDictionaryUseCase) Update(id int, userMap map[string]interface{}) (*dictionaryDomain.Dictionary, error) {

@@ -17,5 +17,6 @@ func DictionaryDetailRouters(router *gin.RouterGroup, controller dictionary_deta
 		u.DELETE("/:id", controller.DeleteDictionary)
 		u.GET("/search", controller.SearchPaginated)
 		u.GET("/search-property", controller.SearchByProperty)
+		u.POST("/delete-batch", controller.DeleteDictionaryDetails)
 	}
 }

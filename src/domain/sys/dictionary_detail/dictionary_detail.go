@@ -22,7 +22,7 @@ type IDictionaryService interface {
 	GetAll() (*[]Dictionary, error)
 	GetByID(id int) (*Dictionary, error)
 	Create(newDictionary *Dictionary) (*Dictionary, error)
-	Delete(id int) error
+	Delete(ids []int) error
 	Update(id int, userMap map[string]interface{}) (*Dictionary, error)
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[Dictionary], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)

@@ -126,9 +126,7 @@ func (r *Repository) GetByID(id int) (*domainMenu.Menu, error) {
 func (r *Repository) Update(id int, menuMap map[string]interface{}) (*domainMenu.Menu, error) {
 	var menuObj SysBaseMenu
 	menuObj.ID = id
-	err := r.DB.Model(&menuObj).
-		Select("menu_name", "email", "nick_name", "status", "phone", "header_img").
-		Updates(menuMap).Error
+	err := r.DB.Model(&menuObj).Updates(menuMap).Error
 	if err != nil {
 		r.Logger.Error("Error updating menu", zap.Error(err), zap.Int("id", id))
 		byteErr, _ := json.Marshal(err)

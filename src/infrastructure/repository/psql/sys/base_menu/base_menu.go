@@ -20,8 +20,8 @@ type SysBaseMenu struct {
 	CreatedAt   time.Time      `gorm:"column:created_at" json:"createdAt,omitempty"`
 	UpdatedAt   time.Time      `gorm:"column:updated_at" json:"updatedAt,omitempty"`
 	DeletedAt   gorm.DeletedAt `gorm:"column:deleted_at;index:idx_sys_menus_deleted_at" json:"deletedAt,omitempty"`
-	MenuLevel   *int64         `gorm:"column:menu_level;type:numeric(20,0)"`
-	ParentID    *int64         `gorm:"column:parent_id;type:numeric(20,0)"`
+	MenuLevel   int            `gorm:"column:menu_level;type:numeric(20,0)"`
+	ParentID    int            `gorm:"column:parent_id;type:numeric(20,0)"`
 	Path        string         `gorm:"column:path"`
 	Name        string         `gorm:"column:name"`
 	Hidden      int16          `gorm:"column:hidden"`
@@ -36,7 +36,7 @@ type SysBaseMenu struct {
 }
 
 func (SysBaseMenu) TableName() string {
-	return "sys_menus"
+	return "sys_base_menus"
 }
 
 var ColumnsMenuMapping = map[string]string{
@@ -278,19 +278,43 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 
 func (u *SysBaseMenu) toDomainMapper() *domainMenu.Menu {
 	return &domainMenu.Menu{
-		ID:        u.ID,
-		Path:      u.Path,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		ID:          u.ID,
+		Path:        u.Path,
+		Name:        u.Name,
+		ParentID:    u.ParentID,
+		DefaultMenu: u.DefaultMenu,
+		Hidden:      u.Hidden,
+		MenuLevel:   u.MenuLevel,
+		CloseTab:    u.CloseTab,
+		KeepAlive:   u.KeepAlive,
+		Icon:        u.Icon,
+		Title:       u.Title,
+		Sort:        u.Sort,
+		ActiveName:  u.ActiveName,
+		Component:   u.Component,
+		CreatedAt:   u.CreatedAt,
+		UpdatedAt:   u.UpdatedAt,
 	}
 }
 
 func fromDomainMapper(u *domainMenu.Menu) *SysBaseMenu {
 	return &SysBaseMenu{
-		ID:        u.ID,
-		Path:      u.Path,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		ID:          u.ID,
+		Path:        u.Path,
+		Name:        u.Name,
+		ParentID:    u.ParentID,
+		DefaultMenu: u.DefaultMenu,
+		Hidden:      u.Hidden,
+		MenuLevel:   u.MenuLevel,
+		CloseTab:    u.CloseTab,
+		KeepAlive:   u.KeepAlive,
+		Icon:        u.Icon,
+		Title:       u.Title,
+		Sort:        u.Sort,
+		ActiveName:  u.ActiveName,
+		Component:   u.Component,
+		CreatedAt:   u.CreatedAt,
+		UpdatedAt:   u.UpdatedAt,
 	}
 }
 

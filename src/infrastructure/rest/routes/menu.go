@@ -15,7 +15,6 @@ func MenuRouters(router *gin.RouterGroup, controller menu.IMenuController) {
 		u.GET("/:id", controller.GetMenusByID)
 		u.PUT("/:id", controller.UpdateMenu)
 		u.DELETE("/:id", controller.DeleteMenu)
-		u.GET("/search", controller.SearchPaginated)
-		u.GET("/search-property", controller.SearchByProperty)
+		u.GET("/tree", controller.GetTreeMenus)
 	}
 }

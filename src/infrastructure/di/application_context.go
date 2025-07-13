@@ -111,7 +111,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	operationRepo := operation_records.NewOperationRepository(db, loggerInstance)
 	dictionaryRepo := dictionary.NewDictionaryRepository(db, loggerInstance)
 	dictionaryDetailRepo := dictionary_detail.NewDictionaryRepository(db, loggerInstance)
-
+	menuRepo := base_menu.NewMenuRepository(db, loggerInstance)
 	// Initialize use cases with logger
 	authUC := authUseCase.NewAuthUseCase(userRepo, jwtService, loggerInstance, jwtBlackListRepo)
 	userUC := userUseCase.NewUserUseCase(userRepo, loggerInstance)
@@ -122,6 +122,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	operationUC := operationUseCase.NewSysOperationUseCase(operationRepo, loggerInstance)
 	dictionaryUC := dictionaryUseCase.NewSysDictionaryUseCase(dictionaryRepo, loggerInstance)
 	dictionaryDetailUC := dictionaryDetailUseCase.NewSysDictionaryUseCase(dictionaryDetailRepo, loggerInstance)
+	menuUC := menuUseCase.NewSysMenuUseCase(menuRepo, loggerInstance)
 
 	// Initialize controllers with logger
 	authController := authController.NewAuthController(authUC, loggerInstance)
@@ -133,6 +134,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	operationController := operationController.NewOperationController(operationUC, loggerInstance)
 	dictionaryController := dictionaryController.NewDictionaryController(dictionaryUC, loggerInstance)
 	dictionaryDetailController := dictionaryDetailController.NewIDictionaryDetailController(dictionaryDetailUC, loggerInstance)
+	menuController := menuController.NewMenuController(menuUC, loggerInstance)
 
 	return &ApplicationContext{
 		DB:     db,
@@ -147,6 +149,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		OperationController:        operationController,
 		DictionaryController:       dictionaryController,
 		DictionaryDetailController: dictionaryDetailController,
+		MenuController:             menuController,
 		// repository
 		UserRepository:             userRepo,
 		MedicineRepository:         medicineRepo,
@@ -156,6 +159,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		OperationRepository:        operationRepo,
 		DictionaryRepository:       dictionaryRepo,
 		DictionaryDetailRepository: dictionaryDetailRepo,
+		MenuRepository:             menuRepo,
 		// application
 		AuthUseCase:             authUC,
 		UserUseCase:             userUC,
@@ -166,7 +170,9 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		OperationUseCase:        operationUC,
 		DictionaryUseCase:       dictionaryUC,
 		DictionaryDetailUseCase: dictionaryDetailUC,
-		JWTService:              jwtService,
+		MenuUseCase:             menuUC,
+
+		JWTService: jwtService,
 	}, nil
 }
 

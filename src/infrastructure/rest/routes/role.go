@@ -16,5 +16,8 @@ func RoleRoutes(router *gin.RouterGroup, controller role.IRoleController) {
 		u.PUT("/:id", controller.UpdateRole)
 		u.DELETE("/:id", controller.DeleteRole)
 		u.GET("/tree", controller.GetTreeRoles)
+		u.GET("/:id/setting", controller.GetRoleSetting)
+		u.POST("/:id/menu", controller.UpdateRoleMenuIds)
+		u.POST("/:id/api", controller.BindApiRule)
 	}
 }

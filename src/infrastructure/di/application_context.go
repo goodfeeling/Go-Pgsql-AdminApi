@@ -19,11 +19,13 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/medicine"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/casbin_rule"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary_detail"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/files"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/operation_records"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_menu"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
 	apiController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/api"
 	authController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/auth"
@@ -112,12 +114,14 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	dictionaryRepo := dictionary.NewDictionaryRepository(db, loggerInstance)
 	dictionaryDetailRepo := dictionary_detail.NewDictionaryRepository(db, loggerInstance)
 	menuRepo := base_menu.NewMenuRepository(db, loggerInstance)
+	roleMenuRepo := role_menu.NewSysRoleMenuRepository(db, loggerInstance)
+	casBinRepo := casbin_rule.NewCasbinRuleRepository(db, loggerInstance)
 	// Initialize use cases with logger
 	authUC := authUseCase.NewAuthUseCase(userRepo, jwtService, loggerInstance, jwtBlackListRepo)
 	userUC := userUseCase.NewUserUseCase(userRepo, loggerInstance)
 	medicineUC := medicineUseCase.NewMedicineUseCase(medicineRepo, loggerInstance)
 	filesUC := filesUseCase.NewSysFilesUseCase(filesRepo, loggerInstance)
-	roleUC := roleUseCase.NewSysRoleUseCase(roleRepo, loggerInstance)
+	roleUC := roleUseCase.NewSysRoleUseCase(roleRepo, roleMenuRepo, casBinRepo, loggerInstance)
 	apiUC := apiUseCase.NewSysApiUseCase(apiRepo, loggerInstance)
 	operationUC := operationUseCase.NewSysOperationUseCase(operationRepo, loggerInstance)
 	dictionaryUC := dictionaryUseCase.NewSysDictionaryUseCase(dictionaryRepo, loggerInstance)

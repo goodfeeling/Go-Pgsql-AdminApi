@@ -19,5 +19,7 @@ func ApiRouters(router *gin.RouterGroup, controller api.IApiController) {
 		u.GET("/search-property", controller.SearchByProperty)
 		u.GET("/groups", controller.GetGroups)
 		u.POST("/delete-batch", controller.DeleteOperations)
+		u.GET("/group-list", controller.GetApisGroup)
+
 	}
 }

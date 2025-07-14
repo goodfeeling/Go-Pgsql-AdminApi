@@ -3,11 +3,10 @@ package api
 import (
 	"fmt"
 
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
-	apiRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
-
 	"github.com/gbrayhan/microservices-go/src/domain"
 	apiDomain "github.com/gbrayhan/microservices-go/src/domain/sys/api"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	apiRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
 	"go.uber.org/zap"
 )
 
@@ -20,6 +19,7 @@ type ISysApiService interface {
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[apiDomain.Api], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*apiDomain.Api, error)
+	GetApisGroup() (*[]apiDomain.GroupApiItem, error)
 }
 
 type SysApiUseCase struct {
@@ -73,6 +73,35 @@ func (s *SysApiUseCase) SearchByProperty(property string, searchText string) (*[
 	return s.sysApiRepository.SearchByProperty(property, searchText)
 }
 
+// Get one api by map
 func (s *SysApiUseCase) GetOneByMap(userMap map[string]interface{}) (*apiDomain.Api, error) {
 	return s.sysApiRepository.GetOneByMap(userMap)
+}
+
+// GetApisGroup
+func (s *SysApiUseCase) GetApisGroup() (*[]apiDomain.GroupApiItem, error) {
+	apis, err := s.sysApiRepository.GetAll()
+	if err != nil {
+		return nil, err
+	}
+	groupNames := apiDomain.GetApiGroupNames()
+	groups := make([]apiDomain.GroupApiItem, len(groupNames))
+	for i, groupName := range groupNames {
+		groupApis := make([]*apiDomain.GroupApiItem, 0)
+		for _, api := range *apis {
+			if api.ApiGroup == groupName {
+				groupApis = append(groupApis, &apiDomain.GroupApiItem{
+					GroupKey:  fmt.Sprintf("%v-%v", api.Path, api.Method),
+					GroupName: api.Description,
+					Children:  nil,
+				})
+			}
+		}
+		groups[i] = apiDomain.GroupApiItem{
+			GroupName: groupName,
+			GroupKey:  fmt.Sprintf("0-%v", i),
+			Children:  groupApis,
+		}
+	}
+	return &groups, nil
 }

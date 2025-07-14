@@ -50,6 +50,7 @@ type IApiController interface {
 	SearchByProperty(ctx *gin.Context)
 	GetGroups(ctx *gin.Context)
 	DeleteOperations(ctx *gin.Context)
+	GetApisGroup(ctx *gin.Context)
 }
 type ApiController struct {
 	apiService domainApi.IApiService
@@ -410,7 +411,7 @@ func (c *ApiController) GetGroups(ctx *gin.Context) {
 // @Produce json
 // @Param book body DeleteBatchOperationRequest true  "JSON Data"
 // @Success 200 {object} domain.CommonResponse[int]
-// @Router /v1/operation/delete-batch [post]
+// @Router /v1/api/delete-batch [post]
 func (c *ApiController) DeleteOperations(ctx *gin.Context) {
 	c.Logger.Info("Creating new dictionary")
 	var request DeleteBatchOperationRequest
@@ -434,6 +435,32 @@ func (c *ApiController) DeleteOperations(ctx *gin.Context) {
 		Message: "resource deleted successfully",
 		Status:  0,
 	})
+}
+
+// GetApisGroup
+// @Summary get apis group
+// @Description get group after apis
+// @Tags apis
+// @Accept json
+// @Produce json
+// @Success 200 {array} []domainApi.GroupApiItem
+// @Router /v1/api/group-list [get]
+func (c *ApiController) GetApisGroup(ctx *gin.Context) {
+	c.Logger.Info("Getting all apis")
+	apis, err := c.apiService.GetApisGroup()
+	if err != nil {
+		c.Logger.Error("Error getting all apis", zap.Error(err))
+		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
+		_ = ctx.Error(appError)
+		return
+	}
+	apiResponse := controllers.NewCommonResponseBuilder[*[]domainApi.GroupApiItem]().
+		Data(apis).
+		Message("success").
+		Status(0).
+		Build()
+	c.Logger.Info("Successfully retrieved all apis", zap.Int("count", len(*apis)))
+	ctx.JSON(http.StatusOK, apiResponse)
 }
 
 // Mappers

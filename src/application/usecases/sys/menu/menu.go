@@ -139,7 +139,7 @@ func (s *SysMenuUseCase) GetTreeMenus() (*menuDomain.MenuNode, error) {
 	for _, item := range *menus {
 		node := &menuDomain.MenuNode{
 			ID:       strconv.Itoa(item.ID),
-			Name:     item.Name,
+			Name:     item.Title,
 			Key:      strconv.Itoa(item.ID),
 			Path:     []int{},
 			Children: []*menuDomain.MenuNode{},

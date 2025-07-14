@@ -37,6 +37,11 @@ type ResponseRole struct {
 	CreatedAt     domain.CustomTime `json:"created_at,omitempty"`
 	UpdatedAt     domain.CustomTime `json:"updated_at,omitempty"`
 }
+
+type MenuRoleResponse struct {
+	RoleMenus controllers.IntSlice `json:"role_menus"`
+	RoleApis  []string             `json:"role_apis"`
+}
 type IRoleController interface {
 	NewRole(ctx *gin.Context)
 	GetAllRoles(ctx *gin.Context)
@@ -44,6 +49,9 @@ type IRoleController interface {
 	UpdateRole(ctx *gin.Context)
 	DeleteRole(ctx *gin.Context)
 	GetTreeRoles(ctx *gin.Context)
+	GetRoleSetting(ctx *gin.Context)
+	UpdateRoleMenuIds(ctx *gin.Context)
+	BindApiRule(ctx *gin.Context)
 }
 type RoleController struct {
 	roleService domainRole.IRoleService
@@ -239,6 +247,118 @@ func (c *RoleController) GetTreeRoles(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, domain.CommonResponse[*domainRole.RoleNode]{
 		Data: roles,
 	})
+}
+
+// GetRoleSetting
+func (c *RoleController) GetRoleSetting(ctx *gin.Context) {
+	roleID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		c.Logger.Error("Invalid role ID parameter for get role menu ids", zap.Error(err), zap.String("id", ctx.Param("id")))
+		appError := domainErrors.NewAppError(errors.New("param id is necessary"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	roleMenus, err := c.roleService.GetRoleMenuIds(roleID)
+	if err != nil {
+		c.Logger.Error("Error getting role menu ids", zap.Error(err), zap.Int("id", roleID))
+		_ = ctx.Error(err)
+		return
+	}
+
+	if roleMenus == nil {
+		roleMenus = []int{}
+	}
+	rules, err := c.roleService.GetApiRuleList(roleID)
+	if err != nil {
+		c.Logger.Error("Error getting all apis", zap.Error(err))
+		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
+		_ = ctx.Error(appError)
+		return
+	}
+	if rules == nil {
+		rules = []string{}
+	}
+	response := controllers.NewCommonResponseBuilder[MenuRoleResponse]().
+		Data(MenuRoleResponse{
+			RoleMenus: roleMenus,
+			RoleApis:  rules,
+		}).
+		Message("success").
+		Status(0).
+		Build()
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *RoleController) UpdateRoleMenuIds(ctx *gin.Context) {
+	roleID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		c.Logger.Error("Invalid role ID parameter for update", zap.Error(err), zap.String("id", ctx.Param("id")))
+		appError := domainErrors.NewAppError(errors.New("param id is necessary"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	c.Logger.Info("Updating role", zap.Int("id", roleID))
+	var requestMap map[string]any
+	err = controllers.BindJSONMap(ctx, &requestMap)
+	if err != nil {
+		c.Logger.Error("Error binding JSON for role update", zap.Error(err), zap.Int("id", roleID))
+		appError := domainErrors.NewAppError(err, domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	err = c.roleService.UpdateRoleMenuIds(roleID, requestMap)
+	if err != nil {
+		c.Logger.Error("Error updating role", zap.Error(err), zap.Int("id", roleID))
+		_ = ctx.Error(err)
+		return
+	}
+	response := controllers.NewCommonResponseBuilder[bool]().
+		Data(true).
+		Message("success").
+		Status(0).
+		Build()
+	c.Logger.Info("Role updated successfully", zap.Int("id", roleID))
+	ctx.JSON(http.StatusOK, response)
+}
+
+// BindApiRule
+// @Summary bind api rule
+// @Description casbin rule bind
+// @Tags bind casbin
+// @Accept json
+// @Produce json
+// @Param book body models.User  true  "JSON Data"
+// @Success 200 {array} models.User
+// @Router /v1/api/{id}/api [post]
+func (c *RoleController) BindApiRule(ctx *gin.Context) {
+	roleID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		c.Logger.Error("Invalid role ID parameter for get role menu ids", zap.Error(err), zap.String("id", ctx.Param("id")))
+		appError := domainErrors.NewAppError(errors.New("param id is necessary"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	var requestMap map[string]any
+	err = controllers.BindJSONMap(ctx, &requestMap)
+	if err != nil {
+		c.Logger.Error("Error binding JSON for casbin rule update", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	err = c.roleService.BindApiRule(roleID, requestMap)
+	if err != nil {
+		c.Logger.Error("Error updating casbin rule ", zap.Error(err), zap.Int("id", roleID))
+		_ = ctx.Error(err)
+		return
+	}
+	response := controllers.NewCommonResponseBuilder[bool]().
+		Data(true).
+		Message("success").
+		Status(0).
+		Build()
+	c.Logger.Info("Role updated successfully", zap.Int("id", roleID))
+	ctx.JSON(http.StatusOK, response)
 }
 
 // Mappers

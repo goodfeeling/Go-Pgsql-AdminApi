@@ -25,4 +25,10 @@ type IApiService interface {
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[Api], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*Api, error)
+	GetApisGroup() (*[]GroupApiItem, error)
+}
+type GroupApiItem struct {
+	GroupName string          `json:"title"`
+	GroupKey  string          `json:"key"`
+	Children  []*GroupApiItem `json:"children"`
 }

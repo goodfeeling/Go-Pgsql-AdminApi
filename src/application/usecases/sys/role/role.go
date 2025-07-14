@@ -4,7 +4,9 @@ import (
 	"strconv"
 
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	casbinRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/casbin_rule"
 	roleRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
+	roleMenuRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_menu"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	roleDomain "github.com/gbrayhan/microservices-go/src/domain/sys/role"
@@ -22,17 +24,28 @@ type ISysRoleService interface {
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*roleDomain.Role, error)
 	GetTreeRoles() (*roleDomain.RoleNode, error)
+
+	GetRoleMenuIds(id int) ([]int, error)
+	UpdateRoleMenuIds(id int, updateMap map[string]any) error
+
+	GetApiRuleList(roleId int) ([]string, error)
+	BindApiRule(roleId int, updateMap map[string]interface{}) error
 }
 
 type SysRoleUseCase struct {
-	sysRoleRepository roleRepo.ISysRolesRepository
-	Logger            *logger.Logger
+	sysRoleRepository     roleRepo.ISysRolesRepository
+	sysRoleMenuRepository roleMenuRepo.ISysRoleMenuRepository
+	casbinRuleRepo        casbinRepo.ICasbinRuleRepository
+
+	Logger *logger.Logger
 }
 
-func NewSysRoleUseCase(sysRoleRepository roleRepo.ISysRolesRepository, loggerInstance *logger.Logger) ISysRoleService {
+func NewSysRoleUseCase(sysRoleRepository roleRepo.ISysRolesRepository, sysRoleMenuRepository roleMenuRepo.ISysRoleMenuRepository, casbinRuleRepo casbinRepo.ICasbinRuleRepository, loggerInstance *logger.Logger) ISysRoleService {
 	return &SysRoleUseCase{
-		sysRoleRepository: sysRoleRepository,
-		Logger:            loggerInstance,
+		sysRoleRepository:     sysRoleRepository,
+		sysRoleMenuRepository: sysRoleMenuRepository,
+		casbinRuleRepo:        casbinRuleRepo,
+		Logger:                loggerInstance,
 	}
 }
 
@@ -170,4 +183,19 @@ func (s *SysRoleUseCase) GetTreeRoles() (*roleDomain.RoleNode, error) {
 		Key:      "0",
 		Children: roots,
 	}, nil
+}
+
+func (s *SysRoleUseCase) GetRoleMenuIds(id int) ([]int, error) {
+	return s.sysRoleMenuRepository.GetByRoleId(id)
+}
+
+func (s *SysRoleUseCase) UpdateRoleMenuIds(id int, updateMap map[string]any) error {
+	return s.sysRoleMenuRepository.Insert(id, updateMap)
+}
+func (s *SysRoleUseCase) GetApiRuleList(roleId int) ([]string, error) {
+	return s.casbinRuleRepo.GetByRoleId(roleId)
+
+}
+func (s *SysRoleUseCase) BindApiRule(roleId int, updateMap map[string]interface{}) error {
+	return s.casbinRuleRepo.Insert(roleId, updateMap)
 }

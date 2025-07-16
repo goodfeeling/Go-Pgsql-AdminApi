@@ -18,6 +18,7 @@ type User struct {
 	Phone         string
 	OriginSetting string
 	Password      string
+	RoleId        int
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }

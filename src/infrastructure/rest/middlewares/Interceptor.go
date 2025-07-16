@@ -50,7 +50,6 @@ func GinBodyLogMiddleware(db *gorm.DB, logger *logger.Logger) gin.HandlerFunc {
 		start := time.Now()
 		c.Next()
 		latency := time.Since(start).Milliseconds()
-		fmt.Println(c.Request.Response)
 		operationRecordsRepository := operationRecordsRepository.NewOperationRepository(db, logger)
 
 		// handle user Id

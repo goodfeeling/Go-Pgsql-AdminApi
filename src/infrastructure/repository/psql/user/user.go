@@ -25,6 +25,7 @@ type User struct {
 	Phone         string         `gorm:"column:phone;type:text"`
 	Status        bool           `gorm:"column:status"`
 	OriginSetting string         `gorm:"column:origin_setting;type:text"`
+	RoleId        int            `gorm:"column:role_id;type:numeric(20,0)"`
 	CreatedAt     time.Time      `gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt     time.Time      `gorm:"column:updated_at;autoUpdateTime:milli"`
 	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at;index"`
@@ -317,17 +318,19 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 
 func (u *User) toDomainMapper() *domainUser.User {
 	return &domainUser.User{
-		ID:           u.ID,
-		UUID:         u.UUID,
-		UserName:     u.UserName,
-		Email:        u.Email,
-		NickName:     u.NickName,
-		HeaderImg:    u.HeaderImg,
-		Status:       u.Status,
-		Phone:        u.Phone,
-		HashPassword: u.HashPassword,
-		CreatedAt:    u.CreatedAt,
-		UpdatedAt:    u.UpdatedAt,
+		ID:            u.ID,
+		UUID:          u.UUID,
+		UserName:      u.UserName,
+		Email:         u.Email,
+		NickName:      u.NickName,
+		HeaderImg:     u.HeaderImg,
+		Status:        u.Status,
+		Phone:         u.Phone,
+		HashPassword:  u.HashPassword,
+		OriginSetting: u.OriginSetting,
+		RoleId:        u.RoleId,
+		CreatedAt:     u.CreatedAt,
+		UpdatedAt:     u.UpdatedAt,
 	}
 }
 
@@ -343,6 +346,7 @@ func fromDomainMapper(u *domainUser.User) *User {
 		Email:         u.Email,
 		Status:        u.Status,
 		HashPassword:  u.HashPassword,
+		RoleId:        u.RoleId,
 		CreatedAt:     u.CreatedAt,
 		UpdatedAt:     u.UpdatedAt,
 	}

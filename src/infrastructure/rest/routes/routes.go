@@ -32,4 +32,5 @@ func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
 	DictionaryRouters(v1, appContext.DictionaryController)
 	DictionaryDetailRouters(v1, appContext.DictionaryDetailController)
 	MenuRouters(v1, appContext.MenuController)
+	MenuGroupRouters(v1, appContext.MenuGroupController)
 }

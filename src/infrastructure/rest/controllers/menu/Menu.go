@@ -48,6 +48,7 @@ type IMenuController interface {
 	UpdateMenu(ctx *gin.Context)
 	DeleteMenu(ctx *gin.Context)
 	GetTreeMenus(ctx *gin.Context)
+	GetUserMenus(ctx *gin.Context)
 }
 type MenuController struct {
 	menuService domainMenu.IMenuService
@@ -68,6 +69,7 @@ func NewMenuController(menuService domainMenu.IMenuService, loggerInstance *logg
 // @Success 200 {object} controllers.CommonResponseBuilder
 // @Router /v1/menu [post]
 func (c *MenuController) NewMenu(ctx *gin.Context) {
+
 	c.Logger.Info("Creating new menu")
 	var request NewMenuRequest
 	if err := controllers.BindJSON(ctx, &request); err != nil {
@@ -100,13 +102,20 @@ func (c *MenuController) NewMenu(ctx *gin.Context) {
 // @Success 200 {object} domain.CommonResponse[[]domainMenu.Menu]
 // @Router /v1/menu [get]
 func (c *MenuController) GetAllMenus(ctx *gin.Context) {
-	c.Logger.Info("Getting all menus")
-	menus, err := c.menuService.GetAll()
+	c.Logger.Info("Getting all menus by group id")
+	groupId, err := strconv.Atoi(ctx.Query("group_id"))
+	if err != nil {
+		groupId = 0
+	}
+	menus, err := c.menuService.GetAll(groupId)
 	if err != nil {
 		c.Logger.Error("Error getting all menus", zap.Error(err))
 		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 		_ = ctx.Error(appError)
 		return
+	}
+	if menus == nil {
+		menus = []*domainMenu.MenuTree{}
 	}
 	response := controllers.NewCommonResponseBuilder[[]*domainMenu.MenuTree]().
 		Data(menus).
@@ -246,6 +255,36 @@ func (c *MenuController) GetTreeMenus(ctx *gin.Context) {
 		Build()
 	c.Logger.Info("Successfully retrieved all menus tree", zap.Int("count", len(menus.Children)))
 	ctx.JSON(http.StatusOK, menuResponse)
+}
+
+// GetUserMenus
+// @Summary get user menus
+// @Description user menus
+// @Tags menus
+// @Accept json
+// @Produce json
+// @Success 200 {array} models.User
+// @Router /v1/menu/user [get]
+func (c *MenuController) GetUserMenus(ctx *gin.Context) {
+	c.Logger.Info("Getting user menus")
+	userId := controllers.GetUserId(ctx)
+	menus, err := c.menuService.GetUserMenus(userId)
+	if err != nil {
+		c.Logger.Error("Error getting all menu user", zap.Error(err))
+		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
+		_ = ctx.Error(appError)
+		return
+	}
+	if menus == nil {
+		menus = []*domainMenu.MenuGroup{}
+	}
+	menuResponse := controllers.NewCommonResponseBuilder[[]*domainMenu.MenuGroup]().
+		Data(menus).
+		Message("success").
+		Status(0).
+		Build()
+	ctx.JSON(http.StatusOK, menuResponse)
+
 }
 
 // Mappers

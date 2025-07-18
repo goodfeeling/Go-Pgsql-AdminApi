@@ -47,7 +47,6 @@ type IMenuController interface {
 	GetMenusByID(ctx *gin.Context)
 	UpdateMenu(ctx *gin.Context)
 	DeleteMenu(ctx *gin.Context)
-	GetTreeMenus(ctx *gin.Context)
 	GetUserMenus(ctx *gin.Context)
 }
 type MenuController struct {
@@ -231,32 +230,6 @@ func (c *MenuController) DeleteMenu(ctx *gin.Context) {
 	})
 }
 
-// GetTreeMenu
-// @Summary get tree roles
-// @Description get tree roles
-// @Tags tree roles
-// @Accept json
-// @Produce json
-// @Success 200 {object} domain.CommonResponse[domainRole.RoleNode]
-// @Router /v1/role/tree [get]
-func (c *MenuController) GetTreeMenus(ctx *gin.Context) {
-	c.Logger.Info("Getting all menus tree")
-	menus, err := c.menuService.GetTreeMenus()
-	if err != nil {
-		c.Logger.Error("Error getting all menu tree", zap.Error(err))
-		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
-		_ = ctx.Error(appError)
-		return
-	}
-	menuResponse := controllers.NewCommonResponseBuilder[*domainMenu.MenuNode]().
-		Data(menus).
-		Message("success").
-		Status(0).
-		Build()
-	c.Logger.Info("Successfully retrieved all menus tree", zap.Int("count", len(menus.Children)))
-	ctx.JSON(http.StatusOK, menuResponse)
-}
-
 // GetUserMenus
 // @Summary get user menus
 // @Description user menus
@@ -267,7 +240,14 @@ func (c *MenuController) GetTreeMenus(ctx *gin.Context) {
 // @Router /v1/menu/user [get]
 func (c *MenuController) GetUserMenus(ctx *gin.Context) {
 	c.Logger.Info("Getting user menus")
-	userId := controllers.GetUserId(ctx)
+	appUtils := controllers.NewAppUtils(ctx)
+	userId, ok := appUtils.GetUserID()
+	if !ok {
+		c.Logger.Error("Error getting user id")
+		appError := domainErrors.NewAppError(errors.New("user id not found"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
 	menus, err := c.menuService.GetUserMenus(userId)
 	if err != nil {
 		c.Logger.Error("Error getting all menu user", zap.Error(err))

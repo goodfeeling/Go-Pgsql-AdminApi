@@ -258,7 +258,7 @@ func (c *RoleController) GetRoleSetting(ctx *gin.Context) {
 		_ = ctx.Error(appError)
 		return
 	}
-	roleMenus, err := c.roleService.GetRoleMenuIds(roleID)
+	roleMenus, err := c.roleService.GetRoleMenuIds(int64(roleID))
 	if err != nil {
 		c.Logger.Error("Error getting role menu ids", zap.Error(err), zap.Int("id", roleID))
 		_ = ctx.Error(err)

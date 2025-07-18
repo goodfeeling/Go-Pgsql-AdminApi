@@ -18,7 +18,7 @@ type IUserUseCase interface {
 	GetByEmail(email string) (*userDomain.User, error)
 	Create(newUser *userDomain.User) (*userDomain.User, error)
 	Delete(id int) error
-	Update(id int, userMap map[string]interface{}) (*userDomain.User, error)
+	Update(id int64, userMap map[string]interface{}) (*userDomain.User, error)
 	SearchPaginated(filters domain.DataFilters) (*userDomain.SearchResultUser, error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*userDomain.User, error)
@@ -70,8 +70,8 @@ func (s *UserUseCase) Delete(id int) error {
 	return s.userRepository.Delete(id)
 }
 
-func (s *UserUseCase) Update(id int, userMap map[string]interface{}) (*userDomain.User, error) {
-	s.Logger.Info("Updating user", zap.Int("id", id))
+func (s *UserUseCase) Update(id int64, userMap map[string]interface{}) (*userDomain.User, error) {
+	s.Logger.Info("Updating user", zap.Int64("id", id))
 	return s.userRepository.Update(id, userMap)
 }
 

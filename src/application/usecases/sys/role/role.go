@@ -25,7 +25,7 @@ type ISysRoleService interface {
 	GetOneByMap(userMap map[string]interface{}) (*roleDomain.Role, error)
 	GetTreeRoles() (*roleDomain.RoleNode, error)
 
-	GetRoleMenuIds(id int) ([]int, error)
+	GetRoleMenuIds(id int64) ([]int, error)
 	UpdateRoleMenuIds(id int, updateMap map[string]any) error
 
 	GetApiRuleList(roleId int) ([]string, error)
@@ -185,7 +185,7 @@ func (s *SysRoleUseCase) GetTreeRoles() (*roleDomain.RoleNode, error) {
 	}, nil
 }
 
-func (s *SysRoleUseCase) GetRoleMenuIds(id int) ([]int, error) {
+func (s *SysRoleUseCase) GetRoleMenuIds(id int64) ([]int, error) {
 	return s.sysRoleMenuRepository.GetByRoleId(id)
 }
 

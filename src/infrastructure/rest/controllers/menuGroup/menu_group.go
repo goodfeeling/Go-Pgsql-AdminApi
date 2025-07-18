@@ -21,11 +21,13 @@ import (
 type NewMenuGroupRequest struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"  binding:"required"`
+	Path string `json:"path"`
 }
 
 type ResponseMenuGroup struct {
 	ID        int               `json:"id"`
 	Name      string            `json:"name"`
+	Path      string            `json:"path"`
 	CreatedAt domain.CustomTime `json:"created_at"`
 	UpdatedAt domain.CustomTime `json:"updated_at"`
 }
@@ -372,6 +374,7 @@ func domainToResponseMapper(domainMenuGroup *domainMenuGroup.MenuGroup) *Respons
 	return &ResponseMenuGroup{
 		ID:        domainMenuGroup.ID,
 		Name:      domainMenuGroup.Name,
+		Path:      domainMenuGroup.Path,
 		CreatedAt: domain.CustomTime{Time: domainMenuGroup.CreatedAt},
 		UpdatedAt: domain.CustomTime{Time: domainMenuGroup.UpdatedAt},
 	}
@@ -388,5 +391,6 @@ func arrayDomainToResponseMapper(dictionaries *[]domainMenuGroup.MenuGroup) *[]*
 func toUsecaseMapper(req *NewMenuGroupRequest) *domainMenuGroup.MenuGroup {
 	return &domainMenuGroup.MenuGroup{
 		Name: req.Name,
+		Path: req.Path,
 	}
 }

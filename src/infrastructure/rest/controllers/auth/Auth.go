@@ -119,13 +119,15 @@ func (c *AuthController) Login(ctx *gin.Context) {
 	response := &domain.CommonResponse[useCaseAuth.SecurityAuthenticatedUser]{
 		Data: useCaseAuth.SecurityAuthenticatedUser{
 			UserInfo: useCaseAuth.DataUserAuthenticated{
-				UserName:  domainUser.UserName,
-				Email:     domainUser.Email,
-				ID:        domainUser.ID,
-				Status:    domainUser.Status,
-				NickName:  domainUser.NickName,
-				Phone:     domainUser.Phone,
-				HeaderImg: domainUser.HeaderImg,
+				UserName:      domainUser.UserName,
+				Email:         domainUser.Email,
+				ID:            domainUser.ID,
+				Status:        domainUser.Status,
+				NickName:      domainUser.NickName,
+				Phone:         domainUser.Phone,
+				HeaderImg:     domainUser.HeaderImg,
+				Roles:         domainUser.Roles,
+				CurrentRoleId: int64(domainUser.RoleId),
 			},
 			Security: useCaseAuth.DataSecurityAuthenticated{
 				JWTAccessToken:            authTokens.AccessToken,
@@ -136,7 +138,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		},
 	}
 
-	c.Logger.Info("Login successful", zap.String("email", request.Username), zap.Int("userID", domainUser.ID))
+	c.Logger.Info("Login successful", zap.String("email", request.Username), zap.Int64("userID", domainUser.ID))
 	ctx.JSON(http.StatusOK, response)
 }
 
@@ -151,6 +153,8 @@ func (c *AuthController) Login(ctx *gin.Context) {
 // @Router /v1/auth/access-token [get]
 func (c *AuthController) GetAccessTokenByRefreshToken(ctx *gin.Context) {
 	c.Logger.Info("Token refresh request")
+	appUtils := controllers.NewAppUtils(ctx)
+
 	var request AccessTokenRequest
 	if err := controllers.BindJSON(ctx, &request); err != nil {
 		c.Logger.Error("Error binding JSON for token refresh", zap.Error(err))
@@ -158,8 +162,15 @@ func (c *AuthController) GetAccessTokenByRefreshToken(ctx *gin.Context) {
 		_ = ctx.Error(appError)
 		return
 	}
+	roleId, ok := appUtils.GetRoleID()
+	if !ok {
+		c.Logger.Error("Error getting role id")
+		appError := domainErrors.NewAppError(errors.New("role id not found"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
 
-	domainUser, authTokens, err := c.authUseCase.AccessTokenByRefreshToken(request.RefreshToken)
+	domainUser, authTokens, err := c.authUseCase.AccessTokenByRefreshToken(request.RefreshToken, roleId)
 	if err != nil {
 		c.Logger.Error("Token refresh failed", zap.Error(err))
 		appError := domainErrors.NewAppError(err, domainErrors.TokenExpired)
@@ -187,6 +198,6 @@ func (c *AuthController) GetAccessTokenByRefreshToken(ctx *gin.Context) {
 		},
 	}
 
-	c.Logger.Info("Token refresh successful", zap.Int("userID", domainUser.ID))
+	c.Logger.Info("Token refresh successful", zap.Int64("userID", domainUser.ID))
 	ctx.JSON(http.StatusOK, response)
 }

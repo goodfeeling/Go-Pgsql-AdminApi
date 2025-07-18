@@ -1,6 +1,10 @@
 package auth
 
-import "time"
+import (
+	"time"
+
+	roleDomain "github.com/gbrayhan/microservices-go/src/domain/sys/role"
+)
 
 type LoginUser struct {
 	UserName string
@@ -8,14 +12,16 @@ type LoginUser struct {
 }
 
 type DataUserAuthenticated struct {
-	UserName  string `json:"user_name"`
-	NickName  string `json:"nick_name"`
-	Email     string `json:"email"`
-	Status    bool   `json:"status"`
-	UUID      string `json:"uuid"`
-	ID        int    `json:"id"`
-	Phone     string `json:"phone"`
-	HeaderImg string `json:"header_img"`
+	UserName      string            `json:"user_name"`
+	NickName      string            `json:"nick_name"`
+	Email         string            `json:"email"`
+	Status        bool              `json:"status"`
+	UUID          string            `json:"uuid"`
+	ID            int64             `json:"id"`
+	Phone         string            `json:"phone"`
+	HeaderImg     string            `json:"header_img"`
+	CurrentRoleId int64             `json:"current_role_id"`
+	Roles         []roleDomain.Role `json:"roles"`
 }
 
 type DataSecurityAuthenticated struct {

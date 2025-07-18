@@ -9,26 +9,28 @@ import (
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainUser "github.com/gbrayhan/microservices-go/src/domain/user"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	roleRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/utils"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 type User struct {
-	ID            int            `gorm:"primaryKey;column:id;type:numeric(20,0)"`
-	UUID          string         `gorm:"column:uuid;type:text"`
-	UserName      string         `gorm:"column:user_name;type:text;uniqueIndex:uni_sys_users_user_name"`
-	NickName      string         `gorm:"column:nick_name;type:text"`
-	Email         string         `gorm:"column:email;type:text;uniqueIndex:uni_sys_users_email"`
-	HashPassword  string         `gorm:"column:hash_password;type:text"`
-	HeaderImg     string         `gorm:"column:header_img;type:text"`
-	Phone         string         `gorm:"column:phone;type:text"`
-	Status        bool           `gorm:"column:status"`
-	OriginSetting string         `gorm:"column:origin_setting;type:text"`
-	RoleId        int            `gorm:"column:role_id;type:numeric(20,0)"`
-	CreatedAt     time.Time      `gorm:"column:created_at;autoCreateTime:milli"`
-	UpdatedAt     time.Time      `gorm:"column:updated_at;autoUpdateTime:milli"`
-	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at;index"`
+	ID            int64              `gorm:"primaryKey;column:id;type:numeric(20,0)"`
+	UUID          string             `gorm:"column:uuid;type:text"`
+	UserName      string             `gorm:"column:user_name;type:text;uniqueIndex:uni_sys_users_user_name"`
+	NickName      string             `gorm:"column:nick_name;type:text"`
+	Email         string             `gorm:"column:email;type:text;uniqueIndex:uni_sys_users_email"`
+	HashPassword  string             `gorm:"column:hash_password;type:text"`
+	HeaderImg     string             `gorm:"column:header_img;type:text"`
+	Phone         string             `gorm:"column:phone;type:text"`
+	Status        bool               `gorm:"column:status"`
+	OriginSetting string             `gorm:"column:origin_setting;type:text"`
+	RoleId        int64              `gorm:"column:role_id;type:numeric(20,0)"`
+	CreatedAt     time.Time          `gorm:"column:created_at;autoCreateTime:milli"`
+	UpdatedAt     time.Time          `gorm:"column:updated_at;autoUpdateTime:milli"`
+	DeletedAt     gorm.DeletedAt     `gorm:"column:deleted_at;index"`
+	Roles         []roleRepo.SysRole `gorm:"many2many:public.sys_user_roles;joinForeignKey:SysUserID;joinOtherKey:SysRoleID;"`
 }
 
 func (User) TableName() string {
@@ -58,7 +60,7 @@ type UserRepositoryInterface interface {
 	GetByID(id int) (*domainUser.User, error)
 	GetByEmail(email string) (*domainUser.User, error)
 	GetByUsername(username string) (*domainUser.User, error)
-	Update(id int, userMap map[string]interface{}) (*domainUser.User, error)
+	Update(id int64, userMap map[string]interface{}) (*domainUser.User, error)
 	Delete(id int) error
 	SearchPaginated(filters domain.DataFilters) (*domainUser.SearchResultUser, error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
@@ -105,7 +107,7 @@ func (r *Repository) Create(userDomain *domainUser.User) (*domainUser.User, erro
 			err = domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 		}
 	}
-	r.Logger.Info("Successfully created user", zap.String("email", userDomain.Email), zap.Int("id", userRepository.ID))
+	r.Logger.Info("Successfully created user", zap.String("email", userDomain.Email), zap.Int64("id", userRepository.ID))
 	return userRepository.toDomainMapper(), err
 }
 
@@ -145,7 +147,7 @@ func (r *Repository) GetByEmail(email string) (*domainUser.User, error) {
 
 func (r *Repository) GetByUsername(username string) (*domainUser.User, error) {
 	var user User
-	err := r.DB.Where("user_name = ?", username).First(&user).Error
+	err := r.DB.Where("user_name = ?", username).Preload("Roles").First(&user).Error
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -161,14 +163,14 @@ func (r *Repository) GetByUsername(username string) (*domainUser.User, error) {
 	return user.toDomainMapper(), nil
 }
 
-func (r *Repository) Update(id int, userMap map[string]interface{}) (*domainUser.User, error) {
+func (r *Repository) Update(id int64, userMap map[string]interface{}) (*domainUser.User, error) {
 	var userObj User
 	userObj.ID = id
 	err := r.DB.Model(&userObj).
 		Select("user_name", "email", "nick_name", "status", "phone", "header_img").
 		Updates(userMap).Error
 	if err != nil {
-		r.Logger.Error("Error updating user", zap.Error(err), zap.Int("id", id))
+		r.Logger.Error("Error updating user", zap.Error(err), zap.Int64("id", id))
 		byteErr, _ := json.Marshal(err)
 		var newError domainErrors.GormErr
 		errUnmarshal := json.Unmarshal(byteErr, &newError)
@@ -183,10 +185,10 @@ func (r *Repository) Update(id int, userMap map[string]interface{}) (*domainUser
 		}
 	}
 	if err := r.DB.Where("id = ?", id).First(&userObj).Error; err != nil {
-		r.Logger.Error("Error retrieving updated user", zap.Error(err), zap.Int("id", id))
+		r.Logger.Error("Error retrieving updated user", zap.Error(err), zap.Int64("id", id))
 		return &domainUser.User{}, err
 	}
-	r.Logger.Info("Successfully updated user", zap.Int("id", id))
+	r.Logger.Info("Successfully updated user", zap.Int64("id", id))
 	return userObj.toDomainMapper(), nil
 }
 
@@ -331,6 +333,7 @@ func (u *User) toDomainMapper() *domainUser.User {
 		RoleId:        u.RoleId,
 		CreatedAt:     u.CreatedAt,
 		UpdatedAt:     u.UpdatedAt,
+		Roles:         *roleRepo.ArrayToDomainMapper(&u.Roles),
 	}
 }
 

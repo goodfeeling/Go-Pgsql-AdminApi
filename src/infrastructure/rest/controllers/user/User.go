@@ -28,7 +28,7 @@ type NewUserRequest struct {
 }
 
 type ResponseUser struct {
-	ID        int               `json:"id"`
+	ID        int64             `json:"id"`
 	UUID      string            `json:"uuid"`
 	UserName  string            `json:"user_name"`
 	Email     string            `json:"email"`
@@ -88,7 +88,7 @@ func (c *UserController) NewUser(ctx *gin.Context) {
 		Message("success").
 		Status(0).
 		Build()
-	c.Logger.Info("User created successfully", zap.String("email", request.Email), zap.Int("id", userModel.ID))
+	c.Logger.Info("User created successfully", zap.String("email", request.Email), zap.Int64("id", userModel.ID))
 	ctx.JSON(http.StatusOK, userResponse)
 }
 
@@ -174,7 +174,7 @@ func (c *UserController) UpdateUser(ctx *gin.Context) {
 		_ = ctx.Error(err)
 		return
 	}
-	userUpdated, err := c.userService.Update(userID, requestMap)
+	userUpdated, err := c.userService.Update(int64(userID), requestMap)
 	if err != nil {
 		c.Logger.Error("Error updating user", zap.Error(err), zap.Int("id", userID))
 		_ = ctx.Error(err)

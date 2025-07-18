@@ -59,6 +59,7 @@ type MenuTree struct {
 
 type MenuGroup struct {
 	Name  string      `json:"name"`
+	Path  string      `json:"path"`
 	Items []*MenuTree `json:"items"`
 }
 
@@ -69,6 +70,5 @@ type IMenuService interface {
 	Delete(id int) error
 	Update(id int, userMap map[string]interface{}) (*Menu, error)
 	GetOneByMap(userMap map[string]interface{}) (*Menu, error)
-	GetTreeMenus() (*MenuNode, error)
 	GetUserMenus(userId int) ([]*MenuGroup, error)
 }

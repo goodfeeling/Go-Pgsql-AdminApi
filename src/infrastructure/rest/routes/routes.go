@@ -21,7 +21,6 @@ func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
 			"message": "Service is running",
 		})
 	})
-
 	AuthRoutes(v1, appContext.AuthController)
 	UserRoutes(v1, appContext.UserController)
 	MedicineRoutes(v1, appContext.MedicineController)

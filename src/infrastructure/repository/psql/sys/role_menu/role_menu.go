@@ -26,7 +26,7 @@ var ColumnsRoleMapping = map[string]string{
 
 type ISysRoleMenuRepository interface {
 	Insert(roleId int, UpdateMap map[string]any) error
-	GetByRoleId(roleId int) ([]int, error)
+	GetByRoleId(roleId int64) ([]int, error)
 }
 
 type Repository struct {
@@ -35,7 +35,7 @@ type Repository struct {
 }
 
 // GetByRoleId implements ISysRoleMenuRepository.
-func (r *Repository) GetByRoleId(roleId int) ([]int, error) {
+func (r *Repository) GetByRoleId(roleId int64) ([]int, error) {
 	var roleMenus []SysRoleMenu
 	err := r.DB.Where("sys_role_id = ?", roleId).Find(&roleMenus).Error
 	if err != nil {

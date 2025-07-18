@@ -1,9 +1,6 @@
 package menu
 
 import (
-	"fmt"
-	"strconv"
-
 	"github.com/gbrayhan/microservices-go/src/domain"
 	menuDomain "github.com/gbrayhan/microservices-go/src/domain/sys/menu"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
@@ -23,7 +20,6 @@ type ISysMenuService interface {
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[menuDomain.Menu], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*menuDomain.Menu, error)
-	GetTreeMenus() (*menuDomain.MenuNode, error)
 	GetUserMenus(userId int) ([]*menuDomain.MenuGroup, error)
 }
 
@@ -57,7 +53,7 @@ func (s *SysMenuUseCase) GetAll(groupId int) ([]*menuDomain.MenuTree, error) {
 	if err != nil {
 		return nil, err
 	}
-	return buildMenuTree(menus), nil
+	return buildMenuTree(menus, ""), nil
 
 }
 
@@ -99,53 +95,6 @@ func (s *SysMenuUseCase) GetOneByMap(userMap map[string]interface{}) (*menuDomai
 	return s.sysMenuRepository.GetOneByMap(userMap)
 }
 
-// GetTreeRoles implements ISysRoleService.
-func (s *SysMenuUseCase) GetTreeMenus() (*menuDomain.MenuNode, error) {
-	menus, err := s.sysMenuRepository.GetAll(0)
-	if err != nil {
-		return nil, err
-	}
-	menuMap := make(map[int]*menuDomain.MenuNode)
-	var roots []*menuDomain.MenuNode
-
-	// Second traversal: Establish parent-child relationships.
-	for _, item := range *menus {
-		node := &menuDomain.MenuNode{
-			ID:       strconv.Itoa(item.ID),
-			Name:     item.Title,
-			Key:      strconv.Itoa(item.ID),
-			Path:     []int{item.ID},
-			Children: []*menuDomain.MenuNode{},
-		}
-		menuMap[item.ID] = node
-
-	}
-	for _, item := range *menus {
-		node := menuMap[item.ID]
-		if item.ParentID == 0 {
-			roots = append(roots, node)
-		} else if parentNode, exists := menuMap[item.ParentID]; exists {
-			// path handle
-			node.Path = append(node.Path, parentNode.Path...)
-			node.Path = append(node.Path, item.ID)
-
-			parentNode.Children = append(parentNode.Children, node)
-		} else {
-			// 父节点不存在，作为孤儿节点加入根节点列表
-			node.Path = []int{item.ID}
-			roots = append(roots, node)
-		}
-
-	}
-
-	return &menuDomain.MenuNode{
-		ID:       "0",
-		Name:     "根节点",
-		Key:      "0",
-		Children: roots,
-	}, nil
-}
-
 // GetUserMenus
 func (s *SysMenuUseCase) GetUserMenus(userId int) ([]*menuDomain.MenuGroup, error) {
 	s.Logger.Info("Getting user menus", zap.Int("userId", userId))
@@ -154,7 +103,7 @@ func (s *SysMenuUseCase) GetUserMenus(userId int) ([]*menuDomain.MenuGroup, erro
 		return nil, err
 	}
 	roleId := userInfo.RoleId
-	s.Logger.Info("Getting user menus", zap.Int("roleId", roleId))
+	s.Logger.Info("Getting user menus", zap.Int64("roleId", roleId))
 	roleMenus, err := s.sysRoleMenuRepository.GetByRoleId(roleId)
 	if err != nil {
 		return nil, err
@@ -191,19 +140,18 @@ func (s *SysMenuUseCase) GetUserMenus(userId int) ([]*menuDomain.MenuGroup, erro
 	}
 	menuGroup := make([]*menuDomain.MenuGroup, 0)
 	for _, group := range *groups {
-
 		menusForGroup := menuGroupMap[group.ID]
-		fmt.Println(len(menusForGroup))
 		menuGroup = append(menuGroup, &menuDomain.MenuGroup{
 			Name:  group.Name,
-			Items: buildMenuTree(&menusForGroup),
+			Path:  group.Path,
+			Items: buildMenuTree(&menusForGroup, group.Path),
 		})
 	}
 	return menuGroup, nil
 }
 
 // buildMenuTree
-func buildMenuTree(menus *[]menuDomain.Menu) []*menuDomain.MenuTree {
+func buildMenuTree(menus *[]menuDomain.Menu, groupPath string) []*menuDomain.MenuTree {
 
 	menuMap := make(map[int]*menuDomain.MenuTree)
 	var roots []*menuDomain.MenuTree
@@ -242,11 +190,26 @@ func buildMenuTree(menus *[]menuDomain.Menu) []*menuDomain.MenuTree {
 			// path handle
 			node.Level = append(node.Level, parentNode.Level...)
 
+			// api get user menu handle
+			if groupPath != "" {
+				node.Path = parentNode.Path + "/" + node.Path
+			}
+
 			parentNode.Children = append(parentNode.Children, node)
 		} else {
 			// 父节点不存在，作为孤儿节点加入根节点列表
 			node.Level = []int{item.ID}
 			roots = append(roots, node)
+		}
+	}
+
+	if groupPath != "" {
+		// 只在最终叶子节点添加 groupPath 前缀，并避免重复拼接
+		for _, node := range menuMap {
+			if len(node.Children) == 0 {
+				// 只添加 groupPath 前缀，不重复拼接
+				node.Path = "/" + groupPath + "/" + node.Path
+			}
 		}
 	}
 

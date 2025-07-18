@@ -63,11 +63,20 @@ func AuthJWTMiddleware() gin.HandlerFunc {
 		if idFloat, ok := claims["id"].(float64); ok {
 			id := int(idFloat)
 			if id == 0 {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Missing or invalid token id"})
+				c.JSON(http.StatusForbidden, gin.H{"error": "Missing or invalid user id"})
 				c.Abort()
 				return
 			}
 			c.Set("user_id", id)
+		}
+		if roleIdFloat64, ok := claims["role_id"].(float64); ok {
+			id := int64(roleIdFloat64)
+			if id == 0 {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Missing or invalid role id"})
+				c.Abort()
+				return
+			}
+			c.Set("role_id", id)
 		}
 
 		c.Next()

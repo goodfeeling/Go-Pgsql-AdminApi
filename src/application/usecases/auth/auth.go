@@ -21,7 +21,7 @@ type IAuthUseCase interface {
 	Login(username, password string) (*domainUser.User, *AuthTokens, error)
 	Logout(jwtToken string) (*domain.CommonResponse[string], error)
 	Register(user RegisterUser) (*domain.CommonResponse[SecurityRegisterUser], error)
-	AccessTokenByRefreshToken(refreshToken string) (*domainUser.User, *AuthTokens, error)
+	AccessTokenByRefreshToken(refreshToken string, roleId int64) (*domainUser.User, *AuthTokens, error)
 }
 
 type AuthUseCase struct {
@@ -70,14 +70,14 @@ func (s *AuthUseCase) Login(username, password string) (*domainUser.User, *AuthT
 		return nil, nil, domainErrors.NewAppError(errors.New("username or password does not match"), domainErrors.NotAuthorized)
 	}
 
-	accessTokenClaims, err := s.JWTService.GenerateJWTToken(user.ID, "access")
+	accessTokenClaims, err := s.JWTService.GenerateJWTToken(user.ID, user.RoleId, "access")
 	if err != nil {
-		s.Logger.Error("Error generating access token", zap.Error(err), zap.Int("userID", user.ID))
+		s.Logger.Error("Error generating access token", zap.Error(err), zap.Int64("userID", user.ID))
 		return nil, nil, err
 	}
-	refreshTokenClaims, err := s.JWTService.GenerateJWTToken(user.ID, "refresh")
+	refreshTokenClaims, err := s.JWTService.GenerateJWTToken(user.ID, user.RoleId, "refresh")
 	if err != nil {
-		s.Logger.Error("Error generating refresh token", zap.Error(err), zap.Int("userID", user.ID))
+		s.Logger.Error("Error generating refresh token", zap.Error(err), zap.Int64("userID", user.ID))
 		return nil, nil, err
 	}
 
@@ -88,11 +88,11 @@ func (s *AuthUseCase) Login(username, password string) (*domainUser.User, *AuthT
 		ExpirationRefreshDateTime: refreshTokenClaims.ExpirationTime,
 	}
 
-	s.Logger.Info("User login successful", zap.String("username", username), zap.Int("userID", user.ID))
+	s.Logger.Info("User login successful", zap.String("username", username), zap.Int64("userID", user.ID))
 	return user, authTokens, nil
 }
 
-func (s *AuthUseCase) AccessTokenByRefreshToken(refreshToken string) (*domainUser.User, *AuthTokens, error) {
+func (s *AuthUseCase) AccessTokenByRefreshToken(refreshToken string, roleId int64) (*domainUser.User, *AuthTokens, error) {
 	s.Logger.Info("Refreshing access token")
 	claimsMap, err := s.JWTService.GetClaimsAndVerifyToken(refreshToken, "refresh")
 	if err != nil {
@@ -106,9 +106,13 @@ func (s *AuthUseCase) AccessTokenByRefreshToken(refreshToken string) (*domainUse
 		return nil, nil, err
 	}
 
-	accessTokenClaims, err := s.JWTService.GenerateJWTToken(user.ID, "access")
+	// role no found set default role
+	if roleId == 0 {
+		roleId = user.RoleId
+	}
+	accessTokenClaims, err := s.JWTService.GenerateJWTToken(user.ID, roleId, "access")
 	if err != nil {
-		s.Logger.Error("Error generating new access token", zap.Error(err), zap.Int("userID", user.ID))
+		s.Logger.Error("Error generating new access token", zap.Error(err), zap.Int64("userID", user.ID))
 		return nil, nil, err
 	}
 
@@ -121,7 +125,7 @@ func (s *AuthUseCase) AccessTokenByRefreshToken(refreshToken string) (*domainUse
 		ExpirationRefreshDateTime: time.Unix(expTime, 0),
 	}
 
-	s.Logger.Info("Access token refreshed successfully", zap.Int("userID", user.ID))
+	s.Logger.Info("Access token refreshed successfully", zap.Int64("userID", user.ID))
 	return user, authTokens, nil
 }
 

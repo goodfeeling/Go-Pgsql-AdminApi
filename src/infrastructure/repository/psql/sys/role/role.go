@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type Roles struct {
+type SysRole struct {
 	ID            int64          `gorm:"column:id;primary_key;autoIncrement" json:"id,omitempty"`
 	CreatedAt     time.Time      `gorm:"column:created_at"`
 	UpdatedAt     time.Time      `gorm:"column:updated_at"`
@@ -42,7 +42,7 @@ var ColumnsRoleMapping = map[string]string{
 	"updatedAt":     "updated_at",
 }
 
-func (Roles) TableName() string {
+func (SysRole) TableName() string {
 	return "sys_roles"
 }
 
@@ -68,13 +68,13 @@ func NewSysRolesRepository(db *gorm.DB, loggerInstance *logger.Logger) ISysRoles
 }
 
 func (r *Repository) GetAll() (*[]domainRole.Role, error) {
-	var roles []Roles
+	var roles []SysRole
 	if err := r.DB.Find(&roles).Error; err != nil {
 		r.Logger.Error("Error getting all roles", zap.Error(err))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 	r.Logger.Info("Successfully retrieved all roles", zap.Int("count", len(roles)))
-	return arrayToDomainMapper(&roles), nil
+	return ArrayToDomainMapper(&roles), nil
 }
 
 func (r *Repository) Create(roleDomain *domainRole.Role) (*domainRole.Role, error) {
@@ -103,7 +103,7 @@ func (r *Repository) Create(roleDomain *domainRole.Role) (*domainRole.Role, erro
 }
 
 func (r *Repository) GetByID(id int) (*domainRole.Role, error) {
-	var role Roles
+	var role SysRole
 	err := r.DB.Where("id = ?", id).First(&role).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -120,7 +120,7 @@ func (r *Repository) GetByID(id int) (*domainRole.Role, error) {
 }
 
 func (r *Repository) GetByName(name string) (*domainRole.Role, error) {
-	var role Roles
+	var role SysRole
 	err := r.DB.Where("name = ?", name).First(&role).Error
 
 	if err != nil {
@@ -138,7 +138,7 @@ func (r *Repository) GetByName(name string) (*domainRole.Role, error) {
 }
 
 func (r *Repository) Update(id int, roleMap map[string]interface{}) (*domainRole.Role, error) {
-	var roleObj Roles
+	var roleObj SysRole
 	roleObj.ID = int64(id)
 	err := r.DB.Model(&roleObj).Updates(roleMap).Error
 	if err != nil {
@@ -165,7 +165,7 @@ func (r *Repository) Update(id int, roleMap map[string]interface{}) (*domainRole
 }
 
 func (r *Repository) Delete(id int) error {
-	tx := r.DB.Delete(&Roles{}, id)
+	tx := r.DB.Delete(&SysRole{}, id)
 	if tx.Error != nil {
 		r.Logger.Error("Error deleting role", zap.Error(tx.Error), zap.Int("id", id))
 		return domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
@@ -179,7 +179,7 @@ func (r *Repository) Delete(id int) error {
 }
 
 func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domainRole.SearchResultRole, error) {
-	query := r.DB.Model(&Roles{})
+	query := r.DB.Model(&SysRole{})
 
 	// Apply like filters
 	for field, values := range filters.LikeFilters {
@@ -242,7 +242,7 @@ func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domainRole.Se
 	}
 	offset := (filters.Page - 1) * filters.PageSize
 
-	var roles []Roles
+	var roles []SysRole
 	if err := query.Offset(offset).Limit(filters.PageSize).Find(&roles).Error; err != nil {
 		r.Logger.Error("Error searching roles", zap.Error(err))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
@@ -251,7 +251,7 @@ func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domainRole.Se
 	totalPages := int((total + int64(filters.PageSize) - 1) / int64(filters.PageSize))
 
 	result := &domainRole.SearchResultRole{
-		Data:       arrayToDomainMapper(&roles),
+		Data:       ArrayToDomainMapper(&roles),
 		Total:      total,
 		Page:       filters.Page,
 		PageSize:   filters.PageSize,
@@ -274,7 +274,7 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 	}
 
 	var coincidences []string
-	if err := r.DB.Model(&Roles{}).
+	if err := r.DB.Model(&SysRole{}).
 		Distinct(column).
 		Where(column+" ILIKE ?", "%"+searchText+"%").
 		Limit(20).
@@ -290,7 +290,7 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 	return &coincidences, nil
 }
 
-func (u *Roles) toDomainMapper() *domainRole.Role {
+func (u *SysRole) toDomainMapper() *domainRole.Role {
 	return &domainRole.Role{
 		ID:          u.ID,
 		Name:        u.Name,
@@ -304,8 +304,8 @@ func (u *Roles) toDomainMapper() *domainRole.Role {
 	}
 }
 
-func fromDomainMapper(u *domainRole.Role) *Roles {
-	return &Roles{
+func fromDomainMapper(u *domainRole.Role) *SysRole {
+	return &SysRole{
 		ID:          u.ID,
 		Name:        u.Name,
 		ParentID:    u.ParentID,
@@ -316,7 +316,7 @@ func fromDomainMapper(u *domainRole.Role) *Roles {
 	}
 }
 
-func arrayToDomainMapper(roles *[]Roles) *[]domainRole.Role {
+func ArrayToDomainMapper(roles *[]SysRole) *[]domainRole.Role {
 	rolesDomain := make([]domainRole.Role, len(*roles))
 	for i, role := range *roles {
 		rolesDomain[i] = *role.toDomainMapper()
@@ -325,7 +325,7 @@ func arrayToDomainMapper(roles *[]Roles) *[]domainRole.Role {
 }
 
 func (r *Repository) GetOneByMap(roleMap map[string]interface{}) (*domainRole.Role, error) {
-	var roleRepository Roles
+	var roleRepository SysRole
 	tx := r.DB.Limit(1)
 	for key, value := range roleMap {
 		if !utils.IsZeroValue(value) {

@@ -4,10 +4,11 @@ import (
 	"time"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
+	roleDomain "github.com/gbrayhan/microservices-go/src/domain/sys/role"
 )
 
 type User struct {
-	ID            int
+	ID            int64
 	UUID          string
 	UserName      string
 	NickName      string
@@ -18,9 +19,10 @@ type User struct {
 	Phone         string
 	OriginSetting string
 	Password      string
-	RoleId        int
+	RoleId        int64
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+	Roles         []roleDomain.Role
 }
 type SearchResultUser struct {
 	Data       *[]User `json:"data"`
@@ -35,7 +37,7 @@ type IUserService interface {
 	GetByID(id int) (*User, error)
 	Create(newUser *User) (*User, error)
 	Delete(id int) error
-	Update(id int, userMap map[string]interface{}) (*User, error)
+	Update(id int64, userMap map[string]interface{}) (*User, error)
 	SearchPaginated(filters domain.DataFilters) (*SearchResultUser, error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*User, error)

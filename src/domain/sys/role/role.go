@@ -57,7 +57,7 @@ type IRoleService interface {
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*Role, error)
 	GetTreeRoles() (*RoleNode, error)
-	GetRoleMenuIds(id int) ([]int, error)
+	GetRoleMenuIds(id int64) ([]int, error)
 	UpdateRoleMenuIds(id int, updateMap map[string]any) error
 	GetApiRuleList(roleId int) ([]string, error)
 	BindApiRule(roleId int, updateMap map[string]interface{}) error

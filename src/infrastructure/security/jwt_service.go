@@ -23,8 +23,9 @@ type AppToken struct {
 }
 
 type Claims struct {
-	ID   int    `json:"id"`
-	Type string `json:"type"`
+	ID     int64  `json:"id"`
+	RoleID int64  `json:"role_id"`
+	Type   string `json:"type"`
 	jwt.RegisteredClaims
 }
 
@@ -38,7 +39,7 @@ type JWTConfig struct {
 
 // IJWTService defines the interface for JWT operations
 type IJWTService interface {
-	GenerateJWTToken(userID int, tokenType string) (*AppToken, error)
+	GenerateJWTToken(userID int64, roleID int64, tokenType string) (*AppToken, error)
 	GetClaimsAndVerifyToken(tokenString string, tokenType string) (jwt.MapClaims, error)
 }
 
@@ -73,7 +74,7 @@ func loadJWTConfig() JWTConfig {
 }
 
 // GenerateJWTToken generates a JWT token for the given user ID and type
-func (s *JWTService) GenerateJWTToken(userID int, tokenType string) (*AppToken, error) {
+func (s *JWTService) GenerateJWTToken(userID int64, roleID int64, tokenType string) (*AppToken, error) {
 	var secretKey string
 	var duration time.Duration
 
@@ -92,8 +93,9 @@ func (s *JWTService) GenerateJWTToken(userID int, tokenType string) (*AppToken, 
 	expirationTokenTime := nowTime.Add(duration)
 
 	tokenClaims := &Claims{
-		ID:   userID,
-		Type: tokenType,
+		ID:     userID,
+		RoleID: roleID,
+		Type:   tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTokenTime),
 		},

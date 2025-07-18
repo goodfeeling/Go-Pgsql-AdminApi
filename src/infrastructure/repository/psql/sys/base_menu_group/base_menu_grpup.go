@@ -18,6 +18,7 @@ import (
 type SysBaseMenuGroups struct {
 	ID        int        `gorm:"primaryKey;column:id;type:numeric(20,0)"`
 	Name      string     `gorm:"column:name" json:"name"`
+	Path      string     `gorm:"column:path" json:"path"`
 	CreatedAt time.Time  `gorm:"column:created_at" json:"createdAt"`
 	UpdatedAt time.Time  `gorm:"column:updated_at" json:"updatedAt"`
 	DeletedAt *time.Time `gorm:"column:deleted_at" json:"deletedAt"`
@@ -270,6 +271,7 @@ func (u *SysBaseMenuGroups) toDomainMapper() *domainMenuGroup.MenuGroup {
 	return &domainMenuGroup.MenuGroup{
 		ID:        u.ID,
 		Name:      u.Name,
+		Path:      u.Path,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}
@@ -279,6 +281,7 @@ func fromDomainMapper(u *domainMenuGroup.MenuGroup) *SysBaseMenuGroups {
 	return &SysBaseMenuGroups{
 		ID:        u.ID,
 		Name:      u.Name,
+		Path:      u.Path,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}

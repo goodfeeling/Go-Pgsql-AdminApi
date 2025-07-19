@@ -16,11 +16,19 @@ import (
 
 // Structures
 type NewMenuRequest struct {
-	ID          int    `json:"id"`
+	Component   string `json:"component" binding:"required"`
+	Title       string `json:"title" binding:"required"`
+	Name        string `json:"name" binding:"required"`
 	Path        string `json:"path" binding:"required"`
-	MenuGroup   string `json:"menu_group" binding:"required"`
-	Method      string `json:"method" binding:"required"`
-	Description string `json:"description" binding:"required"`
+	Hidden      int16  `json:"hidden"`
+	ParentID    int    `json:"parent_id"`
+	Icon        string `json:"icon"`
+	Sort        int8   `json:"sort"`
+	ActiveName  string `json:"active_name"`
+	KeepAlive   int16  `json:"keep_alive"`
+	CloseTab    int16  `json:"close_tab"`
+	DefaultMenu int16  `json:"default_menu"`
+	MenuGroupId int    `json:"menu_group_id"`
 }
 
 type ResponseMenu struct {
@@ -292,6 +300,18 @@ func domainToResponseMapper(domainMenu *domainMenu.Menu) *ResponseMenu {
 
 func toUsecaseMapper(req *NewMenuRequest) *domainMenu.Menu {
 	return &domainMenu.Menu{
-		Path: req.Path,
+		Component:   req.Component,
+		Title:       req.Title,
+		Name:        req.Name,
+		Path:        req.Path,
+		Hidden:      req.Hidden,
+		ParentID:    req.ParentID,
+		Icon:        req.Icon,
+		Sort:        req.Sort,
+		ActiveName:  req.ActiveName,
+		KeepAlive:   req.KeepAlive,
+		CloseTab:    req.CloseTab,
+		DefaultMenu: req.DefaultMenu,
+		MenuGroupId: req.MenuGroupId,
 	}
 }

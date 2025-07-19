@@ -21,7 +21,7 @@ type IAuthUseCase interface {
 	Login(username, password string) (*domainUser.User, *AuthTokens, error)
 	Logout(jwtToken string) (*domain.CommonResponse[string], error)
 	Register(user RegisterUser) (*domain.CommonResponse[SecurityRegisterUser], error)
-	AccessTokenByRefreshToken(refreshToken string, roleId int64) (*domainUser.User, *AuthTokens, error)
+	AccessTokenByRefreshToken(refreshToken string) (*domainUser.User, *AuthTokens, error)
 }
 
 type AuthUseCase struct {
@@ -92,7 +92,7 @@ func (s *AuthUseCase) Login(username, password string) (*domainUser.User, *AuthT
 	return user, authTokens, nil
 }
 
-func (s *AuthUseCase) AccessTokenByRefreshToken(refreshToken string, roleId int64) (*domainUser.User, *AuthTokens, error) {
+func (s *AuthUseCase) AccessTokenByRefreshToken(refreshToken string) (*domainUser.User, *AuthTokens, error) {
 	s.Logger.Info("Refreshing access token")
 	claimsMap, err := s.JWTService.GetClaimsAndVerifyToken(refreshToken, "refresh")
 	if err != nil {
@@ -105,11 +105,7 @@ func (s *AuthUseCase) AccessTokenByRefreshToken(refreshToken string, roleId int6
 		s.Logger.Error("Error getting user for token refresh", zap.Error(err), zap.Int("userID", userID))
 		return nil, nil, err
 	}
-
-	// role no found set default role
-	if roleId == 0 {
-		roleId = user.RoleId
-	}
+	roleId := int64(claimsMap["role_id"].(float64))
 	accessTokenClaims, err := s.JWTService.GenerateJWTToken(user.ID, roleId, "access")
 	if err != nil {
 		s.Logger.Error("Error generating new access token", zap.Error(err), zap.Int64("userID", user.ID))

@@ -141,10 +141,14 @@ func (s *SysMenuUseCase) GetUserMenus(userId int) ([]*menuDomain.MenuGroup, erro
 	menuGroup := make([]*menuDomain.MenuGroup, 0)
 	for _, group := range *groups {
 		menusForGroup := menuGroupMap[group.ID]
+		treeData := buildMenuTree(&menusForGroup, group.Path)
+		if treeData == nil {
+			treeData = []*menuDomain.MenuTree{}
+		}
 		menuGroup = append(menuGroup, &menuDomain.MenuGroup{
 			Name:  group.Name,
 			Path:  group.Path,
-			Items: buildMenuTree(&menusForGroup, group.Path),
+			Items: treeData,
 		})
 	}
 	return menuGroup, nil

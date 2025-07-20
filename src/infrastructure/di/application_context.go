@@ -10,17 +10,22 @@ import (
 	dictionaryDetailUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/dictionary_detail"
 	filesUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/files"
 	menuUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/menu"
+	menuBtnUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/menu_btn"
 	menuGroupUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/menu_group"
+	menuParameterUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/menu_parameter"
 	operationUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/operation_record"
 	roleUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/role"
 	userUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/user"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/jwt_blacklist"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/medicine"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_btn"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_group"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_parameter"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/casbin_rule"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary_detail"
@@ -35,7 +40,9 @@ import (
 	dictionaryDetailController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/dictionaryDetail"
 	medicineController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/medicine"
 	menuController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menu"
+	menuBtnController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menuBtn"
 	menuGroupController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menuGroup"
+	menuParameterController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menuParameter"
 	operationController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/operation"
 	roleController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/role"
 	uploadController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/upload"
@@ -61,6 +68,8 @@ type ApplicationContext struct {
 	DictionaryController       dictionaryController.IDictionaryController
 	DictionaryDetailController dictionaryDetailController.IIDictionaryDetailController
 	MenuGroupController        menuGroupController.IMenuGroupController
+	MenuBtnController          menuBtnController.IMenuBtnController
+	MenuParameterController    menuParameterController.IMenuParameterController
 	// repository
 	UserRepository             user.UserRepositoryInterface
 	MedicineRepository         medicine.MedicineRepositoryInterface
@@ -72,6 +81,8 @@ type ApplicationContext struct {
 	DictionaryRepository       dictionary.DictionaryRepositoryInterface
 	DictionaryDetailRepository dictionary_detail.DictionaryRepositoryInterface
 	MenuGroupRepository        base_menu_group.MenuGroupRepositoryInterface
+	MenuBtnRepository          base_menu_btn.MenuBtnRepositoryInterface
+	MenuParameterRepository    base_menu_parameter.MenuParameterRepositoryInterface
 	// application
 	AuthUseCase             authUseCase.IAuthUseCase
 	UserUseCase             userUseCase.IUserUseCase
@@ -84,6 +95,8 @@ type ApplicationContext struct {
 	DictionaryUseCase       dictionaryUseCase.ISysDictionaryService
 	DictionaryDetailUseCase dictionaryDetailUseCase.ISysDictionaryService
 	MenuGroupUseCase        menuGroupUseCase.ISysMenuGroupService
+	MenuBtnUseCase          menuBtnUseCase.IMenuBtnService
+	menuParameterUseCase    menuParameterUseCase.IMenuParameterService
 }
 
 var (
@@ -123,6 +136,8 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	roleMenuRepo := role_menu.NewSysRoleMenuRepository(db, loggerInstance)
 	casBinRepo := casbin_rule.NewCasbinRuleRepository(db, loggerInstance)
 	menuGroupRepo := base_menu_group.NewMenuGroupRepository(db, loggerInstance)
+	menuBtnRepo := base_menu_btn.NewMenuBtnRepository(db, loggerInstance)
+	menuParameterRepo := base_menu_parameter.NewMenuParameterRepository(db, loggerInstance)
 	// Initialize use cases with logger
 	authUC := authUseCase.NewAuthUseCase(userRepo, jwtService, loggerInstance, jwtBlackListRepo)
 	userUC := userUseCase.NewUserUseCase(userRepo, loggerInstance)
@@ -135,6 +150,8 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	dictionaryDetailUC := dictionaryDetailUseCase.NewSysDictionaryUseCase(dictionaryDetailRepo, loggerInstance)
 	menuUC := menuUseCase.NewSysMenuUseCase(menuRepo, roleMenuRepo, userRepo, menuGroupRepo, loggerInstance)
 	menuGroupUC := menuGroupUseCase.NewSysMenuGroupUseCase(menuGroupRepo, loggerInstance)
+	menuBtnUC := menuBtnUseCase.NewMenuBtnUseCase(menuBtnRepo, loggerInstance)
+	menuParameterUC := menuParameterUseCase.NewMenuParameterUseCase(menuParameterRepo, loggerInstance)
 
 	// Initialize controllers with logger
 	authController := authController.NewAuthController(authUC, loggerInstance)
@@ -148,6 +165,8 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	dictionaryDetailController := dictionaryDetailController.NewIDictionaryDetailController(dictionaryDetailUC, loggerInstance)
 	menuController := menuController.NewMenuController(menuUC, loggerInstance)
 	menuGroupController := menuGroupController.NewMenuGroupController(menuGroupUC, loggerInstance)
+	menuBtnController := menuBtnController.NewMenuBtnController(menuBtnUC, loggerInstance)
+	menuParameterController := menuParameterController.NewMenuParameterController(menuParameterUC, loggerInstance)
 
 	return &ApplicationContext{
 		DB:     db,
@@ -164,6 +183,8 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		DictionaryDetailController: dictionaryDetailController,
 		MenuController:             menuController,
 		MenuGroupController:        menuGroupController,
+		MenuBtnController:          menuBtnController,
+		MenuParameterController:    menuParameterController,
 		// repository
 		UserRepository:             userRepo,
 		MedicineRepository:         medicineRepo,
@@ -175,6 +196,8 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		DictionaryDetailRepository: dictionaryDetailRepo,
 		MenuRepository:             menuRepo,
 		MenuGroupRepository:        menuGroupRepo,
+		MenuBtnRepository:          menuBtnRepo,
+		MenuParameterRepository:    menuParameterRepo,
 		// application
 		AuthUseCase:             authUC,
 		UserUseCase:             userUC,
@@ -187,6 +210,8 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		DictionaryDetailUseCase: dictionaryDetailUC,
 		MenuUseCase:             menuUC,
 		MenuGroupUseCase:        menuGroupUC,
+		MenuBtnUseCase:          menuBtnUC,
+		menuParameterUseCase:    menuParameterUC,
 
 		JWTService: jwtService,
 	}, nil

@@ -7,12 +7,12 @@ import (
 )
 
 type MenuBtn struct {
-	ID               int       `json:"id"`
-	Name             string    `json:"name"`
-	Desc             string    `json:"desc"`
-	SysBaseMenuBtnID string    `json:"sys_base_menu_id"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	ID            int       `json:"id"`
+	Name          string    `json:"name"`
+	Desc          string    `json:"desc"`
+	SysBaseMenuID int64     `json:"sys_base_menu_id"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type IMenuBtnService interface {

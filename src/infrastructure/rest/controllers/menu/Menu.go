@@ -251,9 +251,13 @@ func (c *MenuController) GetUserMenus(ctx *gin.Context) {
 	appUtils := controllers.NewAppUtils(ctx)
 	userId, ok := appUtils.GetUserID()
 	if !ok {
-		c.Logger.Error("Error getting user id")
-		appError := domainErrors.NewAppError(errors.New("user id not found"), domainErrors.ValidationError)
-		_ = ctx.Error(appError)
+		// no login send empty to front
+		menuResponse := controllers.NewCommonResponseBuilder[[]*domainMenu.MenuGroup]().
+			Data([]*domainMenu.MenuGroup{}).
+			Message("success").
+			Status(0).
+			Build()
+		ctx.JSON(http.StatusOK, menuResponse)
 		return
 	}
 	menus, err := c.menuService.GetUserMenus(userId)

@@ -8,7 +8,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
-	domainMenu "github.com/gbrayhan/microservices-go/src/domain/sys/menu"
+	domainMenuParameter "github.com/gbrayhan/microservices-go/src/domain/sys/menu_parameter"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/utils"
 	"go.uber.org/zap"
@@ -27,10 +27,10 @@ type SysBaseMenuParameter struct {
 }
 
 func (SysBaseMenuParameter) TableName() string {
-	return "sys_menus"
+	return "sys_base_menu_parameters"
 }
 
-var ColumnsMenuMapping = map[string]string{
+var ColumnsMenuParameterMapping = map[string]string{
 	"id":          "id",
 	"path":        "path",
 	"menuName":    "menu_name",
@@ -41,16 +41,17 @@ var ColumnsMenuMapping = map[string]string{
 	"updatedAt":   "updated_at",
 }
 
-// MenuRepositoryInterface defines the interface for menu repository operations
-type MenuRepositoryInterface interface {
-	GetAll() (*[]domainMenu.Menu, error)
-	Create(menuDomain *domainMenu.Menu) (*domainMenu.Menu, error)
-	GetByID(id int) (*domainMenu.Menu, error)
-	Update(id int, menuMap map[string]interface{}) (*domainMenu.Menu, error)
+// MenuParameterRepositoryInterface defines the interface for menu repository operations
+type MenuParameterRepositoryInterface interface {
+	GetAll() (*[]domainMenuParameter.MenuParameter, error)
+	Create(menuDomain *domainMenuParameter.MenuParameter) (*domainMenuParameter.MenuParameter, error)
+	GetByID(id int) (*domainMenuParameter.MenuParameter, error)
+	Update(id int, menuMap map[string]interface{}) (*domainMenuParameter.MenuParameter, error)
 	Delete(id int) error
-	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainMenu.Menu], error)
+	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainMenuParameter.MenuParameter], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
-	GetOneByMap(menuMap map[string]interface{}) (*domainMenu.Menu, error)
+	GetOneByMap(menuMap map[string]interface{}) (*domainMenuParameter.MenuParameter, error)
+	GetByIDs(ids []int) (*[]domainMenuParameter.MenuParameter, error)
 }
 
 type Repository struct {
@@ -58,13 +59,14 @@ type Repository struct {
 	Logger *logger.Logger
 }
 
-func NewMenuRepository(db *gorm.DB, loggerInstance *logger.Logger) MenuRepositoryInterface {
+func NewMenuParameterRepository(db *gorm.DB, loggerInstance *logger.Logger) MenuParameterRepositoryInterface {
 	return &Repository{DB: db, Logger: loggerInstance}
 }
 
-func (r *Repository) GetAll() (*[]domainMenu.Menu, error) {
+func (r *Repository) GetAll() (*[]domainMenuParameter.MenuParameter, error) {
 	var menus []SysBaseMenuParameter
-	if err := r.DB.Find(&menus).Error; err != nil {
+	tx := r.DB
+	if err := tx.Find(&menus).Error; err != nil {
 		r.Logger.Error("Error getting all menus", zap.Error(err))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
@@ -72,70 +74,72 @@ func (r *Repository) GetAll() (*[]domainMenu.Menu, error) {
 	return arrayToDomainMapper(&menus), nil
 }
 
-func (r *Repository) Create(menuDomain *domainMenu.Menu) (*domainMenu.Menu, error) {
-	r.Logger.Info("Creating new menu", zap.String("path", menuDomain.Path))
+func (r *Repository) Create(menuDomain *domainMenuParameter.MenuParameter) (*domainMenuParameter.MenuParameter, error) {
+	r.Logger.Info("Creating new menu", zap.String("Key", menuDomain.Key))
 	menuRepository := fromDomainMapper(menuDomain)
 	txDb := r.DB.Create(menuRepository)
 	err := txDb.Error
 	if err != nil {
-		r.Logger.Error("Error creating menu", zap.Error(err), zap.String("Path", menuDomain.Path))
+		r.Logger.Error("Error creating menu", zap.Error(err), zap.String("Key", menuDomain.Key))
 		byteErr, _ := json.Marshal(err)
 		var newError domainErrors.GormErr
 		errUnmarshal := json.Unmarshal(byteErr, &newError)
 		if errUnmarshal != nil {
-			return &domainMenu.Menu{}, errUnmarshal
+			return &domainMenuParameter.MenuParameter{}, errUnmarshal
 		}
 		switch newError.Number {
 		case 1062:
 			err = domainErrors.NewAppErrorWithType(domainErrors.ResourceAlreadyExists)
-			return &domainMenu.Menu{}, err
+			return &domainMenuParameter.MenuParameter{}, err
 		default:
 			err = domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 		}
 	}
-	r.Logger.Info("Successfully created menu", zap.String("Path", menuDomain.Path), zap.Int("id", int(menuRepository.ID)))
+	r.Logger.Info("Successfully created menu", zap.String("Key", menuDomain.Key), zap.Int("id", int(menuRepository.ID)))
 	return menuRepository.toDomainMapper(), err
 }
 
-func (r *Repository) GetByID(id int) (*domainMenu.Menu, error) {
+func (r *Repository) GetByID(id int) (*domainMenuParameter.MenuParameter, error) {
 	var menu SysBaseMenuParameter
 	err := r.DB.Where("id = ?", id).First(&menu).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			r.Logger.Warn("Menu not found", zap.Int("id", id))
+			r.Logger.Warn("MenuParameter not found", zap.Int("id", id))
 			err = domainErrors.NewAppErrorWithType(domainErrors.NotFound)
 		} else {
 			r.Logger.Error("Error getting menu by ID", zap.Error(err), zap.Int("id", id))
 			err = domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 		}
-		return &domainMenu.Menu{}, err
+		return &domainMenuParameter.MenuParameter{}, err
 	}
 	r.Logger.Info("Successfully retrieved menu by ID", zap.Int("id", id))
 	return menu.toDomainMapper(), nil
 }
 
-func (r *Repository) Update(id int, menuMap map[string]interface{}) (*domainMenu.Menu, error) {
+func (r *Repository) Update(id int, menuMap map[string]interface{}) (*domainMenuParameter.MenuParameter, error) {
 	var menuObj SysBaseMenuParameter
 	menuObj.ID = id
-	err := r.DB.Model(&menuObj).Updates(menuMap).Error
+	err := r.DB.Model(&menuObj).
+		Select("parent_id", "menu_level", "name", "path", "component", "hidden", "sort", "icon", "title", "active_name", "default_menu", "close_tab", "keep_alive").
+		Updates(menuMap).Error
 	if err != nil {
 		r.Logger.Error("Error updating menu", zap.Error(err), zap.Int("id", id))
 		byteErr, _ := json.Marshal(err)
 		var newError domainErrors.GormErr
 		errUnmarshal := json.Unmarshal(byteErr, &newError)
 		if errUnmarshal != nil {
-			return &domainMenu.Menu{}, errUnmarshal
+			return nil, errUnmarshal
 		}
 		switch newError.Number {
 		case 1062:
-			return &domainMenu.Menu{}, domainErrors.NewAppErrorWithType(domainErrors.ResourceAlreadyExists)
+			return nil, domainErrors.NewAppErrorWithType(domainErrors.ResourceAlreadyExists)
 		default:
-			return &domainMenu.Menu{}, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
+			return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 		}
 	}
 	if err := r.DB.Where("id = ?", id).First(&menuObj).Error; err != nil {
 		r.Logger.Error("Error retrieving updated menu", zap.Error(err), zap.Int("id", id))
-		return &domainMenu.Menu{}, err
+		return nil, err
 	}
 	r.Logger.Info("Successfully updated menu", zap.Int("id", id))
 	return menuObj.toDomainMapper(), nil
@@ -148,14 +152,14 @@ func (r *Repository) Delete(id int) error {
 		return domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 	if tx.RowsAffected == 0 {
-		r.Logger.Warn("Menu not found for deletion", zap.Int("id", id))
+		r.Logger.Warn("MenuParameter not found for deletion", zap.Int("id", id))
 		return domainErrors.NewAppErrorWithType(domainErrors.NotFound)
 	}
 	r.Logger.Info("Successfully deleted menu", zap.Int("id", id))
 	return nil
 }
 
-func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainMenu.Menu], error) {
+func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainMenuParameter.MenuParameter], error) {
 	query := r.DB.Model(&SysBaseMenuParameter{})
 
 	// Apply like filters
@@ -163,7 +167,7 @@ func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.Pagina
 		if len(values) > 0 {
 			for _, value := range values {
 				if value != "" {
-					column := ColumnsMenuMapping[field]
+					column := ColumnsMenuParameterMapping[field]
 					if column != "" {
 						query = query.Where(column+" ILIKE ?", "%"+value+"%")
 					}
@@ -175,7 +179,7 @@ func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.Pagina
 	// Apply exact matches
 	for field, values := range filters.Matches {
 		if len(values) > 0 {
-			column := ColumnsMenuMapping[field]
+			column := ColumnsMenuParameterMapping[field]
 			if column != "" {
 				query = query.Where(column+" IN ?", values)
 			}
@@ -184,7 +188,7 @@ func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.Pagina
 
 	// Apply date range filters
 	for _, dateFilter := range filters.DateRangeFilters {
-		column := ColumnsMenuMapping[dateFilter.Field]
+		column := ColumnsMenuParameterMapping[dateFilter.Field]
 		if column != "" {
 			if dateFilter.Start != nil {
 				query = query.Where(column+" >= ?", dateFilter.Start)
@@ -198,7 +202,7 @@ func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.Pagina
 	// Apply sorting
 	if len(filters.SortBy) > 0 && filters.SortDirection.IsValid() {
 		for _, sortField := range filters.SortBy {
-			column := ColumnsMenuMapping[sortField]
+			column := ColumnsMenuParameterMapping[sortField]
 			if column != "" {
 				query = query.Order(column + " " + string(filters.SortDirection))
 			}
@@ -227,7 +231,7 @@ func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.Pagina
 
 	totalPages := int((total + int64(filters.PageSize) - 1) / int64(filters.PageSize))
 
-	result := &domain.PaginatedResult[domainMenu.Menu]{
+	result := &domain.PaginatedResult[domainMenuParameter.MenuParameter]{
 		Data:       arrayToDomainMapper(&menus),
 		Total:      total,
 		Page:       filters.Page,
@@ -244,7 +248,7 @@ func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.Pagina
 }
 
 func (r *Repository) SearchByProperty(property string, searchText string) (*[]string, error) {
-	column := ColumnsMenuMapping[property]
+	column := ColumnsMenuParameterMapping[property]
 	if column == "" {
 		r.Logger.Warn("Invalid property for search", zap.String("property", property))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.ValidationError)
@@ -267,15 +271,25 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 	return &coincidences, nil
 }
 
-func (u *SysBaseMenuParameter) toDomainMapper() *domainMenu.Menu {
-	return &domainMenu.Menu{
+func (r *Repository) GetByIDs(ids []int) (*[]domainMenuParameter.MenuParameter, error) {
+	var menus []SysBaseMenuParameter
+	if err := r.DB.Where("id in (?)", ids).Find(&menus).Error; err != nil {
+		r.Logger.Error("Error getting all menus", zap.Error(err))
+		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
+	}
+	r.Logger.Info("Successfully retrieved all menus", zap.Int("count", len(menus)))
+	return arrayToDomainMapper(&menus), nil
+}
+
+func (u *SysBaseMenuParameter) toDomainMapper() *domainMenuParameter.MenuParameter {
+	return &domainMenuParameter.MenuParameter{
 		ID:        u.ID,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}
 }
 
-func fromDomainMapper(u *domainMenu.Menu) *SysBaseMenuParameter {
+func fromDomainMapper(u *domainMenuParameter.MenuParameter) *SysBaseMenuParameter {
 	return &SysBaseMenuParameter{
 		ID:        u.ID,
 		CreatedAt: u.CreatedAt,
@@ -283,15 +297,15 @@ func fromDomainMapper(u *domainMenu.Menu) *SysBaseMenuParameter {
 	}
 }
 
-func arrayToDomainMapper(menus *[]SysBaseMenuParameter) *[]domainMenu.Menu {
-	menusDomain := make([]domainMenu.Menu, len(*menus))
+func arrayToDomainMapper(menus *[]SysBaseMenuParameter) *[]domainMenuParameter.MenuParameter {
+	menusDomain := make([]domainMenuParameter.MenuParameter, len(*menus))
 	for i, menu := range *menus {
 		menusDomain[i] = *menu.toDomainMapper()
 	}
 	return &menusDomain
 }
 
-func (r *Repository) GetOneByMap(menuMap map[string]interface{}) (*domainMenu.Menu, error) {
+func (r *Repository) GetOneByMap(menuMap map[string]interface{}) (*domainMenuParameter.MenuParameter, error) {
 	var menuRepository SysBaseMenuParameter
 	tx := r.DB.Limit(1)
 	for key, value := range menuMap {
@@ -300,7 +314,7 @@ func (r *Repository) GetOneByMap(menuMap map[string]interface{}) (*domainMenu.Me
 		}
 	}
 	if err := tx.Find(&menuRepository).Error; err != nil {
-		return &domainMenu.Menu{}, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
+		return &domainMenuParameter.MenuParameter{}, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 	return menuRepository.toDomainMapper(), nil
 }

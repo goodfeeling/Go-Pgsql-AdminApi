@@ -15,31 +15,19 @@ import (
 )
 
 // Structures
-type DeleteBatchMenuParameterRequest struct {
-	IDS []int `json:"ids"`
-}
-
-// Structures
 type NewMenuParameterRequest struct {
-	ID                 int    `json:"id"`
-	Label              string `json:"label"  binding:"required"`
-	Value              string `json:"value"  binding:"required"`
-	Extend             string `json:"extend"  binding:"required"`
-	Status             int16  `json:"status"  binding:"required"`
-	Sort               int8   `json:"sort"  binding:"required"`
-	SysMenuParameterID int64  `json:"sys_menuParameter_id"  binding:"required"`
+	Type          string `json:"type"  binding:"required"`
+	Key           string `json:"key"  binding:"required"`
+	Value         string `json:"value"  binding:"required"`
+	SysBaseMenuID int64  `json:"sys_base_menu_id"  binding:"required"`
 }
 
 type ResponseMenuParameter struct {
-	ID                 int               `json:"id"`
-	Label              string            `json:"label"`
-	Value              string            `json:"value"`
-	Extend             string            `json:"extend"`
-	Status             int16             `json:"status"`
-	Sort               int8              `json:"sort"`
-	SysMenuParameterID int64             `json:"sys_menuParameter_id"`
-	CreatedAt          domain.CustomTime `json:"created_at,omitempty"`
-	UpdatedAt          domain.CustomTime `json:"updated_at,omitempty"`
+	ID            int    `json:"id"`
+	Type          string `json:"type"`
+	Key           string `json:"key"`
+	Value         string `json:"value"`
+	SysBaseMenuID int64  `json:"sys_base_menu_id"`
 }
 type IMenuParameterController interface {
 	NewMenuParameter(ctx *gin.Context)
@@ -77,7 +65,7 @@ func (c *MenuParameterController) NewMenuParameter(ctx *gin.Context) {
 	}
 	menuParameterModel, err := c.menuParameterService.Create(toUsecaseMapper(&request))
 	if err != nil {
-		c.Logger.Error("Error creating menuParameter", zap.Error(err), zap.String("Label", request.Label))
+		c.Logger.Error("Error creating menuParameter", zap.Error(err), zap.String("Key", request.Key))
 		_ = ctx.Error(err)
 		return
 	}
@@ -86,7 +74,7 @@ func (c *MenuParameterController) NewMenuParameter(ctx *gin.Context) {
 		Message("success").
 		Status(0).
 		Build()
-	c.Logger.Info("MenuParameter created successfully", zap.String("Label", request.Label), zap.Int("id", int(menuParameterModel.ID)))
+	c.Logger.Info("MenuParameter created successfully", zap.String("Key", request.Key), zap.Int("id", int(menuParameterModel.ID)))
 	ctx.JSON(http.StatusOK, menuParameterResponse)
 }
 
@@ -99,8 +87,17 @@ func (c *MenuParameterController) NewMenuParameter(ctx *gin.Context) {
 // @Success 200 {object} domain.CommonResponse[[]domainMenuParameter.MenuParameter]
 // @Router /v1/menuParameter [get]
 func (c *MenuParameterController) GetAllMenuParameters(ctx *gin.Context) {
+
 	c.Logger.Info("Getting all menuParameters")
-	menuParameters, err := c.menuParameterService.GetAll()
+	c.Logger.Info("Getting all menuBtns")
+	menuBaseID, err := strconv.Atoi(ctx.Query("menu_id"))
+	if err != nil {
+		c.Logger.Error("Invalid menuBtn ID parameter", zap.Error(err), zap.String("id", ctx.Query("menu_id")))
+		appError := domainErrors.NewAppError(errors.New("menuBtn id is invalid"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	menuParameters, err := c.menuParameterService.GetAll(int64(menuBaseID))
 	if err != nil {
 		c.Logger.Error("Error getting all menuParameters", zap.Error(err))
 		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
@@ -222,20 +219,18 @@ func (c *MenuParameterController) DeleteMenuParameter(ctx *gin.Context) {
 func domainToResponseMapper(domainMenuParameter *domainMenuParameter.MenuParameter) *ResponseMenuParameter {
 
 	return &ResponseMenuParameter{
-		ID:        domainMenuParameter.ID,
-		CreatedAt: domain.CustomTime{Time: domainMenuParameter.CreatedAt},
-		UpdatedAt: domain.CustomTime{Time: domainMenuParameter.UpdatedAt},
+		ID:            domainMenuParameter.ID,
+		Type:          domainMenuParameter.Type,
+		Key:           domainMenuParameter.Key,
+		Value:         domainMenuParameter.Value,
+		SysBaseMenuID: domainMenuParameter.SysBaseMenuID,
 	}
 }
-
-func arrayDomainToResponseMapper(menuParameters *[]domainMenuParameter.MenuParameter) *[]*ResponseMenuParameter {
-	res := make([]*ResponseMenuParameter, len(*menuParameters))
-	for i, u := range *menuParameters {
-		res[i] = domainToResponseMapper(&u)
-	}
-	return &res
-}
-
 func toUsecaseMapper(req *NewMenuParameterRequest) *domainMenuParameter.MenuParameter {
-	return &domainMenuParameter.MenuParameter{}
+	return &domainMenuParameter.MenuParameter{
+		Type:          req.Type,
+		Key:           req.Key,
+		Value:         req.Value,
+		SysBaseMenuID: req.SysBaseMenuID,
+	}
 }

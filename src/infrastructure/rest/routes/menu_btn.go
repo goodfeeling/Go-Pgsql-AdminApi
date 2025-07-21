@@ -1,21 +1,19 @@
 package routes
 
 import (
-	menu_group "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menuGroup"
+	menuBtn "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menuBtn"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
-func MenuBtnRouters(router *gin.RouterGroup, controller menu_group.IMenuGroupController) {
+func MenuBtnRouters(router *gin.RouterGroup, controller menuBtn.IMenuBtnController) {
 	u := router.Group("/menu_btn")
 	u.Use(middlewares.AuthJWTMiddleware())
 	{
-		u.POST("", controller.NewMenuGroup)
-		u.GET("", controller.GetAllMenuGroups)
-		u.GET("/:id", controller.GetMenuGroupsByID)
-		u.PUT("/:id", controller.UpdateMenuGroup)
-		u.DELETE("/:id", controller.DeleteMenuGroup)
-		u.GET("/search", controller.SearchPaginated)
-		u.GET("/search-property", controller.SearchByProperty)
+		u.POST("", controller.NewMenuBtn)
+		u.GET("", controller.GetAllMenuBtns)
+		u.GET("/:id", controller.GetMenuBtnsByID)
+		u.PUT("/:id", controller.UpdateMenuBtn)
+		u.DELETE("/:id", controller.DeleteMenuBtn)
 	}
 }

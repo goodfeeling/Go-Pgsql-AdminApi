@@ -16,14 +16,14 @@ import (
 )
 
 type SysBaseMenuParameter struct {
-	CreatedAt time.Time      `gorm:"column:created_at" json:"createdAt,omitempty"`
-	UpdatedAt time.Time      `gorm:"column:updated_at" json:"updatedAt,omitempty"`
-	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at" json:"-"`
-	MenuID    int64          `gorm:"column:sys_base_menu_id" json:"menuId"`    // 外键关联菜单表
-	Type      string         `gorm:"column:type" json:"type"`                  // 地址栏携带参数为params还是query
-	Key       string         `gorm:"column:key" json:"key"`                    // 地址栏携带参数的key
-	Value     string         `gorm:"column:value" json:"value"`                // 地址栏携带参数的值
-	ID        int            `gorm:"primaryKey;autoIncrement:false" json:"id"` // 使用现有序列
+	CreatedAt     time.Time      `gorm:"column:created_at" json:"createdAt,omitempty"`
+	UpdatedAt     time.Time      `gorm:"column:updated_at" json:"updatedAt,omitempty"`
+	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at" json:"-"`
+	SysBaseMenuID int64          `gorm:"column:sys_base_menu_id" json:"menuId"`    // 外键关联菜单表
+	Type          string         `gorm:"column:type" json:"type"`                  // 地址栏携带参数为params还是query
+	Key           string         `gorm:"column:key" json:"key"`                    // 地址栏携带参数的key
+	Value         string         `gorm:"column:value" json:"value"`                // 地址栏携带参数的值
+	ID            int            `ggorm:"primaryKey;column:id;type:numeric(20,0)"` // 使用现有序列
 }
 
 func (SysBaseMenuParameter) TableName() string {
@@ -43,7 +43,7 @@ var ColumnsMenuParameterMapping = map[string]string{
 
 // MenuParameterRepositoryInterface defines the interface for menu repository operations
 type MenuParameterRepositoryInterface interface {
-	GetAll() (*[]domainMenuParameter.MenuParameter, error)
+	GetAll(menuID int64) (*[]domainMenuParameter.MenuParameter, error)
 	Create(menuDomain *domainMenuParameter.MenuParameter) (*domainMenuParameter.MenuParameter, error)
 	GetByID(id int) (*domainMenuParameter.MenuParameter, error)
 	Update(id int, menuMap map[string]interface{}) (*domainMenuParameter.MenuParameter, error)
@@ -63,9 +63,12 @@ func NewMenuParameterRepository(db *gorm.DB, loggerInstance *logger.Logger) Menu
 	return &Repository{DB: db, Logger: loggerInstance}
 }
 
-func (r *Repository) GetAll() (*[]domainMenuParameter.MenuParameter, error) {
+func (r *Repository) GetAll(menuID int64) (*[]domainMenuParameter.MenuParameter, error) {
 	var menus []SysBaseMenuParameter
 	tx := r.DB
+	if menuID != 0 {
+		tx = tx.Where("sys_base_menu_id = ?", menuID)
+	}
 	if err := tx.Find(&menus).Error; err != nil {
 		r.Logger.Error("Error getting all menus", zap.Error(err))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
@@ -120,7 +123,7 @@ func (r *Repository) Update(id int, menuMap map[string]interface{}) (*domainMenu
 	var menuObj SysBaseMenuParameter
 	menuObj.ID = id
 	err := r.DB.Model(&menuObj).
-		Select("parent_id", "menu_level", "name", "path", "component", "hidden", "sort", "icon", "title", "active_name", "default_menu", "close_tab", "keep_alive").
+		Select("key", "type", "value").
 		Updates(menuMap).Error
 	if err != nil {
 		r.Logger.Error("Error updating menu", zap.Error(err), zap.Int("id", id))
@@ -283,17 +286,23 @@ func (r *Repository) GetByIDs(ids []int) (*[]domainMenuParameter.MenuParameter, 
 
 func (u *SysBaseMenuParameter) toDomainMapper() *domainMenuParameter.MenuParameter {
 	return &domainMenuParameter.MenuParameter{
-		ID:        u.ID,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		ID:            u.ID,
+		Key:           u.Key,
+		SysBaseMenuID: u.SysBaseMenuID,
+		Type:          u.Type,
+		Value:         u.Value,
+		CreatedAt:     u.CreatedAt,
+		UpdatedAt:     u.UpdatedAt,
 	}
 }
 
 func fromDomainMapper(u *domainMenuParameter.MenuParameter) *SysBaseMenuParameter {
 	return &SysBaseMenuParameter{
-		ID:        u.ID,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		ID:            u.ID,
+		Key:           u.Key,
+		SysBaseMenuID: u.SysBaseMenuID,
+		Type:          u.Type,
+		Value:         u.Value,
 	}
 }
 

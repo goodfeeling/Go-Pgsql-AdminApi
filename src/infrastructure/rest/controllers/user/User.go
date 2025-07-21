@@ -8,6 +8,7 @@ import (
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
+	domainRole "github.com/gbrayhan/microservices-go/src/domain/sys/role"
 	domainUser "github.com/gbrayhan/microservices-go/src/domain/user"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
@@ -36,6 +37,7 @@ type ResponseUser struct {
 	Status    bool              `json:"status"`
 	Phone     string            `json:"phone"`
 	HeaderImg string            `json:"header_img"`
+	Roles     []domainRole.Role `json:"roles"`
 	CreatedAt domain.CustomTime `json:"created_at,omitempty"`
 	UpdatedAt domain.CustomTime `json:"updated_at,omitempty"`
 }
@@ -394,6 +396,7 @@ func domainToResponseMapper(domainUser *domainUser.User) *ResponseUser {
 		Phone:     domainUser.Phone,
 		HeaderImg: domainUser.HeaderImg,
 		Status:    domainUser.Status,
+		Roles:     domainUser.Roles,
 		CreatedAt: domain.CustomTime{Time: domainUser.CreatedAt},
 		UpdatedAt: domain.CustomTime{Time: domainUser.UpdatedAt},
 	}

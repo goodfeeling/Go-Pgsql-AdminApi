@@ -16,7 +16,7 @@ import (
 )
 
 type SysBaseMenuBtn struct {
-	ID            int            `gorm:"column:id;primary_key" json:"id"`
+	ID            int            `gorm:"primaryKey;column:id;type:numeric(20,0)"`
 	CreatedAt     time.Time      `gorm:"column:created_at" json:"createdAt,omitempty"`
 	UpdatedAt     time.Time      `gorm:"column:updated_at" json:"updatedAt,omitempty"`
 	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at;index:idx_sys_apis_deleted_at" json:"deletedAt,omitempty"`
@@ -42,7 +42,7 @@ var ColumnsMenuBtnMapping = map[string]string{
 
 // MenuBtnRepositoryInterface defines the interface for menu repository operations
 type MenuBtnRepositoryInterface interface {
-	GetAll() (*[]domainMenuBtn.MenuBtn, error)
+	GetAll(menuId int64) (*[]domainMenuBtn.MenuBtn, error)
 	Create(menuDomain *domainMenuBtn.MenuBtn) (*domainMenuBtn.MenuBtn, error)
 	GetByID(id int) (*domainMenuBtn.MenuBtn, error)
 	Update(id int, menuMap map[string]interface{}) (*domainMenuBtn.MenuBtn, error)
@@ -65,9 +65,12 @@ func NewMenuBtnRepository(db *gorm.DB, loggerInstance *logger.Logger) MenuBtnRep
 	}
 }
 
-func (r *Repository) GetAll() (*[]domainMenuBtn.MenuBtn, error) {
+func (r *Repository) GetAll(menuId int64) (*[]domainMenuBtn.MenuBtn, error) {
 	var menus []SysBaseMenuBtn
 	tx := r.DB
+	if menuId != 0 {
+		tx = tx.Where("sys_base_menu_id = ?", menuId)
+	}
 	if err := tx.Find(&menus).Error; err != nil {
 		r.Logger.Error("Error getting all menus", zap.Error(err))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
@@ -122,7 +125,7 @@ func (r *Repository) Update(id int, menuMap map[string]interface{}) (*domainMenu
 	var menuObj SysBaseMenuBtn
 	menuObj.ID = id
 	err := r.DB.Model(&menuObj).
-		Select("parent_id", "menu_level", "name", "path", "component", "hidden", "sort", "icon", "title", "active_name", "default_menu", "close_tab", "keep_alive").
+		Select("name", "desc").
 		Updates(menuMap).Error
 	if err != nil {
 		r.Logger.Error("Error updating menu", zap.Error(err), zap.Int("id", id))

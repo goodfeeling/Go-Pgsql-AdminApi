@@ -10,7 +10,7 @@ import (
 )
 
 type IMenuParameterService interface {
-	GetAll() (*[]menuParameterDomain.MenuParameter, error)
+	GetAll(menuID int64) (*[]menuParameterDomain.MenuParameter, error)
 	GetByID(id int) (*menuParameterDomain.MenuParameter, error)
 	Create(newMenuParameter *menuParameterDomain.MenuParameter) (*menuParameterDomain.MenuParameter, error)
 	Delete(id int) error
@@ -32,9 +32,9 @@ func NewMenuParameterUseCase(menuParameterRepository menuParameterRepo.MenuParam
 	}
 }
 
-func (s *MenuParameterUseCase) GetAll() (*[]menuParameterDomain.MenuParameter, error) {
+func (s *MenuParameterUseCase) GetAll(menuID int64) (*[]menuParameterDomain.MenuParameter, error) {
 	s.Logger.Info("Getting all roles")
-	return s.menuParameterRepository.GetAll()
+	return s.menuParameterRepository.GetAll(menuID)
 }
 
 func (s *MenuParameterUseCase) GetByID(id int) (*menuParameterDomain.MenuParameter, error) {

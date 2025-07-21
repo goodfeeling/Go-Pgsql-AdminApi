@@ -16,18 +16,18 @@ import (
 
 // Structures
 type NewMenuBtnRequest struct {
-	Name      string `json:"name"  binding:"required"`
-	Desc      string `json:"desc"  binding:"required"`
-	SysMenuID int64  `json:"sys_menu_id"  binding:"required"`
+	Name          string `json:"name"  binding:"required"`
+	Desc          string `json:"desc"  binding:"required"`
+	SysBaseMenuID int64  `json:"sys_base_menu_id"  binding:"required"`
 }
 
 type ResponseMenuBtn struct {
-	ID        int               `json:"id"`
-	Name      string            `json:"name"  binding:"required"`
-	Desc      string            `json:"desc"  binding:"required"`
-	SysMenuID int64             `json:"sys_menu_id"  binding:"required"`
-	CreatedAt domain.CustomTime `json:"created_at,omitempty"`
-	UpdatedAt domain.CustomTime `json:"updated_at,omitempty"`
+	ID            int               `json:"id"`
+	Name          string            `json:"name"  binding:"required"`
+	Desc          string            `json:"desc"  binding:"required"`
+	SysBaseMenuID int64             `json:"sys_base_menu_id"  binding:"required"`
+	CreatedAt     domain.CustomTime `json:"created_at,omitempty"`
+	UpdatedAt     domain.CustomTime `json:"updated_at,omitempty"`
 }
 type IMenuBtnController interface {
 	NewMenuBtn(ctx *gin.Context)
@@ -85,10 +85,17 @@ func (c *MenuBtnController) NewMenuBtn(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Success 200 {object} domain.CommonResponse[[]domainMenuBtn.MenuBtn]
-// @Router /v1/menuBtn [get]
+// @Router /v1/menu_btn [get]
 func (c *MenuBtnController) GetAllMenuBtns(ctx *gin.Context) {
 	c.Logger.Info("Getting all menuBtns")
-	menuBtns, err := c.menuBtnService.GetAll()
+	menuBaseID, err := strconv.Atoi(ctx.Query("menu_id"))
+	if err != nil {
+		c.Logger.Error("Invalid menuBtn ID parameter", zap.Error(err), zap.String("id", ctx.Query("menu_id")))
+		appError := domainErrors.NewAppError(errors.New("menuBtn id is invalid"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	menuBtns, err := c.menuBtnService.GetAll(int64(menuBaseID))
 	if err != nil {
 		c.Logger.Error("Error getting all menuBtns", zap.Error(err))
 		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
@@ -210,12 +217,17 @@ func (c *MenuBtnController) DeleteMenuBtn(ctx *gin.Context) {
 func domainToResponseMapper(domainMenuBtn *domainMenuBtn.MenuBtn) *ResponseMenuBtn {
 
 	return &ResponseMenuBtn{
-		ID:        domainMenuBtn.ID,
-		CreatedAt: domain.CustomTime{Time: domainMenuBtn.CreatedAt},
-		UpdatedAt: domain.CustomTime{Time: domainMenuBtn.UpdatedAt},
+		ID:            domainMenuBtn.ID,
+		Name:          domainMenuBtn.Name,
+		Desc:          domainMenuBtn.Desc,
+		SysBaseMenuID: domainMenuBtn.SysBaseMenuID,
 	}
 }
 
 func toUsecaseMapper(req *NewMenuBtnRequest) *domainMenuBtn.MenuBtn {
-	return &domainMenuBtn.MenuBtn{}
+	return &domainMenuBtn.MenuBtn{
+		Name:          req.Name,
+		Desc:          req.Desc,
+		SysBaseMenuID: req.SysBaseMenuID,
+	}
 }

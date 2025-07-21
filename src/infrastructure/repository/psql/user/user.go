@@ -271,7 +271,7 @@ func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domainUser.Se
 	offset := (filters.Page - 1) * filters.PageSize
 
 	var users []User
-	if err := query.Offset(offset).Limit(filters.PageSize).Find(&users).Error; err != nil {
+	if err := query.Offset(offset).Limit(filters.PageSize).Preload("Roles").Find(&users).Error; err != nil {
 		r.Logger.Error("Error searching users", zap.Error(err))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}

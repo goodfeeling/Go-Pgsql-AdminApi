@@ -8,21 +8,21 @@ import (
 )
 
 type User struct {
-	ID            int64
-	UUID          string
-	UserName      string
-	NickName      string
-	Email         string
-	Status        bool
-	HashPassword  string
-	HeaderImg     string
-	Phone         string
-	OriginSetting string
-	Password      string
-	RoleId        int64
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	Roles         []roleDomain.Role
+	ID            int64             `json:"id"`
+	UUID          string            `json:"uuid"`
+	UserName      string            `json:"user_name"`
+	NickName      string            `json:"nick_name"`
+	Email         string            `json:"email"`
+	Status        bool              `json:"status"`
+	HashPassword  string            `json:"hash_password"`
+	HeaderImg     string            `json:"header_img"`
+	Phone         string            `json:"phone"`
+	OriginSetting string            `json:"origin_setting"`
+	Password      string            `json:"password"`
+	RoleId        int64             `json:"role_id"`
+	CreatedAt     time.Time         `json:"created_at"`
+	UpdatedAt     time.Time         `json:"updated_at"`
+	Roles         []roleDomain.Role `json:"roles"`
 }
 type SearchResultUser struct {
 	Data       *[]User `json:"data"`

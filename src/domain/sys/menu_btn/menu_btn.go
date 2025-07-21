@@ -16,7 +16,7 @@ type MenuBtn struct {
 }
 
 type IMenuBtnService interface {
-	GetAll() (*[]MenuBtn, error)
+	GetAll(menuID int64) (*[]MenuBtn, error)
 	GetByID(id int) (*MenuBtn, error)
 	Create(newMenu *MenuBtn) (*MenuBtn, error)
 	Delete(id int) error

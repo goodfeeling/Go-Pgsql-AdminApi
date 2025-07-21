@@ -10,7 +10,7 @@ import (
 )
 
 type IMenuBtnService interface {
-	GetAll() (*[]menuBtnDomain.MenuBtn, error)
+	GetAll(menuId int64) (*[]menuBtnDomain.MenuBtn, error)
 	GetByID(id int) (*menuBtnDomain.MenuBtn, error)
 	Create(newMenuBtn *menuBtnDomain.MenuBtn) (*menuBtnDomain.MenuBtn, error)
 	Delete(id int) error
@@ -32,9 +32,9 @@ func NewMenuBtnUseCase(sysMenuBtnRepository menuBtnRepo.MenuBtnRepositoryInterfa
 	}
 }
 
-func (s *MenuBtnUseCase) GetAll() (*[]menuBtnDomain.MenuBtn, error) {
+func (s *MenuBtnUseCase) GetAll(menuID int64) (*[]menuBtnDomain.MenuBtn, error) {
 	s.Logger.Info("Getting all roles")
-	return s.sysMenuBtnRepository.GetAll()
+	return s.sysMenuBtnRepository.GetAll(menuID)
 }
 
 func (s *MenuBtnUseCase) GetByID(id int) (*menuBtnDomain.MenuBtn, error) {

@@ -5,16 +5,16 @@ import (
 )
 
 type Role struct {
-	ID            int64
-	Name          string
-	ParentID      int64
-	DefaultRouter string
-	Status        bool
-	Order         int64
-	Label         string
-	Description   string
-	CreatedAt     domain.CustomTime
-	UpdatedAt     domain.CustomTime
+	ID            int64             `json:"id"`
+	Name          string            `json:"name"`
+	ParentID      int64             `json:"parent_id"`
+	DefaultRouter string            `json:"default_router"`
+	Status        bool              `json:"status"`
+	Order         int64             `json:"order"`
+	Label         string            `json:"label"`
+	Description   string            `json:"description"`
+	CreatedAt     domain.CustomTime `json:"created_at"`
+	UpdatedAt     domain.CustomTime `json:"updated_at"`
 }
 type SearchResultRole struct {
 	Data       *[]Role `json:"data"`

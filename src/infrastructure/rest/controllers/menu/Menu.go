@@ -122,9 +122,9 @@ func (c *MenuController) GetAllMenus(ctx *gin.Context) {
 		return
 	}
 	if menus == nil {
-		menus = []*domainMenu.MenuTree{}
+		menus = []*domainMenu.Menu{}
 	}
-	response := controllers.NewCommonResponseBuilder[[]*domainMenu.MenuTree]().
+	response := controllers.NewCommonResponseBuilder[[]*domainMenu.Menu]().
 		Data(menus).
 		Message("success").
 		Status(0).
@@ -248,19 +248,24 @@ func (c *MenuController) DeleteMenu(ctx *gin.Context) {
 // @Router /v1/menu/user [get]
 func (c *MenuController) GetUserMenus(ctx *gin.Context) {
 	c.Logger.Info("Getting user menus")
-	appUtils := controllers.NewAppUtils(ctx)
-	userId, ok := appUtils.GetUserID()
-	if !ok {
-		// no login send empty to front
-		menuResponse := controllers.NewCommonResponseBuilder[[]*domainMenu.MenuGroup]().
-			Data([]*domainMenu.MenuGroup{}).
-			Message("success").
-			Status(0).
-			Build()
-		ctx.JSON(http.StatusOK, menuResponse)
-		return
+	isGetAll := ctx.Query("all") == "true"
+	var roleID int64
+	if !isGetAll {
+		var ok bool
+		appUtils := controllers.NewAppUtils(ctx)
+		roleID, ok = appUtils.GetRoleID()
+		if !ok {
+			// no login send empty to front
+			menuResponse := controllers.NewCommonResponseBuilder[[]*domainMenu.MenuGroup]().
+				Data([]*domainMenu.MenuGroup{}).
+				Message("success").
+				Status(0).
+				Build()
+			ctx.JSON(http.StatusOK, menuResponse)
+			return
+		}
 	}
-	menus, err := c.menuService.GetUserMenus(userId)
+	menus, err := c.menuService.GetUserMenus(roleID)
 	if err != nil {
 		c.Logger.Error("Error getting all menu user", zap.Error(err))
 		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
@@ -276,7 +281,6 @@ func (c *MenuController) GetUserMenus(ctx *gin.Context) {
 		Status(0).
 		Build()
 	ctx.JSON(http.StatusOK, menuResponse)
-
 }
 
 // Mappers
@@ -297,8 +301,8 @@ func domainToResponseMapper(domainMenu *domainMenu.Menu) *ResponseMenu {
 		Sort:        domainMenu.Sort,
 		ActiveName:  domainMenu.ActiveName,
 		Component:   domainMenu.Component,
-		CreatedAt:   domain.CustomTime{Time: domainMenu.CreatedAt},
-		UpdatedAt:   domain.CustomTime{Time: domainMenu.UpdatedAt},
+		CreatedAt:   domainMenu.CreatedAt,
+		UpdatedAt:   domainMenu.UpdatedAt,
 	}
 }
 

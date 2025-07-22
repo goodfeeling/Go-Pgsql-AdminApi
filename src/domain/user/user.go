@@ -41,4 +41,5 @@ type IUserService interface {
 	SearchPaginated(filters domain.DataFilters) (*SearchResultUser, error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*User, error)
+	UserBindRoles(userId int64, updateMap map[string]interface{}) error
 }

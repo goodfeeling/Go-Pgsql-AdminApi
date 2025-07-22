@@ -48,7 +48,7 @@ type RoleTree struct {
 }
 
 type IRoleService interface {
-	GetAll() ([]*RoleTree, error)
+	GetAll(status int) ([]*RoleTree, error)
 	GetByID(id int) (*Role, error)
 	Create(newRole *Role) (*Role, error)
 	Delete(id int) error
@@ -56,7 +56,7 @@ type IRoleService interface {
 	SearchPaginated(filters domain.DataFilters) (*SearchResultRole, error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*Role, error)
-	GetTreeRoles() (*RoleNode, error)
+	GetTreeRoles(status int) (*RoleNode, error)
 	GetRoleMenuIds(id int64) ([]int, error)
 	UpdateRoleMenuIds(id int, updateMap map[string]any) error
 	GetApiRuleList(roleId int) ([]string, error)

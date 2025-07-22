@@ -19,15 +19,17 @@ import (
 
 // Structures
 type NewMenuGroupRequest struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"  binding:"required"`
-	Path string `json:"path"`
+	ID     int    `json:"id"`
+	Name   string `json:"name"  binding:"required"`
+	Path   string `json:"path"`
+	Status bool   `json:"status"`
 }
 
 type ResponseMenuGroup struct {
 	ID        int               `json:"id"`
 	Name      string            `json:"name"`
 	Path      string            `json:"path"`
+	Status    bool              `json:"status"`
 	CreatedAt domain.CustomTime `json:"created_at"`
 	UpdatedAt domain.CustomTime `json:"updated_at"`
 }
@@ -328,7 +330,7 @@ func (c *MenuGroupController) SearchPaginated(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Success 200 {array} []string
-// @Router /v1/menuGroup/search-property [get]
+// @Router /v1/menu-group/search-property [get]
 func (c *MenuGroupController) SearchByProperty(ctx *gin.Context) {
 	property := ctx.Query("property")
 	searchText := ctx.Query("searchText")
@@ -375,6 +377,7 @@ func domainToResponseMapper(domainMenuGroup *domainMenuGroup.MenuGroup) *Respons
 		ID:        domainMenuGroup.ID,
 		Name:      domainMenuGroup.Name,
 		Path:      domainMenuGroup.Path,
+		Status:    domainMenuGroup.Status,
 		CreatedAt: domain.CustomTime{Time: domainMenuGroup.CreatedAt},
 		UpdatedAt: domain.CustomTime{Time: domainMenuGroup.UpdatedAt},
 	}
@@ -390,7 +393,8 @@ func arrayDomainToResponseMapper(dictionaries *[]domainMenuGroup.MenuGroup) *[]*
 
 func toUsecaseMapper(req *NewMenuGroupRequest) *domainMenuGroup.MenuGroup {
 	return &domainMenuGroup.MenuGroup{
-		Name: req.Name,
-		Path: req.Path,
+		Name:   req.Name,
+		Path:   req.Path,
+		Status: req.Status,
 	}
 }

@@ -1,31 +1,33 @@
 package menu
 
 import (
-	"time"
-
 	"github.com/gbrayhan/microservices-go/src/domain"
+	menuBtnDomain "github.com/gbrayhan/microservices-go/src/domain/sys/menu_btn"
+	menuParameterDomain "github.com/gbrayhan/microservices-go/src/domain/sys/menu_parameter"
 )
 
 type Menu struct {
-	ID          int         `json:"id"`
-	MenuLevel   int         `json:"menu_level"`
-	ParentID    int         `json:"parent_id"`
-	Path        string      `json:"path"`
-	Name        string      `json:"name"`
-	Hidden      int16       `json:"hidden"`
-	Component   string      `json:"component"`
-	Sort        int8        `json:"sort"`
-	ActiveName  string      `json:"active_name"`
-	KeepAlive   int16       `json:"keep_alive"`
-	DefaultMenu int16       `json:"default_menu"`
-	Title       string      `json:"title"`
-	Icon        string      `json:"icon"`
-	CloseTab    int16       `json:"close_tab"`
-	MenuGroupId int         `json:"menu_group_id"`
-	CreatedAt   time.Time   `json:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at"`
-	Level       []int       `json:"level"`
-	Children    []*MenuTree `json:"children"`
+	ID             int                                 `json:"id"`
+	MenuLevel      int                                 `json:"menu_level"`
+	ParentID       int                                 `json:"parent_id"`
+	Path           string                              `json:"path"`
+	Name           string                              `json:"name"`
+	Hidden         int16                               `json:"hidden"`
+	Component      string                              `json:"component"`
+	Sort           int8                                `json:"sort"`
+	ActiveName     string                              `json:"active_name"`
+	KeepAlive      int16                               `json:"keep_alive"`
+	DefaultMenu    int16                               `json:"default_menu"`
+	Title          string                              `json:"title"`
+	Icon           string                              `json:"icon"`
+	CloseTab       int16                               `json:"close_tab"`
+	MenuGroupId    int                                 `json:"menu_group_id"`
+	CreatedAt      domain.CustomTime                   `json:"created_at"`
+	UpdatedAt      domain.CustomTime                   `json:"updated_at"`
+	Level          []int                               `json:"level"`
+	Children       []*Menu                             `json:"children"`
+	MenuBtns       []menuBtnDomain.MenuBtn             `json:"menu_btns"`
+	MenuParameters []menuParameterDomain.MenuParameter `json:"menu_parameters"`
 }
 
 type MenuNode struct {
@@ -36,39 +38,18 @@ type MenuNode struct {
 	Children []*MenuNode `json:"children"`
 }
 
-type MenuTree struct {
-	ID          int               `json:"id"`
-	MenuLevel   int               `json:"menu_level"`
-	ParentID    int               `json:"parent_id"`
-	Path        string            `json:"path"`
-	Name        string            `json:"name"`
-	Hidden      int16             `json:"hidden"`
-	Component   string            `json:"component"`
-	Sort        int8              `json:"sort"`
-	ActiveName  string            `json:"active_name"`
-	KeepAlive   int16             `json:"keep_alive"`
-	DefaultMenu int16             `json:"default_menu"`
-	Title       string            `json:"title"`
-	Icon        string            `json:"icon"`
-	CloseTab    int16             `json:"close_tab"`
-	CreatedAt   domain.CustomTime `json:"created_at"`
-	UpdatedAt   domain.CustomTime `json:"updated_at"`
-	Level       []int             `json:"level"`
-	Children    []*MenuTree       `json:"children"`
-}
-
 type MenuGroup struct {
-	Name  string      `json:"name"`
-	Path  string      `json:"path"`
-	Items []*MenuTree `json:"items"`
+	Name  string  `json:"name"`
+	Path  string  `json:"path"`
+	Items []*Menu `json:"items"`
 }
 
 type IMenuService interface {
-	GetAll(groupId int) ([]*MenuTree, error)
+	GetAll(groupId int) ([]*Menu, error)
 	GetByID(id int) (*Menu, error)
 	Create(newMenu *Menu) (*Menu, error)
 	Delete(id int) error
 	Update(id int, userMap map[string]interface{}) (*Menu, error)
 	GetOneByMap(userMap map[string]interface{}) (*Menu, error)
-	GetUserMenus(userId int) ([]*MenuGroup, error)
+	GetUserMenus(roleId int64) ([]*MenuGroup, error)
 }

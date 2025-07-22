@@ -12,7 +12,7 @@ import (
 )
 
 type ISysMenuService interface {
-	GetAll(groupId int) ([]*menuDomain.MenuTree, error)
+	GetAll(groupId int) ([]*menuDomain.Menu, error)
 	GetByID(id int) (*menuDomain.Menu, error)
 	Create(newMenu *menuDomain.Menu) (*menuDomain.Menu, error)
 	Delete(id int) error
@@ -20,7 +20,7 @@ type ISysMenuService interface {
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[menuDomain.Menu], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*menuDomain.Menu, error)
-	GetUserMenus(userId int) ([]*menuDomain.MenuGroup, error)
+	GetUserMenus(roleId int64) ([]*menuDomain.MenuGroup, error)
 }
 
 type SysMenuUseCase struct {
@@ -47,14 +47,13 @@ func NewSysMenuUseCase(
 	}
 }
 
-func (s *SysMenuUseCase) GetAll(groupId int) ([]*menuDomain.MenuTree, error) {
+func (s *SysMenuUseCase) GetAll(groupId int) ([]*menuDomain.Menu, error) {
 	s.Logger.Info("Getting all menus")
 	menus, err := s.sysMenuRepository.GetAll(groupId)
 	if err != nil {
 		return nil, err
 	}
 	return buildMenuTree(menus, ""), nil
-
 }
 
 func (s *SysMenuUseCase) GetByID(id int) (*menuDomain.Menu, error) {
@@ -96,54 +95,28 @@ func (s *SysMenuUseCase) GetOneByMap(userMap map[string]interface{}) (*menuDomai
 }
 
 // GetUserMenus
-func (s *SysMenuUseCase) GetUserMenus(userId int) ([]*menuDomain.MenuGroup, error) {
-	s.Logger.Info("Getting user menus", zap.Int("userId", userId))
-	userInfo, err := s.userRepository.GetByID(userId)
-	if err != nil {
-		return nil, err
-	}
-	roleId := userInfo.RoleId
+func (s *SysMenuUseCase) GetUserMenus(roleId int64) ([]*menuDomain.MenuGroup, error) {
 	s.Logger.Info("Getting user menus", zap.Int64("roleId", roleId))
-	roleMenus, err := s.sysRoleMenuRepository.GetByRoleId(roleId)
+	var roleMenuIds []int
+	var err error
+	if roleId == 0 {
+		roleMenuIds = []int{}
+	} else {
+		roleMenuIds, err = s.sysRoleMenuRepository.GetByRoleId(roleId)
+		if err != nil {
+			return nil, err
+		}
+	}
+	s.Logger.Info("Getting user menus", zap.Int("menusCount", len(roleMenuIds)))
+	groups, err := s.sysMenuGroupRepository.GetByRoleId(roleMenuIds)
 	if err != nil {
 		return nil, err
-	}
-	s.Logger.Info("Getting user menus", zap.Int("menusCount", len(roleMenus)))
-	menus, err := s.sysMenuRepository.GetByIDs(roleMenus)
-	if err != nil {
-		return nil, err
-	}
-	groups, err := s.sysMenuGroupRepository.GetAll()
-	if err != nil {
-		return nil, err
-	}
-	menuGroupMap := make(map[int][]menuDomain.Menu)
-	for _, menu := range *menus {
-		menuGroupMap[menu.MenuGroupId] = append(menuGroupMap[menu.MenuGroupId], menuDomain.Menu{
-			ID:          menu.ID,
-			Name:        menu.Name,
-			Title:       menu.Title,
-			Path:        menu.Path,
-			Component:   menu.Component,
-			Icon:        menu.Icon,
-			CloseTab:    menu.CloseTab,
-			DefaultMenu: menu.DefaultMenu,
-			Hidden:      menu.Hidden,
-			Sort:        menu.Sort,
-			ActiveName:  menu.ActiveName,
-			KeepAlive:   menu.KeepAlive,
-			MenuLevel:   menu.MenuLevel,
-			ParentID:    menu.ParentID,
-			CreatedAt:   menu.CreatedAt,
-			UpdatedAt:   menu.UpdatedAt,
-		})
 	}
 	menuGroup := make([]*menuDomain.MenuGroup, 0)
 	for _, group := range *groups {
-		menusForGroup := menuGroupMap[group.ID]
-		treeData := buildMenuTree(&menusForGroup, group.Path)
+		treeData := buildMenuTree(group.MenuItems, group.Path)
 		if treeData == nil {
-			treeData = []*menuDomain.MenuTree{}
+			treeData = []*menuDomain.Menu{}
 		}
 		menuGroup = append(menuGroup, &menuDomain.MenuGroup{
 			Name:  group.Name,
@@ -155,32 +128,34 @@ func (s *SysMenuUseCase) GetUserMenus(userId int) ([]*menuDomain.MenuGroup, erro
 }
 
 // buildMenuTree
-func buildMenuTree(menus *[]menuDomain.Menu, groupPath string) []*menuDomain.MenuTree {
+func buildMenuTree(menus *[]menuDomain.Menu, groupPath string) []*menuDomain.Menu {
 
-	menuMap := make(map[int]*menuDomain.MenuTree)
-	var roots []*menuDomain.MenuTree
+	menuMap := make(map[int]*menuDomain.Menu)
+	var roots []*menuDomain.Menu
 
 	//  traversal: Establish parent-child relationships.
 	for _, item := range *menus {
-		node := &menuDomain.MenuTree{
-			ID:          item.ID,
-			Path:        item.Path,
-			Name:        item.Name,
-			ParentID:    item.ParentID,
-			DefaultMenu: item.DefaultMenu,
-			Hidden:      item.Hidden,
-			MenuLevel:   item.MenuLevel,
-			CloseTab:    item.CloseTab,
-			KeepAlive:   item.KeepAlive,
-			Icon:        item.Icon,
-			Title:       item.Title,
-			Sort:        item.Sort,
-			ActiveName:  item.ActiveName,
-			Component:   item.Component,
-			CreatedAt:   domain.CustomTime{Time: item.CreatedAt},
-			UpdatedAt:   domain.CustomTime{Time: item.UpdatedAt},
-			Level:       []int{item.ID},
-			Children:    []*menuDomain.MenuTree{},
+		node := &menuDomain.Menu{
+			ID:             item.ID,
+			Path:           item.Path,
+			Name:           item.Name,
+			ParentID:       item.ParentID,
+			DefaultMenu:    item.DefaultMenu,
+			Hidden:         item.Hidden,
+			MenuLevel:      item.MenuLevel,
+			CloseTab:       item.CloseTab,
+			KeepAlive:      item.KeepAlive,
+			Icon:           item.Icon,
+			Title:          item.Title,
+			Sort:           item.Sort,
+			ActiveName:     item.ActiveName,
+			Component:      item.Component,
+			CreatedAt:      item.CreatedAt,
+			UpdatedAt:      item.UpdatedAt,
+			Level:          []int{item.ID},
+			Children:       []*menuDomain.Menu{},
+			MenuBtns:       item.MenuBtns,
+			MenuParameters: item.MenuParameters,
 		}
 		menuMap[item.ID] = node
 	}

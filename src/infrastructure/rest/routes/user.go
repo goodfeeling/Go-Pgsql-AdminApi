@@ -17,5 +17,6 @@ func UserRoutes(router *gin.RouterGroup, controller user.IUserController) {
 		u.DELETE("/:id", controller.DeleteUser)
 		u.GET("/search", controller.SearchPaginated)
 		u.GET("/search-property", controller.SearchByProperty)
+		u.POST(":id/role", controller.UserBindRoles)
 	}
 }

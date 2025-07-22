@@ -10,18 +10,21 @@ import (
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainMenuGroup "github.com/gbrayhan/microservices-go/src/domain/sys/menu_group"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	menuRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/utils"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 type SysBaseMenuGroups struct {
-	ID        int        `gorm:"primaryKey;column:id;type:numeric(20,0)"`
-	Name      string     `gorm:"column:name" json:"name"`
-	Path      string     `gorm:"column:path" json:"path"`
-	CreatedAt time.Time  `gorm:"column:created_at" json:"createdAt"`
-	UpdatedAt time.Time  `gorm:"column:updated_at" json:"updatedAt"`
-	DeletedAt *time.Time `gorm:"column:deleted_at" json:"deletedAt"`
+	ID        int                    `gorm:"primaryKey;column:id;type:numeric(20,0)"`
+	Name      string                 `gorm:"column:name" json:"name"`
+	Path      string                 `gorm:"column:path" json:"path"`
+	Status    bool                   `gorm:"column:status" json:"status"`
+	CreatedAt time.Time              `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt time.Time              `gorm:"column:updated_at" json:"updatedAt"`
+	DeletedAt *time.Time             `gorm:"column:deleted_at" json:"deletedAt"`
+	MenuItems []menuRepo.SysBaseMenu `gorm:"foreignKey:MenuGroupId"`
 }
 
 func (SysBaseMenuGroups) TableName() string {
@@ -49,6 +52,7 @@ type MenuGroupRepositoryInterface interface {
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainMenuGroup.MenuGroup], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(apiMap map[string]interface{}) (*domainMenuGroup.MenuGroup, error)
+	GetByRoleId(roleMenuIds []int) (*[]domainMenuGroup.MenuGroup, error)
 }
 
 type Repository struct {
@@ -62,7 +66,30 @@ func NewMenuGroupRepository(db *gorm.DB, loggerInstance *logger.Logger) MenuGrou
 
 func (r *Repository) GetAll() (*[]domainMenuGroup.MenuGroup, error) {
 	var apis []SysBaseMenuGroups
-	if err := r.DB.Find(&apis).Error; err != nil {
+	if err := r.DB.
+		Preload("MenuItems").
+		Preload("MenuItems.MenuBtns").
+		Preload("MenuItems.MenuParameters").Find(&apis).Error; err != nil {
+		r.Logger.Error("Error getting all apis", zap.Error(err))
+		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
+	}
+	r.Logger.Info("Successfully retrieved all apis", zap.Int("count", len(apis)))
+	return arrayToDomainMapper(&apis), nil
+}
+
+func (r *Repository) GetByRoleId(menuIds []int) (*[]domainMenuGroup.MenuGroup, error) {
+	var apis []SysBaseMenuGroups
+
+	db := r.DB.Where("status = ?", true)
+	if len(menuIds) > 0 {
+		db = db.Preload("MenuItems", "id in (?)", menuIds)
+	} else {
+		db = db.Preload("MenuItems")
+	}
+
+	if err := db.
+		Preload("MenuItems.MenuBtns").
+		Preload("MenuItems.MenuParameters").Find(&apis).Error; err != nil {
 		r.Logger.Error("Error getting all apis", zap.Error(err))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
@@ -272,8 +299,10 @@ func (u *SysBaseMenuGroups) toDomainMapper() *domainMenuGroup.MenuGroup {
 		ID:        u.ID,
 		Name:      u.Name,
 		Path:      u.Path,
+		Status:    u.Status,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
+		MenuItems: menuRepo.ArrayToDomainMapper(&u.MenuItems),
 	}
 }
 
@@ -282,6 +311,7 @@ func fromDomainMapper(u *domainMenuGroup.MenuGroup) *SysBaseMenuGroups {
 		ID:        u.ID,
 		Name:      u.Name,
 		Path:      u.Path,
+		Status:    u.Status,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}

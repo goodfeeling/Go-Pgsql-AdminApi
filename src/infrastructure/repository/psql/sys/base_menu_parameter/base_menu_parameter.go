@@ -74,7 +74,7 @@ func (r *Repository) GetAll(menuID int64) (*[]domainMenuParameter.MenuParameter,
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 	r.Logger.Info("Successfully retrieved all menus", zap.Int("count", len(menus)))
-	return arrayToDomainMapper(&menus), nil
+	return ArrayToDomainMapper(&menus), nil
 }
 
 func (r *Repository) Create(menuDomain *domainMenuParameter.MenuParameter) (*domainMenuParameter.MenuParameter, error) {
@@ -235,7 +235,7 @@ func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.Pagina
 	totalPages := int((total + int64(filters.PageSize) - 1) / int64(filters.PageSize))
 
 	result := &domain.PaginatedResult[domainMenuParameter.MenuParameter]{
-		Data:       arrayToDomainMapper(&menus),
+		Data:       ArrayToDomainMapper(&menus),
 		Total:      total,
 		Page:       filters.Page,
 		PageSize:   filters.PageSize,
@@ -281,7 +281,7 @@ func (r *Repository) GetByIDs(ids []int) (*[]domainMenuParameter.MenuParameter, 
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 	r.Logger.Info("Successfully retrieved all menus", zap.Int("count", len(menus)))
-	return arrayToDomainMapper(&menus), nil
+	return ArrayToDomainMapper(&menus), nil
 }
 
 func (u *SysBaseMenuParameter) toDomainMapper() *domainMenuParameter.MenuParameter {
@@ -306,7 +306,7 @@ func fromDomainMapper(u *domainMenuParameter.MenuParameter) *SysBaseMenuParamete
 	}
 }
 
-func arrayToDomainMapper(menus *[]SysBaseMenuParameter) *[]domainMenuParameter.MenuParameter {
+func ArrayToDomainMapper(menus *[]SysBaseMenuParameter) *[]domainMenuParameter.MenuParameter {
 	menusDomain := make([]domainMenuParameter.MenuParameter, len(*menus))
 	for i, menu := range *menus {
 		menusDomain[i] = *menu.toDomainMapper()

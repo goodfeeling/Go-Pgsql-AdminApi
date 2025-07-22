@@ -10,30 +10,35 @@ import (
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainMenu "github.com/gbrayhan/microservices-go/src/domain/sys/menu"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	menuBtnRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_btn"
+	menuParamRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_parameter"
+
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/utils"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 type SysBaseMenu struct {
-	ID          int            `gorm:"primaryKey;column:id;type:numeric(20,0)"`
-	CreatedAt   time.Time      `gorm:"column:created_at" json:"createdAt,omitempty"`
-	UpdatedAt   time.Time      `gorm:"column:updated_at" json:"updatedAt,omitempty"`
-	DeletedAt   gorm.DeletedAt `gorm:"column:deleted_at;index:idx_sys_menus_deleted_at" json:"deletedAt,omitempty"`
-	MenuLevel   int            `gorm:"column:menu_level;type:numeric(20,0)"`
-	ParentID    int            `gorm:"column:parent_id;type:numeric(20,0)"`
-	Path        string         `gorm:"column:path"`
-	Name        string         `gorm:"column:name"`
-	Hidden      int16          `gorm:"column:hidden"`
-	Component   string         `gorm:"column:component"`
-	Sort        int8           `gorm:"column:sort"`
-	ActiveName  string         `gorm:"column:active_name"`
-	KeepAlive   int16          `gorm:"column:keep_alive"`
-	DefaultMenu int16          `gorm:"column:default_menu"`
-	Title       string         `gorm:"column:title"`
-	Icon        string         `gorm:"column:icon"`
-	CloseTab    int16          `gorm:"column:close_tab"`
-	MenuGroupId int            `gorm:"column:menu_group_id"`
+	ID             int                                  `gorm:"primaryKey;column:id;type:numeric(20,0)"`
+	CreatedAt      time.Time                            `gorm:"column:created_at" json:"createdAt,omitempty"`
+	UpdatedAt      time.Time                            `gorm:"column:updated_at" json:"updatedAt,omitempty"`
+	DeletedAt      gorm.DeletedAt                       `gorm:"column:deleted_at;index:idx_sys_menus_deleted_at" json:"deletedAt,omitempty"`
+	MenuLevel      int                                  `gorm:"column:menu_level;type:numeric(20,0)"`
+	ParentID       int                                  `gorm:"column:parent_id;type:numeric(20,0)"`
+	Path           string                               `gorm:"column:path"`
+	Name           string                               `gorm:"column:name"`
+	Hidden         int16                                `gorm:"column:hidden"`
+	Component      string                               `gorm:"column:component"`
+	Sort           int8                                 `gorm:"column:sort"`
+	ActiveName     string                               `gorm:"column:active_name"`
+	KeepAlive      int16                                `gorm:"column:keep_alive"`
+	DefaultMenu    int16                                `gorm:"column:default_menu"`
+	Title          string                               `gorm:"column:title"`
+	Icon           string                               `gorm:"column:icon"`
+	CloseTab       int16                                `gorm:"column:close_tab"`
+	MenuGroupId    int                                  `gorm:"column:menu_group_id"`
+	MenuBtns       []menuBtnRepo.SysBaseMenuBtn         `gorm:"foreignKey:SysBaseMenuID"`
+	MenuParameters []menuParamRepo.SysBaseMenuParameter `gorm:"foreignKey:SysBaseMenuID"`
 }
 
 func (SysBaseMenu) TableName() string {
@@ -84,7 +89,7 @@ func (r *Repository) GetAll(groupId int) (*[]domainMenu.Menu, error) {
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 	r.Logger.Info("Successfully retrieved all menus", zap.Int("count", len(menus)))
-	return arrayToDomainMapper(&menus), nil
+	return ArrayToDomainMapper(&menus), nil
 }
 
 func (r *Repository) Create(menuDomain *domainMenu.Menu) (*domainMenu.Menu, error) {
@@ -245,7 +250,7 @@ func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.Pagina
 	totalPages := int((total + int64(filters.PageSize) - 1) / int64(filters.PageSize))
 
 	result := &domain.PaginatedResult[domainMenu.Menu]{
-		Data:       arrayToDomainMapper(&menus),
+		Data:       ArrayToDomainMapper(&menus),
 		Total:      total,
 		Page:       filters.Page,
 		PageSize:   filters.PageSize,
@@ -291,28 +296,30 @@ func (r *Repository) GetByIDs(ids []int) (*[]domainMenu.Menu, error) {
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 	r.Logger.Info("Successfully retrieved all menus", zap.Int("count", len(menus)))
-	return arrayToDomainMapper(&menus), nil
+	return ArrayToDomainMapper(&menus), nil
 }
 
 func (u *SysBaseMenu) toDomainMapper() *domainMenu.Menu {
 	return &domainMenu.Menu{
-		ID:          u.ID,
-		Path:        u.Path,
-		Name:        u.Name,
-		ParentID:    u.ParentID,
-		DefaultMenu: u.DefaultMenu,
-		Hidden:      u.Hidden,
-		MenuLevel:   u.MenuLevel,
-		CloseTab:    u.CloseTab,
-		KeepAlive:   u.KeepAlive,
-		Icon:        u.Icon,
-		Title:       u.Title,
-		Sort:        u.Sort,
-		ActiveName:  u.ActiveName,
-		Component:   u.Component,
-		MenuGroupId: u.MenuGroupId,
-		CreatedAt:   u.CreatedAt,
-		UpdatedAt:   u.UpdatedAt,
+		ID:             u.ID,
+		Path:           u.Path,
+		Name:           u.Name,
+		ParentID:       u.ParentID,
+		DefaultMenu:    u.DefaultMenu,
+		Hidden:         u.Hidden,
+		MenuLevel:      u.MenuLevel,
+		CloseTab:       u.CloseTab,
+		KeepAlive:      u.KeepAlive,
+		Icon:           u.Icon,
+		Title:          u.Title,
+		Sort:           u.Sort,
+		ActiveName:     u.ActiveName,
+		Component:      u.Component,
+		MenuGroupId:    u.MenuGroupId,
+		MenuBtns:       *menuBtnRepo.ArrayToDomainMapper(&u.MenuBtns),
+		MenuParameters: *menuParamRepo.ArrayToDomainMapper(&u.MenuParameters),
+		CreatedAt:      domain.CustomTime{Time: u.CreatedAt},
+		UpdatedAt:      domain.CustomTime{Time: u.UpdatedAt},
 	}
 }
 
@@ -333,12 +340,10 @@ func fromDomainMapper(u *domainMenu.Menu) *SysBaseMenu {
 		ActiveName:  u.ActiveName,
 		Component:   u.Component,
 		MenuGroupId: u.MenuGroupId,
-		CreatedAt:   u.CreatedAt,
-		UpdatedAt:   u.UpdatedAt,
 	}
 }
 
-func arrayToDomainMapper(menus *[]SysBaseMenu) *[]domainMenu.Menu {
+func ArrayToDomainMapper(menus *[]SysBaseMenu) *[]domainMenu.Menu {
 	menusDomain := make([]domainMenu.Menu, len(*menus))
 	for i, menu := range *menus {
 		menusDomain[i] = *menu.toDomainMapper()

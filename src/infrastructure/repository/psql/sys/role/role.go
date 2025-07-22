@@ -47,7 +47,7 @@ func (SysRole) TableName() string {
 }
 
 type ISysRolesRepository interface {
-	GetAll() (*[]domainRole.Role, error)
+	GetAll(status int) (*[]domainRole.Role, error)
 	Create(roleDomain *domainRole.Role) (*domainRole.Role, error)
 	GetByID(id int) (*domainRole.Role, error)
 	GetByName(name string) (*domainRole.Role, error)
@@ -67,9 +67,13 @@ func NewSysRolesRepository(db *gorm.DB, loggerInstance *logger.Logger) ISysRoles
 	return &Repository{DB: db, Logger: loggerInstance}
 }
 
-func (r *Repository) GetAll() (*[]domainRole.Role, error) {
+func (r *Repository) GetAll(status int) (*[]domainRole.Role, error) {
 	var roles []SysRole
-	if err := r.DB.Find(&roles).Error; err != nil {
+	tx := r.DB
+	if status != 0 {
+		tx = tx.Where("status = ?", status)
+	}
+	if err := tx.Find(&roles).Error; err != nil {
 		r.Logger.Error("Error getting all roles", zap.Error(err))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}

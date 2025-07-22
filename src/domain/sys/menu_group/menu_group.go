@@ -4,14 +4,17 @@ import (
 	"time"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
+	menuDomain "github.com/gbrayhan/microservices-go/src/domain/sys/menu"
 )
 
 type MenuGroup struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	Path      string    `json:"path"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        int                `json:"id"`
+	Name      string             `json:"name"`
+	Path      string             `json:"path"`
+	Status    bool               `json:"status"`
+	CreatedAt time.Time          `json:"created_at"`
+	UpdatedAt time.Time          `json:"updated_at"`
+	MenuItems *[]menuDomain.Menu `json:"menu_items"`
 }
 
 type IMenuGroupService interface {

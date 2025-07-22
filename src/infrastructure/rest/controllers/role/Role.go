@@ -39,8 +39,8 @@ type ResponseRole struct {
 }
 
 type MenuRoleResponse struct {
-	RoleMenus controllers.IntSlice `json:"role_menus"`
-	RoleApis  []string             `json:"role_apis"`
+	RoleMenus []int    `json:"role_menus"`
+	RoleApis  []string `json:"role_apis"`
 }
 type IRoleController interface {
 	NewRole(ctx *gin.Context)
@@ -105,7 +105,11 @@ func (c *RoleController) NewRole(ctx *gin.Context) {
 // @Router /v1/role [get]
 func (c *RoleController) GetAllRoles(ctx *gin.Context) {
 	c.Logger.Info("Getting all roles")
-	roles, err := c.roleService.GetAll()
+	status, err := strconv.Atoi(ctx.Query("status"))
+	if err != nil {
+		status = 0
+	}
+	roles, err := c.roleService.GetAll(status)
 	if err != nil {
 		c.Logger.Error("Error getting all roles", zap.Error(err))
 		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
@@ -236,7 +240,14 @@ func (c *RoleController) DeleteRole(ctx *gin.Context) {
 // @Router /v1/role/tree [get]
 func (c *RoleController) GetTreeRoles(ctx *gin.Context) {
 	c.Logger.Info("Getting all roles tree")
-	roles, err := c.roleService.GetTreeRoles()
+	status, err := strconv.Atoi(ctx.Query("status"))
+	if err != nil {
+		c.Logger.Error("Invalid role ID parameter for get role menu ids", zap.Error(err), zap.String("id", ctx.Query("status")))
+		appError := domainErrors.NewAppError(errors.New("param id is necessary"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	roles, err := c.roleService.GetTreeRoles(status)
 	if err != nil {
 		c.Logger.Error("Error getting all roles tree", zap.Error(err))
 		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
@@ -329,7 +340,7 @@ func (c *RoleController) UpdateRoleMenuIds(ctx *gin.Context) {
 // @Produce json
 // @Param book body models.User  true  "JSON Data"
 // @Success 200 {array} models.User
-// @Router /v1/api/{id}/api [post]
+// @Router /v1/role/{id}/api [post]
 func (c *RoleController) BindApiRule(ctx *gin.Context) {
 	roleID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {

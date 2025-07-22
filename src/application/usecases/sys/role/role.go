@@ -14,7 +14,7 @@ import (
 )
 
 type ISysRoleService interface {
-	GetAll() ([]*roleDomain.RoleTree, error)
+	GetAll(status int) ([]*roleDomain.RoleTree, error)
 	GetByID(id int) (*roleDomain.Role, error)
 	GetByName(name string) (*roleDomain.Role, error)
 	Create(newRole *roleDomain.Role) (*roleDomain.Role, error)
@@ -23,7 +23,7 @@ type ISysRoleService interface {
 	SearchPaginated(filters domain.DataFilters) (*roleDomain.SearchResultRole, error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*roleDomain.Role, error)
-	GetTreeRoles() (*roleDomain.RoleNode, error)
+	GetTreeRoles(status int) (*roleDomain.RoleNode, error)
 
 	GetRoleMenuIds(id int64) ([]int, error)
 	UpdateRoleMenuIds(id int, updateMap map[string]any) error
@@ -49,10 +49,10 @@ func NewSysRoleUseCase(sysRoleRepository roleRepo.ISysRolesRepository, sysRoleMe
 	}
 }
 
-func (s *SysRoleUseCase) GetAll() ([]*roleDomain.RoleTree, error) {
+func (s *SysRoleUseCase) GetAll(status int) ([]*roleDomain.RoleTree, error) {
 
 	s.Logger.Info("Getting all roles")
-	roles, err := s.sysRoleRepository.GetAll()
+	roles, err := s.sysRoleRepository.GetAll(0)
 	if err != nil {
 		return nil, err
 	}
@@ -141,8 +141,8 @@ func (s *SysRoleUseCase) GetOneByMap(userMap map[string]interface{}) (*roleDomai
 }
 
 // GetTreeRoles implements ISysRoleService.
-func (s *SysRoleUseCase) GetTreeRoles() (*roleDomain.RoleNode, error) {
-	roles, err := s.sysRoleRepository.GetAll()
+func (s *SysRoleUseCase) GetTreeRoles(status int) (*roleDomain.RoleNode, error) {
+	roles, err := s.sysRoleRepository.GetAll(status)
 	if err != nil {
 		return nil, err
 	}

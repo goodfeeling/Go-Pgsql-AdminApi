@@ -50,6 +50,7 @@ type IUserController interface {
 	DeleteUser(ctx *gin.Context)
 	SearchPaginated(ctx *gin.Context)
 	SearchByProperty(ctx *gin.Context)
+	UserBindRoles(ctx *gin.Context)
 }
 
 type UserController struct {
@@ -383,6 +384,45 @@ func (c *UserController) SearchByProperty(ctx *gin.Context) {
 		zap.String("property", property),
 		zap.Int("results", len(*coincidences)))
 	ctx.JSON(http.StatusOK, coincidences)
+}
+
+// UserBindRoles
+// @Summary user bind role
+// @Description user bind role multiple
+// @Tags user role
+// @Accept json
+// @Produce json
+// @Success 200 {object} models.User
+// @Router /v1/user/{id}/role [post]
+func (c *UserController) UserBindRoles(ctx *gin.Context) {
+	userId, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		c.Logger.Error("Invalid user ID parameter ", zap.Error(err), zap.String("id", ctx.Param("id")))
+		appError := domainErrors.NewAppError(errors.New("param id is necessary"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	var requestMap map[string]any
+	err = controllers.BindJSONMap(ctx, &requestMap)
+	if err != nil {
+		c.Logger.Error("Error binding JSON for user bind role update", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	err = c.userService.UserBindRoles(int64(userId), requestMap)
+	if err != nil {
+		c.Logger.Error("Error updating  user bind role ", zap.Error(err), zap.Int("id", userId))
+		_ = ctx.Error(err)
+		return
+	}
+	response := controllers.NewCommonResponseBuilder[bool]().
+		Data(true).
+		Message("success").
+		Status(0).
+		Build()
+	c.Logger.Info("Role updated successfully", zap.Int("id", userId))
+	ctx.JSON(http.StatusOK, response)
 }
 
 // Mappers

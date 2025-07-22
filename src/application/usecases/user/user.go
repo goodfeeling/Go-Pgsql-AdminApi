@@ -6,6 +6,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 	userDomain "github.com/gbrayhan/microservices-go/src/domain/user"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	userRoleRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/user_role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -22,17 +23,23 @@ type IUserUseCase interface {
 	SearchPaginated(filters domain.DataFilters) (*userDomain.SearchResultUser, error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*userDomain.User, error)
+	UserBindRoles(userId int64, updateMap map[string]interface{}) error
 }
 
 type UserUseCase struct {
-	userRepository user.UserRepositoryInterface
-	Logger         *logger.Logger
+	userRepository     user.UserRepositoryInterface
+	userRoleRepository userRoleRepo.ISysUserRoleRepository
+	Logger             *logger.Logger
 }
 
-func NewUserUseCase(userRepository user.UserRepositoryInterface, logger *logger.Logger) IUserUseCase {
+func NewUserUseCase(
+	userRepository user.UserRepositoryInterface,
+	userRoleRepository userRoleRepo.ISysUserRoleRepository,
+	logger *logger.Logger) IUserUseCase {
 	return &UserUseCase{
-		userRepository: userRepository,
-		Logger:         logger,
+		userRepository:     userRepository,
+		userRoleRepository: userRoleRepository,
+		Logger:             logger,
 	}
 }
 
@@ -91,4 +98,7 @@ func (s *UserUseCase) SearchByProperty(property string, searchText string) (*[]s
 
 func (s *UserUseCase) GetOneByMap(userMap map[string]interface{}) (*userDomain.User, error) {
 	return s.userRepository.GetOneByMap(userMap)
+}
+func (s *UserUseCase) UserBindRoles(userId int64, updateMap map[string]interface{}) error {
+	return s.userRoleRepository.Insert(userId, updateMap)
 }

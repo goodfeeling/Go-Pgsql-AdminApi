@@ -32,6 +32,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/files"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/operation_records"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_btn"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_menu"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/user_role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
@@ -140,12 +141,13 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	menuGroupRepo := base_menu_group.NewMenuGroupRepository(db, loggerInstance)
 	menuBtnRepo := base_menu_btn.NewMenuBtnRepository(db, loggerInstance)
 	menuParameterRepo := base_menu_parameter.NewMenuParameterRepository(db, loggerInstance)
+	roleBtnRepo := role_btn.NewRoleBtnRepository(db, loggerInstance)
 	// Initialize use cases with logger
-	authUC := authUseCase.NewAuthUseCase(userRepo, jwtService, loggerInstance, jwtBlackListRepo)
+	authUC := authUseCase.NewAuthUseCase(userRepo, roleRepo, jwtService, loggerInstance, jwtBlackListRepo)
 	userUC := userUseCase.NewUserUseCase(userRepo, userRoleRepo, loggerInstance)
 	medicineUC := medicineUseCase.NewMedicineUseCase(medicineRepo, loggerInstance)
 	filesUC := filesUseCase.NewSysFilesUseCase(filesRepo, loggerInstance)
-	roleUC := roleUseCase.NewSysRoleUseCase(roleRepo, roleMenuRepo, casBinRepo, loggerInstance)
+	roleUC := roleUseCase.NewSysRoleUseCase(roleRepo, roleMenuRepo, casBinRepo, menuRepo, roleBtnRepo, loggerInstance)
 	apiUC := apiUseCase.NewSysApiUseCase(apiRepo, loggerInstance)
 	operationUC := operationUseCase.NewSysOperationUseCase(operationRepo, loggerInstance)
 	dictionaryUC := dictionaryUseCase.NewSysDictionaryUseCase(dictionaryRepo, loggerInstance)
@@ -228,24 +230,24 @@ func NewTestApplicationContext(
 	jwtBlackListRepo jwt_blacklist.JwtBlacklistRepository,
 ) *ApplicationContext {
 	// Initialize use cases with mocked repositories and logger
-	authUC := authUseCase.NewAuthUseCase(mockUserRepo, mockJWTService, loggerInstance, jwtBlackListRepo)
+	// authUC := authUseCase.NewAuthUseCase(mockUserRepo, mockJWTService, loggerInstance, jwtBlackListRepo)
 	// userUC := userUseCase.NewUserUseCase(mockUserRepo, loggerInstance)
 	medicineUC := medicineUseCase.NewMedicineUseCase(mockMedicineRepo, loggerInstance)
 
 	// Initialize controllers with logger
-	authController := authController.NewAuthController(authUC, loggerInstance)
+	// authController := authController.NewAuthController(authUC, loggerInstance)
 	// userController := userController.NewUserController(userUC, loggerInstance)
 	medicineController := medicineController.NewMedicineController(medicineUC, loggerInstance)
 
 	return &ApplicationContext{
-		Logger:         loggerInstance,
-		AuthController: authController,
+		Logger: loggerInstance,
+		// AuthController: authController,
 		// UserController:     userController,
 		MedicineController: medicineController,
 		JWTService:         mockJWTService,
 		UserRepository:     mockUserRepo,
 		MedicineRepository: mockMedicineRepo,
-		AuthUseCase:        authUC,
+		// AuthUseCase:        authUC,
 		// UserUseCase:        userUC,
 		MedicineUseCase: medicineUC,
 	}

@@ -19,7 +19,6 @@ type User struct {
 	Phone         string            `json:"phone"`
 	OriginSetting string            `json:"origin_setting"`
 	Password      string            `json:"password"`
-	RoleId        int64             `json:"role_id"`
 	CreatedAt     time.Time         `json:"created_at"`
 	UpdatedAt     time.Time         `json:"updated_at"`
 	Roles         []roleDomain.Role `json:"roles"`
@@ -42,4 +41,5 @@ type IUserService interface {
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*User, error)
 	UserBindRoles(userId int64, updateMap map[string]interface{}) error
+	ResetPassword(userId int64) (*User, error)
 }

@@ -1,8 +1,6 @@
 package role_menu
 
 import (
-	"strconv"
-
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	"go.uber.org/zap"
@@ -65,18 +63,13 @@ func (r *Repository) Insert(roleId int, UpdateMap map[string]any) error {
 
 	roleMenus := make([]SysRoleMenu, 0, len(menuIdsInterfaceSlice))
 	for _, item := range menuIdsInterfaceSlice {
-		menuIdString, ok := item.(string)
+		menuIdFloat64, ok := item.(float64)
 		if !ok {
 			r.Logger.Error("menuId is not a number")
 			return domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 		}
-		menuId, err := strconv.ParseUint(menuIdString, 10, 64)
-		if err != nil {
-			r.Logger.Error("menuId is not a number")
-			return domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
-		}
 		roleMenu := SysRoleMenu{
-			SysBaseMenuID: uint64(menuId),
+			SysBaseMenuID: uint64(menuIdFloat64),
 			SysRoleID:     uint64(roleId),
 		}
 		roleMenus = append(roleMenus, roleMenu)
@@ -85,6 +78,9 @@ func (r *Repository) Insert(roleId int, UpdateMap map[string]any) error {
 		Where("sys_role_id = ?", roleId).
 		Delete(&SysRoleMenu{}).Error; err != nil {
 		return err
+	}
+	if len(roleMenus) <= 0 {
+		return nil
 	}
 	if err := r.DB.Model(&SysRoleMenu{}).Create(&roleMenus).Error; err != nil {
 		return err

@@ -52,7 +52,7 @@ type MenuGroupRepositoryInterface interface {
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainMenuGroup.MenuGroup], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(apiMap map[string]interface{}) (*domainMenuGroup.MenuGroup, error)
-	GetByRoleId(roleMenuIds []int) (*[]domainMenuGroup.MenuGroup, error)
+	GetByRoleId(roleMenuIds []int, roleId int64) (*[]domainMenuGroup.MenuGroup, error)
 }
 
 type Repository struct {
@@ -77,11 +77,10 @@ func (r *Repository) GetAll() (*[]domainMenuGroup.MenuGroup, error) {
 	return arrayToDomainMapper(&apis), nil
 }
 
-func (r *Repository) GetByRoleId(menuIds []int) (*[]domainMenuGroup.MenuGroup, error) {
+func (r *Repository) GetByRoleId(menuIds []int, roleId int64) (*[]domainMenuGroup.MenuGroup, error) {
 	var apis []SysBaseMenuGroups
-
 	db := r.DB.Where("status = ?", true)
-	if len(menuIds) > 0 {
+	if len(menuIds) > 0 || roleId != 0 {
 		db = db.Preload("MenuItems", "id in (?)", menuIds)
 	} else {
 		db = db.Preload("MenuItems")

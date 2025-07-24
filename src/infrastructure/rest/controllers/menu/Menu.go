@@ -20,7 +20,7 @@ type NewMenuRequest struct {
 	Title       string `json:"title" binding:"required"`
 	Name        string `json:"name" binding:"required"`
 	Path        string `json:"path" binding:"required"`
-	Hidden      int16  `json:"hidden"`
+	Hidden      bool   `json:"hidden"`
 	ParentID    int    `json:"parent_id"`
 	Icon        string `json:"icon"`
 	Sort        int8   `json:"sort"`
@@ -37,7 +37,7 @@ type ResponseMenu struct {
 	ParentID    int               `json:"parent_id"`
 	Path        string            `json:"path"`
 	Name        string            `json:"name"`
-	Hidden      int16             `json:"hidden"`
+	Hidden      bool              `json:"hidden"`
 	Component   string            `json:"component"`
 	Sort        int8              `json:"sort"`
 	ActiveName  string            `json:"active_name"`

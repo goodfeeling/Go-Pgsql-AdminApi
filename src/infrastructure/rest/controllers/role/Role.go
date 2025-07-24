@@ -39,8 +39,9 @@ type ResponseRole struct {
 }
 
 type MenuRoleResponse struct {
-	RoleMenus []int    `json:"role_menus"`
-	RoleApis  []string `json:"role_apis"`
+	RoleMenus map[int][]int     `json:"role_menus"`
+	RoleBtns  map[int64][]int64 `json:"role_btns"`
+	RoleApis  []string          `json:"role_apis"`
 }
 type IRoleController interface {
 	NewRole(ctx *gin.Context)
@@ -52,6 +53,7 @@ type IRoleController interface {
 	GetRoleSetting(ctx *gin.Context)
 	UpdateRoleMenuIds(ctx *gin.Context)
 	BindApiRule(ctx *gin.Context)
+	BindRoleMenuBtns(ctx *gin.Context)
 }
 type RoleController struct {
 	roleService domainRole.IRoleService
@@ -269,7 +271,7 @@ func (c *RoleController) GetRoleSetting(ctx *gin.Context) {
 		_ = ctx.Error(appError)
 		return
 	}
-	roleMenus, err := c.roleService.GetRoleMenuIds(int64(roleID))
+	roleMenus, roleBtns, err := c.roleService.GetRoleMenuIds(int64(roleID))
 	if err != nil {
 		c.Logger.Error("Error getting role menu ids", zap.Error(err), zap.Int("id", roleID))
 		_ = ctx.Error(err)
@@ -277,7 +279,7 @@ func (c *RoleController) GetRoleSetting(ctx *gin.Context) {
 	}
 
 	if roleMenus == nil {
-		roleMenus = []int{}
+		roleMenus = make(map[int][]int)
 	}
 	rules, err := c.roleService.GetApiRuleList(roleID)
 	if err != nil {
@@ -292,6 +294,7 @@ func (c *RoleController) GetRoleSetting(ctx *gin.Context) {
 	response := controllers.NewCommonResponseBuilder[MenuRoleResponse]().
 		Data(MenuRoleResponse{
 			RoleMenus: roleMenus,
+			RoleBtns:  roleBtns,
 			RoleApis:  rules,
 		}).
 		Message("success").
@@ -372,18 +375,58 @@ func (c *RoleController) BindApiRule(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
+// Bind RoleMenuBtns
+// @Summary bind role menu buttons
+// @Description bind role menu buttons
+// @Tags buttons menu role
+// @Accept json
+// @Produce json
+// @Success 200 {array} models.User
+// @Router /v1/role/{id}/menu-btns [post]
+func (c *RoleController) BindRoleMenuBtns(ctx *gin.Context) {
+	roleID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		c.Logger.Error("Invalid role ID parameter for get role menu ids", zap.Error(err), zap.String("id", ctx.Param("id")))
+		appError := domainErrors.NewAppError(errors.New("param id is necessary"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	var requestMap map[string]any
+	err = controllers.BindJSONMap(ctx, &requestMap)
+	if err != nil {
+		c.Logger.Error("Error binding JSON for casbin rule update", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	err = c.roleService.BindRoleMenuBtns(int64(roleID), requestMap)
+	if err != nil {
+		c.Logger.Error("Error updating casbin rule ", zap.Error(err), zap.Int("id", roleID))
+		_ = ctx.Error(err)
+		return
+	}
+	response := controllers.NewCommonResponseBuilder[bool]().
+		Data(true).
+		Message("success").
+		Status(0).
+		Build()
+	c.Logger.Info("Role updated successfully", zap.Int("id", roleID))
+	ctx.JSON(http.StatusOK, response)
+}
+
 // Mappers
 func domainToResponseMapper(domainRole *domainRole.Role) *ResponseRole {
 	return &ResponseRole{
-		ID:          domainRole.ID,
-		Name:        domainRole.Name,
-		ParentID:    domainRole.ParentID,
-		Order:       domainRole.Order,
-		Label:       domainRole.Label,
-		Description: domainRole.Description,
-		Status:      domainRole.Status,
-		CreatedAt:   domainRole.CreatedAt,
-		UpdatedAt:   domainRole.UpdatedAt,
+		ID:            domainRole.ID,
+		Name:          domainRole.Name,
+		ParentID:      domainRole.ParentID,
+		Order:         domainRole.Order,
+		Label:         domainRole.Label,
+		Description:   domainRole.Description,
+		Status:        domainRole.Status,
+		DefaultRouter: domainRole.DefaultRouter,
+		CreatedAt:     domainRole.CreatedAt,
+		UpdatedAt:     domainRole.UpdatedAt,
 	}
 }
 

@@ -18,5 +18,6 @@ func UserRoutes(router *gin.RouterGroup, controller user.IUserController) {
 		u.GET("/search", controller.SearchPaginated)
 		u.GET("/search-property", controller.SearchByProperty)
 		u.POST(":id/role", controller.UserBindRoles)
+		u.POST("/:id/reset-password", controller.ResetPassword)
 	}
 }

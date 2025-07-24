@@ -12,16 +12,17 @@ type LoginUser struct {
 }
 
 type DataUserAuthenticated struct {
-	UserName      string            `json:"user_name"`
-	NickName      string            `json:"nick_name"`
-	Email         string            `json:"email"`
-	Status        bool              `json:"status"`
-	UUID          string            `json:"uuid"`
-	ID            int64             `json:"id"`
-	Phone         string            `json:"phone"`
-	HeaderImg     string            `json:"header_img"`
-	CurrentRoleId int64             `json:"current_role_id"`
-	Roles         []roleDomain.Role `json:"roles"`
+	UserName        string                 `json:"user_name"`
+	NickName        string                 `json:"nick_name"`
+	Email           string                 `json:"email"`
+	Status          bool                   `json:"status"`
+	UUID            string                 `json:"uuid"`
+	ID              int64                  `json:"id"`
+	Phone           string                 `json:"phone"`
+	HeaderImg       string                 `json:"header_img"`
+	CurrentRoleId   int64                  `json:"current_role_id"`
+	CurrentRoleName string                 `json:"current_role_name"`
+	Roles           []*roleDomain.RoleTree `json:"roles"`
 }
 
 type DataSecurityAuthenticated struct {

@@ -3,13 +3,15 @@ package role
 import (
 	"strconv"
 
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
-	casbinRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/casbin_rule"
-	roleRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
-	roleMenuRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_menu"
+	menuRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	roleDomain "github.com/gbrayhan/microservices-go/src/domain/sys/role"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	casbinRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/casbin_rule"
+	roleRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
+	roleBtnRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_btn"
+	roleMenuRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_menu"
 	"go.uber.org/zap"
 )
 
@@ -25,25 +27,36 @@ type ISysRoleService interface {
 	GetOneByMap(userMap map[string]interface{}) (*roleDomain.Role, error)
 	GetTreeRoles(status int) (*roleDomain.RoleNode, error)
 
-	GetRoleMenuIds(id int64) ([]int, error)
+	GetRoleMenuIds(id int64) (map[int][]int, map[int64][]int64, error)
 	UpdateRoleMenuIds(id int, updateMap map[string]any) error
 
 	GetApiRuleList(roleId int) ([]string, error)
 	BindApiRule(roleId int, updateMap map[string]interface{}) error
+	BindRoleMenuBtns(roleId int64, updateMap map[string]interface{}) error
 }
 
 type SysRoleUseCase struct {
 	sysRoleRepository     roleRepo.ISysRolesRepository
 	sysRoleMenuRepository roleMenuRepo.ISysRoleMenuRepository
+	sysMenuRepository     menuRepo.MenuRepositoryInterface
 	casbinRuleRepo        casbinRepo.ICasbinRuleRepository
+	sysRoleBtnRepo        roleBtnRepo.ISysRoleBtnRepository
 
 	Logger *logger.Logger
 }
 
-func NewSysRoleUseCase(sysRoleRepository roleRepo.ISysRolesRepository, sysRoleMenuRepository roleMenuRepo.ISysRoleMenuRepository, casbinRuleRepo casbinRepo.ICasbinRuleRepository, loggerInstance *logger.Logger) ISysRoleService {
+func NewSysRoleUseCase(
+	sysRoleRepository roleRepo.ISysRolesRepository,
+	sysRoleMenuRepository roleMenuRepo.ISysRoleMenuRepository,
+	casbinRuleRepo casbinRepo.ICasbinRuleRepository,
+	sysMenuRepository menuRepo.MenuRepositoryInterface,
+	sysRoleBtnRepo roleBtnRepo.ISysRoleBtnRepository,
+	loggerInstance *logger.Logger) ISysRoleService {
 	return &SysRoleUseCase{
 		sysRoleRepository:     sysRoleRepository,
 		sysRoleMenuRepository: sysRoleMenuRepository,
+		sysMenuRepository:     sysMenuRepository,
+		sysRoleBtnRepo:        sysRoleBtnRepo,
 		casbinRuleRepo:        casbinRuleRepo,
 		Logger:                loggerInstance,
 	}
@@ -56,11 +69,16 @@ func (s *SysRoleUseCase) GetAll(status int) ([]*roleDomain.RoleTree, error) {
 	if err != nil {
 		return nil, err
 	}
+	return BuildRoleTree(roles), nil
+}
+
+func BuildRoleTree(roles *[]roleDomain.Role) []*roleDomain.RoleTree {
 	roleMap := make(map[int64]*roleDomain.RoleTree)
 	var roots []*roleDomain.RoleTree
 
 	// First traversal: Create all nodes and put them into the map.
 	for _, role := range *roles {
+
 		node := &roleDomain.RoleTree{
 			ID:            role.ID,
 			Name:          role.Name,
@@ -72,7 +90,7 @@ func (s *SysRoleUseCase) GetAll(status int) ([]*roleDomain.RoleTree, error) {
 			Description:   role.Description,
 			CreatedAt:     role.CreatedAt,
 			UpdatedAt:     role.UpdatedAt,
-			Path:          []int64{},
+			Path:          []int64{role.ID},
 			Children:      []*roleDomain.RoleTree{},
 		}
 		roleMap[role.ID] = node
@@ -82,19 +100,17 @@ func (s *SysRoleUseCase) GetAll(status int) ([]*roleDomain.RoleTree, error) {
 	for _, role := range *roles {
 		node := roleMap[role.ID]
 		if role.ParentID == 0 {
-			node.Path = []int64{role.ID}
 			roots = append(roots, node)
 		} else {
 			if parentNode, exists := roleMap[role.ParentID]; exists {
 				// path handle
 				node.Path = append(node.Path, parentNode.Path...)
-				node.Path = append(node.Path, role.ID)
-
 				parentNode.Children = append(parentNode.Children, node)
 			}
 		}
 	}
-	return roots, nil
+
+	return roots
 }
 
 func (s *SysRoleUseCase) GetByID(id int) (*roleDomain.Role, error) {
@@ -156,7 +172,7 @@ func (s *SysRoleUseCase) GetTreeRoles(status int) (*roleDomain.RoleNode, error) 
 			ID:       id,
 			Name:     role.Name,
 			Key:      id,
-			Path:     []int64{},
+			Path:     []int64{role.ID},
 			Children: []*roleDomain.RoleNode{},
 		}
 		roleMap[role.ID] = node
@@ -166,13 +182,11 @@ func (s *SysRoleUseCase) GetTreeRoles(status int) (*roleDomain.RoleNode, error) 
 	for _, role := range *roles {
 		node := roleMap[role.ID]
 		if role.ParentID == 0 {
-			node.Path = []int64{role.ID}
 			roots = append(roots, node)
 		} else {
 			if parentNode, exists := roleMap[role.ParentID]; exists {
 				// path handle
 				node.Path = append(node.Path, parentNode.Path...)
-				node.Path = append(node.Path, role.ID)
 				parentNode.Children = append(parentNode.Children, node)
 			}
 		}
@@ -185,8 +199,22 @@ func (s *SysRoleUseCase) GetTreeRoles(status int) (*roleDomain.RoleNode, error) 
 	}, nil
 }
 
-func (s *SysRoleUseCase) GetRoleMenuIds(id int64) ([]int, error) {
-	return s.sysRoleMenuRepository.GetByRoleId(id)
+func (s *SysRoleUseCase) GetRoleMenuIds(id int64) (map[int][]int, map[int64][]int64, error) {
+	menuIds, err := s.sysRoleMenuRepository.GetByRoleId(id)
+	if err != nil {
+		return nil, nil, err
+	}
+	menus, err := s.sysMenuRepository.GetByIDs(menuIds)
+	menuGroups := make(map[int][]int, 0)
+	for _, v := range *menus {
+		menuGroups[v.MenuGroupId] = append(menuGroups[v.MenuGroupId], v.ID)
+	}
+	menuBtns, err := s.sysRoleBtnRepo.GetByRoleId(id)
+	roleBtns := make(map[int64][]int64, 0)
+	for _, v := range menuBtns {
+		roleBtns[v.SysMenuID] = append(roleBtns[v.SysMenuID], v.SysBaseMenuBtnID)
+	}
+	return menuGroups, roleBtns, nil
 }
 
 func (s *SysRoleUseCase) UpdateRoleMenuIds(id int, updateMap map[string]any) error {
@@ -198,4 +226,8 @@ func (s *SysRoleUseCase) GetApiRuleList(roleId int) ([]string, error) {
 }
 func (s *SysRoleUseCase) BindApiRule(roleId int, updateMap map[string]interface{}) error {
 	return s.casbinRuleRepo.Insert(roleId, updateMap)
+}
+
+func (s *SysRoleUseCase) BindRoleMenuBtns(roleId int64, updateMap map[string]interface{}) error {
+	return s.sysRoleBtnRepo.Insert(roleId, updateMap)
 }

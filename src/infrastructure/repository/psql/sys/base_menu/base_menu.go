@@ -27,7 +27,7 @@ type SysBaseMenu struct {
 	ParentID       int                                  `gorm:"column:parent_id;type:numeric(20,0)"`
 	Path           string                               `gorm:"column:path"`
 	Name           string                               `gorm:"column:name"`
-	Hidden         int16                                `gorm:"column:hidden"`
+	Hidden         bool                                 `gorm:"column:hidden"`
 	Component      string                               `gorm:"column:component"`
 	Sort           int8                                 `gorm:"column:sort"`
 	ActiveName     string                               `gorm:"column:active_name"`

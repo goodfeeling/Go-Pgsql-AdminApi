@@ -19,5 +19,6 @@ func RoleRoutes(router *gin.RouterGroup, controller role.IRoleController) {
 		u.GET("/:id/setting", controller.GetRoleSetting)
 		u.POST("/:id/menu", controller.UpdateRoleMenuIds)
 		u.POST("/:id/api", controller.BindApiRule)
+		u.POST("/:id/menu-btns", controller.BindRoleMenuBtns)
 	}
 }

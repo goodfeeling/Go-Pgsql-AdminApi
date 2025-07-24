@@ -3,7 +3,10 @@ package auth
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
+
+	roleService "github.com/gbrayhan/microservices-go/src/application/usecases/sys/role"
 
 	useCaseAuth "github.com/gbrayhan/microservices-go/src/application/usecases/auth"
 	domain "github.com/gbrayhan/microservices-go/src/domain"
@@ -19,6 +22,7 @@ type IAuthController interface {
 	Logout(ctx *gin.Context)
 	Register(ctx *gin.Context)
 	GetAccessTokenByRefreshToken(ctx *gin.Context)
+	SwitchRole(ctx *gin.Context)
 }
 
 type AuthController struct {
@@ -109,7 +113,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
-	domainUser, authTokens, err := c.authUseCase.Login(request.Username, request.Password)
+	domainUser, authTokens, role, err := c.authUseCase.Login(request.Username, request.Password)
 	if err != nil {
 		c.Logger.Error("Login failed", zap.Error(err), zap.String("email", request.Username))
 		_ = ctx.Error(err)
@@ -119,15 +123,16 @@ func (c *AuthController) Login(ctx *gin.Context) {
 	response := &domain.CommonResponse[useCaseAuth.SecurityAuthenticatedUser]{
 		Data: useCaseAuth.SecurityAuthenticatedUser{
 			UserInfo: useCaseAuth.DataUserAuthenticated{
-				UserName:      domainUser.UserName,
-				Email:         domainUser.Email,
-				ID:            domainUser.ID,
-				Status:        domainUser.Status,
-				NickName:      domainUser.NickName,
-				Phone:         domainUser.Phone,
-				HeaderImg:     domainUser.HeaderImg,
-				Roles:         domainUser.Roles,
-				CurrentRoleId: int64(domainUser.RoleId),
+				UserName:        domainUser.UserName,
+				Email:           domainUser.Email,
+				ID:              domainUser.ID,
+				Status:          domainUser.Status,
+				NickName:        domainUser.NickName,
+				Phone:           domainUser.Phone,
+				HeaderImg:       domainUser.HeaderImg,
+				Roles:           roleService.BuildRoleTree(&domainUser.Roles),
+				CurrentRoleId:   role.ID,
+				CurrentRoleName: role.Name,
 			},
 			Security: useCaseAuth.DataSecurityAuthenticated{
 				JWTAccessToken:            authTokens.AccessToken,
@@ -171,15 +176,7 @@ func (c *AuthController) GetAccessTokenByRefreshToken(ctx *gin.Context) {
 
 	response := &domain.CommonResponse[useCaseAuth.SecurityAuthenticatedUser]{
 		Data: useCaseAuth.SecurityAuthenticatedUser{
-			UserInfo: useCaseAuth.DataUserAuthenticated{
-				UserName:  domainUser.UserName,
-				Email:     domainUser.Email,
-				ID:        domainUser.ID,
-				Status:    domainUser.Status,
-				NickName:  domainUser.NickName,
-				Phone:     domainUser.Phone,
-				HeaderImg: domainUser.HeaderImg,
-			},
+			UserInfo: useCaseAuth.DataUserAuthenticated{},
 			Security: useCaseAuth.DataSecurityAuthenticated{
 				JWTAccessToken:            authTokens.AccessToken,
 				JWTRefreshToken:           authTokens.RefreshToken,
@@ -190,5 +187,63 @@ func (c *AuthController) GetAccessTokenByRefreshToken(ctx *gin.Context) {
 	}
 
 	c.Logger.Info("Token refresh successful", zap.Int64("userID", domainUser.ID))
+	ctx.JSON(http.StatusOK, response)
+}
+
+// SwitchRole
+// @Summary switch role
+// @Description switch role
+// @Tags switch role
+// @Accept json
+// @Produce json
+// @Success 200 {object} domain.CommonResponse
+// @Router /v1/auth/switch-role [post]
+func (c *AuthController) SwitchRole(ctx *gin.Context) {
+	c.Logger.Info("User login request")
+	roleId, err := strconv.Atoi(ctx.Query("role_id"))
+	if err != nil {
+		c.Logger.Error("Invalid role ID parameter for switch role", zap.Error(err), zap.String("id", ctx.Query("role_id")))
+		appError := domainErrors.NewAppError(errors.New("query id is necessary"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	appCtx := controllers.NewAppUtils(ctx)
+	userId, ok := appCtx.GetUserID()
+	if !ok {
+		c.Logger.Error("Login failed", zap.Int("userId", userId))
+		_ = ctx.Error(errors.New("user id is invalid"))
+		return
+	}
+	domainUser, authTokens, role, err := c.authUseCase.SwitchRole(userId, int64(roleId))
+	if err != nil {
+		c.Logger.Error("Login failed", zap.Error(err), zap.Int("userId", userId))
+		_ = ctx.Error(err)
+		return
+	}
+
+	response := &domain.CommonResponse[useCaseAuth.SecurityAuthenticatedUser]{
+		Data: useCaseAuth.SecurityAuthenticatedUser{
+			UserInfo: useCaseAuth.DataUserAuthenticated{
+				UserName:        domainUser.UserName,
+				Email:           domainUser.Email,
+				ID:              domainUser.ID,
+				Status:          domainUser.Status,
+				NickName:        domainUser.NickName,
+				Phone:           domainUser.Phone,
+				HeaderImg:       domainUser.HeaderImg,
+				Roles:           roleService.BuildRoleTree(&domainUser.Roles),
+				CurrentRoleId:   role.ID,
+				CurrentRoleName: role.Name,
+			},
+			Security: useCaseAuth.DataSecurityAuthenticated{
+				JWTAccessToken:            authTokens.AccessToken,
+				JWTRefreshToken:           authTokens.RefreshToken,
+				ExpirationAccessDateTime:  authTokens.ExpirationAccessDateTime,
+				ExpirationRefreshDateTime: authTokens.ExpirationRefreshDateTime,
+			},
+		},
+	}
+
+	c.Logger.Info("Switch role successful", zap.Int("Int", userId))
 	ctx.JSON(http.StatusOK, response)
 }

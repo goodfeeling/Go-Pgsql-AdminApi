@@ -107,8 +107,9 @@ func (s *SysMenuUseCase) GetUserMenus(roleId int64) ([]*menuDomain.MenuGroup, er
 			return nil, err
 		}
 	}
+
 	s.Logger.Info("Getting user menus", zap.Int("menusCount", len(roleMenuIds)))
-	groups, err := s.sysMenuGroupRepository.GetByRoleId(roleMenuIds)
+	groups, err := s.sysMenuGroupRepository.GetByRoleId(roleMenuIds, roleId)
 	if err != nil {
 		return nil, err
 	}
@@ -119,6 +120,7 @@ func (s *SysMenuUseCase) GetUserMenus(roleId int64) ([]*menuDomain.MenuGroup, er
 			treeData = []*menuDomain.Menu{}
 		}
 		menuGroup = append(menuGroup, &menuDomain.MenuGroup{
+			Id:    group.ID,
 			Name:  group.Name,
 			Path:  group.Path,
 			Items: treeData,

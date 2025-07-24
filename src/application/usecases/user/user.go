@@ -2,6 +2,7 @@ package user
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	userDomain "github.com/gbrayhan/microservices-go/src/domain/user"
@@ -24,6 +25,7 @@ type IUserUseCase interface {
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*userDomain.User, error)
 	UserBindRoles(userId int64, updateMap map[string]interface{}) error
+	ResetPassword(userId int64) (*userDomain.User, error)
 }
 
 type UserUseCase struct {
@@ -101,4 +103,16 @@ func (s *UserUseCase) GetOneByMap(userMap map[string]interface{}) (*userDomain.U
 }
 func (s *UserUseCase) UserBindRoles(userId int64, updateMap map[string]interface{}) error {
 	return s.userRoleRepository.Insert(userId, updateMap)
+}
+
+func (s *UserUseCase) ResetPassword(userId int64) (*userDomain.User, error) {
+	updateMap := make(map[string]interface{})
+	password := os.Getenv("RESET_USER_PASSWORD")
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		s.Logger.Error("Error hashing password", zap.Error(err))
+		return nil, err
+	}
+	updateMap["hash_password"] = hash
+	return s.userRepository.Update(userId, updateMap)
 }

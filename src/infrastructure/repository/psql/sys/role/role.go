@@ -296,15 +296,16 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 
 func (u *SysRole) toDomainMapper() *domainRole.Role {
 	return &domainRole.Role{
-		ID:          u.ID,
-		Name:        u.Name,
-		ParentID:    u.ParentID,
-		Order:       u.Order,
-		Label:       u.Label,
-		Description: u.Description,
-		Status:      u.Status,
-		CreatedAt:   domain.CustomTime{Time: u.CreatedAt},
-		UpdatedAt:   domain.CustomTime{Time: u.UpdatedAt},
+		ID:            u.ID,
+		Name:          u.Name,
+		ParentID:      u.ParentID,
+		Order:         u.Order,
+		Label:         u.Label,
+		Description:   u.Description,
+		Status:        u.Status,
+		DefaultRouter: u.DefaultRouter,
+		CreatedAt:     domain.CustomTime{Time: u.CreatedAt},
+		UpdatedAt:     domain.CustomTime{Time: u.UpdatedAt},
 	}
 }
 

@@ -7,9 +7,10 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	jwtBlacklistDomain "github.com/gbrayhan/microservices-go/src/domain/jwt_blacklist"
+	domainRole "github.com/gbrayhan/microservices-go/src/domain/sys/role"
 	domainUser "github.com/gbrayhan/microservices-go/src/domain/user"
-	userDomain "github.com/gbrayhan/microservices-go/src/domain/user"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/security"
 	sharedUtil "github.com/gbrayhan/microservices-go/src/shared/utils"
@@ -18,14 +19,16 @@ import (
 )
 
 type IAuthUseCase interface {
-	Login(username, password string) (*domainUser.User, *AuthTokens, error)
+	Login(username, password string) (*domainUser.User, *AuthTokens, *domainRole.Role, error)
 	Logout(jwtToken string) (*domain.CommonResponse[string], error)
 	Register(user RegisterUser) (*domain.CommonResponse[SecurityRegisterUser], error)
 	AccessTokenByRefreshToken(refreshToken string) (*domainUser.User, *AuthTokens, error)
+	SwitchRole(userId int, roleId int64) (*domainUser.User, *AuthTokens, *domainRole.Role, error)
 }
 
 type AuthUseCase struct {
 	UserRepository         user.UserRepositoryInterface
+	RoleRepository         role.ISysRolesRepository
 	JWTService             security.IJWTService
 	Logger                 *logger.Logger
 	jwtBlacklistRepository jwtBlacklistDomain.IJwtBlacklistService
@@ -33,12 +36,14 @@ type AuthUseCase struct {
 
 func NewAuthUseCase(
 	userRepository user.UserRepositoryInterface,
+	RoleRepository role.ISysRolesRepository,
 	jwtService security.IJWTService,
 	loggerInstance *logger.Logger,
 	jwtBlacklistRepository jwtBlacklistDomain.IJwtBlacklistService,
 ) IAuthUseCase {
 	return &AuthUseCase{
 		UserRepository:         userRepository,
+		RoleRepository:         RoleRepository,
 		JWTService:             jwtService,
 		Logger:                 loggerInstance,
 		jwtBlacklistRepository: jwtBlacklistRepository,
@@ -52,33 +57,76 @@ type AuthTokens struct {
 	ExpirationRefreshDateTime time.Time
 }
 
-func (s *AuthUseCase) Login(username, password string) (*domainUser.User, *AuthTokens, error) {
+func (s *AuthUseCase) SwitchRole(userId int, roleId int64) (*domainUser.User, *AuthTokens, *domainRole.Role, error) {
+	s.Logger.Info("User switch attempt", zap.Int("userId", userId))
+	user, err := s.UserRepository.GetByID(int(userId))
+	if err != nil {
+		s.Logger.Error("Error getting user for switch", zap.Error(err), zap.Int("userId", userId))
+		return nil, nil, nil, err
+	}
+	if user.ID == 0 {
+		s.Logger.Warn("Login failed: user not found", zap.Int("userId", userId))
+		return nil, nil, nil, domainErrors.NewAppError(errors.New("user don't no found"), domainErrors.NotAuthorized)
+	}
+	role, err := s.RoleRepository.GetByID(int(roleId))
+	if err != nil {
+		s.Logger.Error("Error getting role for switch", zap.Error(err), zap.Int("roleId", int(roleId)))
+		return nil, nil, nil, err
+	}
+	accessTokenClaims, err := s.JWTService.GenerateJWTToken(user.ID, roleId, "access")
+	if err != nil {
+		s.Logger.Error("Error generating access token", zap.Error(err), zap.Int64("userID", user.ID))
+		return nil, nil, nil, err
+	}
+	refreshTokenClaims, err := s.JWTService.GenerateJWTToken(user.ID, roleId, "refresh")
+	if err != nil {
+		s.Logger.Error("Error generating refresh token", zap.Error(err), zap.Int64("userID", user.ID))
+		return nil, nil, nil, err
+	}
+
+	authTokens := &AuthTokens{
+		AccessToken:               accessTokenClaims.Token,
+		RefreshToken:              refreshTokenClaims.Token,
+		ExpirationAccessDateTime:  accessTokenClaims.ExpirationTime,
+		ExpirationRefreshDateTime: refreshTokenClaims.ExpirationTime,
+	}
+
+	s.Logger.Info("User login successful", zap.Int("userId", userId))
+	return user, authTokens, role, nil
+}
+
+func (s *AuthUseCase) Login(username, password string) (*domainUser.User, *AuthTokens, *domainRole.Role, error) {
 	s.Logger.Info("User login attempt", zap.String("username", username))
 	user, err := s.UserRepository.GetByUsername(username)
 	if err != nil {
 		s.Logger.Error("Error getting user for login", zap.Error(err), zap.String("username", username))
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	if user.ID == 0 {
 		s.Logger.Warn("Login failed: user not found", zap.String("username", username))
-		return nil, nil, domainErrors.NewAppError(errors.New("username or password does not match"), domainErrors.NotAuthorized)
+		return nil, nil, nil, domainErrors.NewAppError(errors.New("username or password does not match"), domainErrors.NotAuthorized)
 	}
 
 	isAuthenticated := sharedUtil.CheckPasswordHash(password, user.HashPassword)
 	if !isAuthenticated {
 		s.Logger.Warn("Login failed: invalid password", zap.String("username", username))
-		return nil, nil, domainErrors.NewAppError(errors.New("username or password does not match"), domainErrors.NotAuthorized)
+		return nil, nil, nil, domainErrors.NewAppError(errors.New("username or password does not match"), domainErrors.NotAuthorized)
 	}
-
-	accessTokenClaims, err := s.JWTService.GenerateJWTToken(user.ID, user.RoleId, "access")
+	var role domainRole.Role
+	var roleId int64
+	if len(user.Roles) > 0 {
+		roleId = user.Roles[0].ID
+		role = user.Roles[0]
+	}
+	accessTokenClaims, err := s.JWTService.GenerateJWTToken(user.ID, roleId, "access")
 	if err != nil {
 		s.Logger.Error("Error generating access token", zap.Error(err), zap.Int64("userID", user.ID))
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	refreshTokenClaims, err := s.JWTService.GenerateJWTToken(user.ID, user.RoleId, "refresh")
+	refreshTokenClaims, err := s.JWTService.GenerateJWTToken(user.ID, roleId, "refresh")
 	if err != nil {
 		s.Logger.Error("Error generating refresh token", zap.Error(err), zap.Int64("userID", user.ID))
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	authTokens := &AuthTokens{
@@ -89,7 +137,7 @@ func (s *AuthUseCase) Login(username, password string) (*domainUser.User, *AuthT
 	}
 
 	s.Logger.Info("User login successful", zap.String("username", username), zap.Int64("userID", user.ID))
-	return user, authTokens, nil
+	return user, authTokens, &role, nil
 }
 
 func (s *AuthUseCase) AccessTokenByRefreshToken(refreshToken string) (*domainUser.User, *AuthTokens, error) {
@@ -138,7 +186,7 @@ func (s *AuthUseCase) Register(user RegisterUser) (*domain.CommonResponse[Securi
 		return nil,
 			domainErrors.NewAppError(errors.New("The user already exists"), domainErrors.UserExists)
 	}
-	userRepo := userDomain.User{
+	userRepo := domainUser.User{
 		UserName: user.UserName,
 		Email:    user.Email,
 		Password: user.Password,

@@ -26,7 +26,6 @@ type User struct {
 	Phone         string             `gorm:"column:phone;type:text"`
 	Status        bool               `gorm:"column:status"`
 	OriginSetting string             `gorm:"column:origin_setting;type:text"`
-	RoleId        int64              `gorm:"column:role_id;type:numeric(20,0)"`
 	CreatedAt     time.Time          `gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt     time.Time          `gorm:"column:updated_at;autoUpdateTime:milli"`
 	DeletedAt     gorm.DeletedAt     `gorm:"column:deleted_at;index"`
@@ -113,7 +112,7 @@ func (r *Repository) Create(userDomain *domainUser.User) (*domainUser.User, erro
 
 func (r *Repository) GetByID(id int) (*domainUser.User, error) {
 	var user User
-	err := r.DB.Where("id = ?", id).First(&user).Error
+	err := r.DB.Where("id = ?", id).Preload("Roles").First(&user).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			r.Logger.Warn("User not found", zap.Int("id", id))
@@ -167,7 +166,7 @@ func (r *Repository) Update(id int64, userMap map[string]interface{}) (*domainUs
 	var userObj User
 	userObj.ID = id
 	err := r.DB.Model(&userObj).
-		Select("user_name", "email", "nick_name", "status", "phone", "header_img").
+		Select("user_name", "email", "nick_name", "status", "phone", "header_img", "hash_password").
 		Updates(userMap).Error
 	if err != nil {
 		r.Logger.Error("Error updating user", zap.Error(err), zap.Int64("id", id))
@@ -330,7 +329,6 @@ func (u *User) toDomainMapper() *domainUser.User {
 		Phone:         u.Phone,
 		HashPassword:  u.HashPassword,
 		OriginSetting: u.OriginSetting,
-		RoleId:        u.RoleId,
 		CreatedAt:     u.CreatedAt,
 		UpdatedAt:     u.UpdatedAt,
 		Roles:         *roleRepo.ArrayToDomainMapper(&u.Roles),
@@ -349,7 +347,6 @@ func fromDomainMapper(u *domainUser.User) *User {
 		Email:         u.Email,
 		Status:        u.Status,
 		HashPassword:  u.HashPassword,
-		RoleId:        u.RoleId,
 		CreatedAt:     u.CreatedAt,
 		UpdatedAt:     u.UpdatedAt,
 	}

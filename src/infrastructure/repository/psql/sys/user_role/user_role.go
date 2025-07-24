@@ -75,7 +75,9 @@ func (r *Repository) Insert(userId int64, UpdateMap map[string]any) error {
 		}
 		userRoles = append(userRoles, roleMenu)
 	}
-
+	if len(userRoles) == 0 {
+		return nil
+	}
 	tx := r.DB.Begin()
 	if tx.Error != nil {
 		r.Logger.Error("Failed to begin transaction", zap.Error(tx.Error))

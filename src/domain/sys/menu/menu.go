@@ -12,7 +12,7 @@ type Menu struct {
 	ParentID       int                                 `json:"parent_id"`
 	Path           string                              `json:"path"`
 	Name           string                              `json:"name"`
-	Hidden         int16                               `json:"hidden"`
+	Hidden         bool                                `json:"hidden"`
 	Component      string                              `json:"component"`
 	Sort           int8                                `json:"sort"`
 	ActiveName     string                              `json:"active_name"`
@@ -39,6 +39,7 @@ type MenuNode struct {
 }
 
 type MenuGroup struct {
+	Id    int     `json:"id"`
 	Name  string  `json:"name"`
 	Path  string  `json:"path"`
 	Items []*Menu `json:"items"`

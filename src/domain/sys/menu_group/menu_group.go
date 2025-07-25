@@ -11,6 +11,7 @@ type MenuGroup struct {
 	ID        int                `json:"id"`
 	Name      string             `json:"name"`
 	Path      string             `json:"path"`
+	Sort      int8               `json:"sort"`
 	Status    bool               `json:"status"`
 	CreatedAt time.Time          `json:"created_at"`
 	UpdatedAt time.Time          `json:"updated_at"`

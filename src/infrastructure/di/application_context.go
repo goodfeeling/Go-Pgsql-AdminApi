@@ -152,7 +152,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	operationUC := operationUseCase.NewSysOperationUseCase(operationRepo, loggerInstance)
 	dictionaryUC := dictionaryUseCase.NewSysDictionaryUseCase(dictionaryRepo, loggerInstance)
 	dictionaryDetailUC := dictionaryDetailUseCase.NewSysDictionaryUseCase(dictionaryDetailRepo, loggerInstance)
-	menuUC := menuUseCase.NewSysMenuUseCase(menuRepo, roleMenuRepo, userRepo, menuGroupRepo, loggerInstance)
+	menuUC := menuUseCase.NewSysMenuUseCase(menuRepo, roleMenuRepo, userRepo, menuGroupRepo, roleBtnRepo, loggerInstance)
 	menuGroupUC := menuGroupUseCase.NewSysMenuGroupUseCase(menuGroupRepo, loggerInstance)
 	menuBtnUC := menuBtnUseCase.NewMenuBtnUseCase(menuBtnRepo, loggerInstance)
 	menuParameterUC := menuParameterUseCase.NewMenuParameterUseCase(menuParameterRepo, loggerInstance)

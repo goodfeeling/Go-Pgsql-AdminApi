@@ -3,9 +3,12 @@ package menu
 import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 	menuDomain "github.com/gbrayhan/microservices-go/src/domain/sys/menu"
+	menuBtnDomain "github.com/gbrayhan/microservices-go/src/domain/sys/menu_btn"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+
 	menuRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu"
 	menuGroupRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_group"
+	roleBtnRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_btn"
 	roleMenuRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_menu"
 	userRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
 	"go.uber.org/zap"
@@ -28,6 +31,7 @@ type SysMenuUseCase struct {
 	userRepository         userRepo.UserRepositoryInterface
 	sysRoleMenuRepository  roleMenuRepo.ISysRoleMenuRepository
 	sysMenuGroupRepository menuGroupRepo.MenuGroupRepositoryInterface
+	sysRoleBtnRepository   roleBtnRepo.ISysRoleBtnRepository
 	Logger                 *logger.Logger
 }
 
@@ -36,6 +40,7 @@ func NewSysMenuUseCase(
 	sysRoleMenuRepository roleMenuRepo.ISysRoleMenuRepository,
 	userRepository userRepo.UserRepositoryInterface,
 	sysMenuGroupRepository menuGroupRepo.MenuGroupRepositoryInterface,
+	sysRoleBtnRepository roleBtnRepo.ISysRoleBtnRepository,
 	loggerInstance *logger.Logger,
 ) ISysMenuService {
 	return &SysMenuUseCase{
@@ -43,6 +48,7 @@ func NewSysMenuUseCase(
 		userRepository:         userRepository,
 		sysRoleMenuRepository:  sysRoleMenuRepository,
 		sysMenuGroupRepository: sysMenuGroupRepository,
+		sysRoleBtnRepository:   sysRoleBtnRepository,
 		Logger:                 loggerInstance,
 	}
 }
@@ -98,6 +104,8 @@ func (s *SysMenuUseCase) GetOneByMap(userMap map[string]interface{}) (*menuDomai
 func (s *SysMenuUseCase) GetUserMenus(roleId int64) ([]*menuDomain.MenuGroup, error) {
 	s.Logger.Info("Getting user menus", zap.Int64("roleId", roleId))
 	var roleMenuIds []int
+	// role bind menu list
+	var roleBtns []*roleBtnRepo.SysRoleBtn
 	var err error
 	if roleId == 0 {
 		roleMenuIds = []int{}
@@ -106,6 +114,19 @@ func (s *SysMenuUseCase) GetUserMenus(roleId int64) ([]*menuDomain.MenuGroup, er
 		if err != nil {
 			return nil, err
 		}
+		roleBtns, err = s.sysRoleBtnRepository.GetByRoleId(roleId)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+	s.Logger.Info("getting role btns ", zap.Int("roleBtnsCount", len(roleBtns)))
+	roleBtnMap := make(map[int64][]int64)
+	for _, roleBtn := range roleBtns {
+		if _, exists := roleBtnMap[roleBtn.SysMenuID]; !exists {
+			roleBtnMap[roleBtn.SysMenuID] = make([]int64, 0)
+		}
+		roleBtnMap[roleBtn.SysMenuID] = append(roleBtnMap[roleBtn.SysMenuID], roleBtn.SysBaseMenuBtnID)
 	}
 
 	s.Logger.Info("Getting user menus", zap.Int("menusCount", len(roleMenuIds)))
@@ -115,7 +136,29 @@ func (s *SysMenuUseCase) GetUserMenus(roleId int64) ([]*menuDomain.MenuGroup, er
 	}
 	menuGroup := make([]*menuDomain.MenuGroup, 0)
 	for _, group := range *groups {
-		treeData := buildMenuTree(group.MenuItems, group.Path)
+		// 过滤菜单项中的按钮
+		filteredMenuItems := make([]menuDomain.Menu, 0)
+		for _, menuItem := range *group.MenuItems {
+			filteredMenuItem := menuItem
+			if btnIds, exists := roleBtnMap[int64(menuItem.ID)]; exists && roleId != 0 {
+				// 过滤菜单按钮，只保留角色有权访问的按钮
+				filteredButtons := make([]menuBtnDomain.MenuBtn, 0)
+				btnSlices := make([]string, 0)
+				for _, btn := range menuItem.MenuBtns {
+					for _, id := range btnIds {
+						if int64(btn.ID) == id {
+							filteredButtons = append(filteredButtons, btn)
+							btnSlices = append(btnSlices, btn.Name)
+							break
+						}
+					}
+				}
+				filteredMenuItem.MenuBtns = filteredButtons
+				filteredMenuItem.BtnSlice = btnSlices
+			}
+			filteredMenuItems = append(filteredMenuItems, filteredMenuItem)
+		}
+		treeData := buildMenuTree(&filteredMenuItems, group.Path)
 		if treeData == nil {
 			treeData = []*menuDomain.Menu{}
 		}
@@ -158,6 +201,7 @@ func buildMenuTree(menus *[]menuDomain.Menu, groupPath string) []*menuDomain.Men
 			Children:       []*menuDomain.Menu{},
 			MenuBtns:       item.MenuBtns,
 			MenuParameters: item.MenuParameters,
+			BtnSlice:       item.BtnSlice,
 		}
 		menuMap[item.ID] = node
 	}

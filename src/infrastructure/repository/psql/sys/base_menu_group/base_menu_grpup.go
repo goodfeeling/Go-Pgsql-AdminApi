@@ -19,6 +19,7 @@ import (
 type SysBaseMenuGroups struct {
 	ID        int                    `gorm:"primaryKey;column:id;type:numeric(20,0)"`
 	Name      string                 `gorm:"column:name" json:"name"`
+	Sort      int8                   `gorm:"column:sort" json:"sort"`
 	Path      string                 `gorm:"column:path" json:"path"`
 	Status    bool                   `gorm:"column:status" json:"status"`
 	CreatedAt time.Time              `gorm:"column:created_at" json:"createdAt"`
@@ -40,6 +41,7 @@ var ColumnsMenuGroupMapping = map[string]string{
 	"method":      "method",
 	"createdAt":   "created_at",
 	"updatedAt":   "updated_at",
+	"sort":        "sort",
 }
 
 // MenuGroupRepositoryInterface defines the interface for api repository operations
@@ -80,7 +82,7 @@ func (r *Repository) GetAll() (*[]domainMenuGroup.MenuGroup, error) {
 func (r *Repository) GetByRoleId(menuIds []int, roleId int64) (*[]domainMenuGroup.MenuGroup, error) {
 	var apis []SysBaseMenuGroups
 	db := r.DB.Where("status = ?", true)
-	if len(menuIds) > 0 || roleId != 0 {
+	if roleId != 0 {
 		db = db.Preload("MenuItems", "id in (?)", menuIds)
 	} else {
 		db = db.Preload("MenuItems")
@@ -88,7 +90,7 @@ func (r *Repository) GetByRoleId(menuIds []int, roleId int64) (*[]domainMenuGrou
 
 	if err := db.
 		Preload("MenuItems.MenuBtns").
-		Preload("MenuItems.MenuParameters").Find(&apis).Error; err != nil {
+		Preload("MenuItems.MenuParameters").Order("sort asc").Find(&apis).Error; err != nil {
 		r.Logger.Error("Error getting all apis", zap.Error(err))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
@@ -299,6 +301,7 @@ func (u *SysBaseMenuGroups) toDomainMapper() *domainMenuGroup.MenuGroup {
 		Name:      u.Name,
 		Path:      u.Path,
 		Status:    u.Status,
+		Sort:      u.Sort,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 		MenuItems: menuRepo.ArrayToDomainMapper(&u.MenuItems),
@@ -310,6 +313,7 @@ func fromDomainMapper(u *domainMenuGroup.MenuGroup) *SysBaseMenuGroups {
 		ID:        u.ID,
 		Name:      u.Name,
 		Path:      u.Path,
+		Sort:      u.Sort,
 		Status:    u.Status,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,

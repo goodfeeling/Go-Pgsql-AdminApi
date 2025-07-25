@@ -101,12 +101,13 @@ func BuildRoleTree(roles *[]roleDomain.Role) []*roleDomain.RoleTree {
 		node := roleMap[role.ID]
 		if role.ParentID == 0 {
 			roots = append(roots, node)
+		} else if parentNode, exists := roleMap[role.ParentID]; exists {
+			// path handle
+			node.Path = append(node.Path, parentNode.Path...)
+			parentNode.Children = append(parentNode.Children, node)
 		} else {
-			if parentNode, exists := roleMap[role.ParentID]; exists {
-				// path handle
-				node.Path = append(node.Path, parentNode.Path...)
-				parentNode.Children = append(parentNode.Children, node)
-			}
+			// 父节点不存在，作为孤儿节点加入根节点列表
+			roots = append(roots, node)
 		}
 	}
 
@@ -183,12 +184,12 @@ func (s *SysRoleUseCase) GetTreeRoles(status int) (*roleDomain.RoleNode, error) 
 		node := roleMap[role.ID]
 		if role.ParentID == 0 {
 			roots = append(roots, node)
+		} else if parentNode, exists := roleMap[role.ParentID]; exists {
+			// path handle
+			node.Path = append(node.Path, parentNode.Path...)
+			parentNode.Children = append(parentNode.Children, node)
 		} else {
-			if parentNode, exists := roleMap[role.ParentID]; exists {
-				// path handle
-				node.Path = append(node.Path, parentNode.Path...)
-				parentNode.Children = append(parentNode.Children, node)
-			}
+			roots = append(roots, node)
 		}
 	}
 	return &roleDomain.RoleNode{

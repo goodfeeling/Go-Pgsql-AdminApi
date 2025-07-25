@@ -28,6 +28,7 @@ type Menu struct {
 	Children       []*Menu                             `json:"children"`
 	MenuBtns       []menuBtnDomain.MenuBtn             `json:"menu_btns"`
 	MenuParameters []menuParameterDomain.MenuParameter `json:"menu_parameters"`
+	BtnSlice       []string                            `json:"btn_slice"`
 }
 
 type MenuNode struct {

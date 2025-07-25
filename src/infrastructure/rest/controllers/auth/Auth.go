@@ -123,16 +123,15 @@ func (c *AuthController) Login(ctx *gin.Context) {
 	response := &domain.CommonResponse[useCaseAuth.SecurityAuthenticatedUser]{
 		Data: useCaseAuth.SecurityAuthenticatedUser{
 			UserInfo: useCaseAuth.DataUserAuthenticated{
-				UserName:        domainUser.UserName,
-				Email:           domainUser.Email,
-				ID:              domainUser.ID,
-				Status:          domainUser.Status,
-				NickName:        domainUser.NickName,
-				Phone:           domainUser.Phone,
-				HeaderImg:       domainUser.HeaderImg,
-				Roles:           roleService.BuildRoleTree(&domainUser.Roles),
-				CurrentRoleId:   role.ID,
-				CurrentRoleName: role.Name,
+				UserName:    domainUser.UserName,
+				Email:       domainUser.Email,
+				ID:          domainUser.ID,
+				Status:      domainUser.Status,
+				NickName:    domainUser.NickName,
+				Phone:       domainUser.Phone,
+				HeaderImg:   domainUser.HeaderImg,
+				Roles:       roleService.BuildRoleTree(&domainUser.Roles),
+				CurrentRole: role,
 			},
 			Security: useCaseAuth.DataSecurityAuthenticated{
 				JWTAccessToken:            authTokens.AccessToken,
@@ -224,16 +223,15 @@ func (c *AuthController) SwitchRole(ctx *gin.Context) {
 	response := &domain.CommonResponse[useCaseAuth.SecurityAuthenticatedUser]{
 		Data: useCaseAuth.SecurityAuthenticatedUser{
 			UserInfo: useCaseAuth.DataUserAuthenticated{
-				UserName:        domainUser.UserName,
-				Email:           domainUser.Email,
-				ID:              domainUser.ID,
-				Status:          domainUser.Status,
-				NickName:        domainUser.NickName,
-				Phone:           domainUser.Phone,
-				HeaderImg:       domainUser.HeaderImg,
-				Roles:           roleService.BuildRoleTree(&domainUser.Roles),
-				CurrentRoleId:   role.ID,
-				CurrentRoleName: role.Name,
+				UserName:    domainUser.UserName,
+				Email:       domainUser.Email,
+				ID:          domainUser.ID,
+				Status:      domainUser.Status,
+				NickName:    domainUser.NickName,
+				Phone:       domainUser.Phone,
+				HeaderImg:   domainUser.HeaderImg,
+				Roles:       roleService.BuildRoleTree(&domainUser.Roles),
+				CurrentRole: role,
 			},
 			Security: useCaseAuth.DataSecurityAuthenticated{
 				JWTAccessToken:            authTokens.AccessToken,

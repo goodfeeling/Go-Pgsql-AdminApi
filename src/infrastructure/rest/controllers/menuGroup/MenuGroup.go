@@ -23,6 +23,7 @@ type NewMenuGroupRequest struct {
 	Name   string `json:"name"  binding:"required"`
 	Path   string `json:"path"`
 	Status bool   `json:"status"`
+	Sort   int8   `json:"sort"`
 }
 
 type ResponseMenuGroup struct {
@@ -30,6 +31,7 @@ type ResponseMenuGroup struct {
 	Name      string            `json:"name"`
 	Path      string            `json:"path"`
 	Status    bool              `json:"status"`
+	Sort      int8              `json:"sort"`
 	CreatedAt domain.CustomTime `json:"created_at"`
 	UpdatedAt domain.CustomTime `json:"updated_at"`
 }
@@ -378,6 +380,7 @@ func domainToResponseMapper(domainMenuGroup *domainMenuGroup.MenuGroup) *Respons
 		Name:      domainMenuGroup.Name,
 		Path:      domainMenuGroup.Path,
 		Status:    domainMenuGroup.Status,
+		Sort:      domainMenuGroup.Sort,
 		CreatedAt: domain.CustomTime{Time: domainMenuGroup.CreatedAt},
 		UpdatedAt: domain.CustomTime{Time: domainMenuGroup.UpdatedAt},
 	}
@@ -396,5 +399,6 @@ func toUsecaseMapper(req *NewMenuGroupRequest) *domainMenuGroup.MenuGroup {
 		Name:   req.Name,
 		Path:   req.Path,
 		Status: req.Status,
+		Sort:   req.Sort,
 	}
 }

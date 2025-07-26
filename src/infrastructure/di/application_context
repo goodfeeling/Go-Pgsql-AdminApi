@@ -3,6 +3,9 @@ package di
 import (
 	"sync"
 
+	sharedUtil "github.com/gbrayhan/microservices-go/src/shared/utils"
+
+	"github.com/casbin/casbin/v2"
 	authUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/auth"
 	medicineUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/medicine"
 	apiUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/api"
@@ -54,9 +57,10 @@ import (
 )
 
 // ApplicationContext holds all application dependencies and services
-type ApplicationContext struct {
-	DB     *gorm.DB
-	Logger *logger.Logger
+type ApplicationContext1 struct {
+	DB       *gorm.DB
+	Logger   *logger.Logger
+	Enforcer *casbin.Enforcer
 	// controller
 	AuthController             authController.IAuthController
 	UserController             userController.IUserController
@@ -114,13 +118,17 @@ func GetLogger() *logger.Logger {
 }
 
 // SetupDependencies creates a new application context with all dependencies
-func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, error) {
+func SetupDependencies1(loggerInstance *logger.Logger) (*ApplicationContext1, error) {
 	// Initialize database with logger
 	db, err := psql.InitPSQLDB(loggerInstance)
 	if err != nil {
 		return nil, err
 	}
-
+	// 初始化Casbin执行器
+	enforcer, err := sharedUtil.InitCasbinEnforcer(db, loggerInstance)
+	if err != nil {
+		return nil, err
+	}
 	// Initialize JWT service (manages its own configuration)
 	jwtService := security.NewJWTService()
 
@@ -172,9 +180,10 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	menuBtnController := menuBtnController.NewMenuBtnController(menuBtnUC, loggerInstance)
 	menuParameterController := menuParameterController.NewMenuParameterController(menuParameterUC, loggerInstance)
 
-	return &ApplicationContext{
-		DB:     db,
-		Logger: loggerInstance,
+	return &ApplicationContext1{
+		DB:       db,
+		Logger:   loggerInstance,
+		Enforcer: enforcer,
 		// controller
 		AuthController:             authController,
 		UserController:             userController,
@@ -219,36 +228,4 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 
 		JWTService: jwtService,
 	}, nil
-}
-
-// NewTestApplicationContext creates an application context for testing with mocked dependencies
-func NewTestApplicationContext(
-	mockUserRepo user.UserRepositoryInterface,
-	mockMedicineRepo medicine.MedicineRepositoryInterface,
-	mockJWTService security.IJWTService,
-	loggerInstance *logger.Logger,
-	jwtBlackListRepo jwt_blacklist.JwtBlacklistRepository,
-) *ApplicationContext {
-	// Initialize use cases with mocked repositories and logger
-	// authUC := authUseCase.NewAuthUseCase(mockUserRepo, mockJWTService, loggerInstance, jwtBlackListRepo)
-	// userUC := userUseCase.NewUserUseCase(mockUserRepo, loggerInstance)
-	medicineUC := medicineUseCase.NewMedicineUseCase(mockMedicineRepo, loggerInstance)
-
-	// Initialize controllers with logger
-	// authController := authController.NewAuthController(authUC, loggerInstance)
-	// userController := userController.NewUserController(userUC, loggerInstance)
-	medicineController := medicineController.NewMedicineController(medicineUC, loggerInstance)
-
-	return &ApplicationContext{
-		Logger: loggerInstance,
-		// AuthController: authController,
-		// UserController:     userController,
-		MedicineController: medicineController,
-		JWTService:         mockJWTService,
-		UserRepository:     mockUserRepo,
-		MedicineRepository: mockMedicineRepo,
-		// AuthUseCase:        authUC,
-		// UserUseCase:        userUC,
-		MedicineUseCase: medicineUC,
-	}
 }

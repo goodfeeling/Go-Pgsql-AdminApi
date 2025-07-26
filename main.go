@@ -12,7 +12,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/routes"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv" // swagger embed files
+	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
 
@@ -118,16 +118,15 @@ func setupRouter(appContext *di.ApplicationContext, logger *logger.Logger) *gin.
 	// Agregar middlewares de recuperación y logger personalizados
 	router.Use(gin.Recovery())
 	router.Use(middlewares.CorsHeader())
-
 	// Add middlewares
 	router.Use(middlewares.ErrorHandler())
 	router.Use(middlewares.GinBodyLogMiddleware(appContext.DB, appContext.Logger))
 	router.Use(middlewares.SecurityHeaders())
 	// Add logger middleware
 	router.Use(logger.GinZapLogger())
-
 	// Setup routes
 	routes.ApplicationRouter(router, appContext)
+
 	return router
 }
 

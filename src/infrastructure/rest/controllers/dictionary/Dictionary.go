@@ -224,7 +224,7 @@ func (c *DictionaryController) DeleteDictionary(ctx *gin.Context) {
 // @Router /v1/dictionary/search [get]
 func (c *DictionaryController) SearchPaginated(ctx *gin.Context) {
 	c.Logger.Info("Searching dictionaries with pagination")
-
+	fmt.Println("=====11111")
 	// Parse query parameters
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	if page < 1 {

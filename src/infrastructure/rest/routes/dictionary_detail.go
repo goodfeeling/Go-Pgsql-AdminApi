@@ -1,14 +1,16 @@
 package routes
 
 import (
+	"github.com/casbin/casbin/v2"
 	dictionary_detail "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/dictionaryDetail"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
-func DictionaryDetailRouters(router *gin.RouterGroup, controller dictionary_detail.IIDictionaryDetailController) {
+func DictionaryDetailRouters(router *gin.RouterGroup, controller dictionary_detail.IIDictionaryDetailController, enforcer *casbin.Enforcer) {
 	u := router.Group("/dictionary_detail")
 	u.Use(middlewares.AuthJWTMiddleware())
+	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		u.POST("", controller.NewDictionary)
 		u.GET("", controller.GetAllDictionaries)

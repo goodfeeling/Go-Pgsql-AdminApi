@@ -2,11 +2,13 @@ package api
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	apiDomain "github.com/gbrayhan/microservices-go/src/domain/sys/api"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	apiRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
@@ -20,6 +22,7 @@ type ISysApiService interface {
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*apiDomain.Api, error)
 	GetApisGroup() (*[]apiDomain.GroupApiItem, error)
+	SynchronizeRouterToApi(router gin.RoutesInfo) (*int, error)
 }
 
 type SysApiUseCase struct {
@@ -104,4 +107,62 @@ func (s *SysApiUseCase) GetApisGroup() (*[]apiDomain.GroupApiItem, error) {
 		}
 	}
 	return &groups, nil
+}
+
+func (c *SysApiUseCase) SynchronizeRouterToApi(routes gin.RoutesInfo) (*int, error) {
+
+	count := 0
+	for _, route := range routes {
+		if c.shouldSyncRoute(route.Path) {
+			apiModel := &apiRepo.SysApi{
+				Path:        route.Path,
+				Method:      route.Method,
+				Description: c.generateDescription(route.Path, route.Method),
+				ApiGroup:    apiDomain.GroupOther,
+			}
+
+			ok, err := c.sysApiRepository.Upsert(apiModel)
+			if err != nil {
+				c.Logger.Error("Failed to sync route",
+					zap.String("path", route.Path),
+					zap.String("method", route.Method),
+					zap.Error(err))
+				continue
+			}
+			if ok {
+				count++
+			}
+		}
+	}
+	return &count, nil
+}
+
+func (a *SysApiUseCase) shouldSyncRoute(path string) bool {
+	// 排除一些系统路由
+	excludePaths := []string{"/swagger", "/health"}
+	for _, exclude := range excludePaths {
+		if strings.HasPrefix(path, exclude) {
+			return false
+		}
+	}
+	return true
+}
+
+func (a *SysApiUseCase) generateDescription(path, method string) string {
+	// 根据路径和方法生成描述
+	switch method {
+	case "GET":
+		if strings.Contains(path, "/:id") {
+			return "获取单个资源"
+		}
+		return "获取资源列表"
+	case "POST":
+		return "创建资源"
+	case "PUT":
+		return "更新资源"
+	case "DELETE":
+		return "删除资源"
+	default:
+		return "API接口"
+	}
 }

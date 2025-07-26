@@ -1,14 +1,21 @@
 package routes
 
 import (
+	"github.com/casbin/casbin/v2"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/api"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
-func ApiRouters(router *gin.RouterGroup, controller api.IApiController) {
+func ApiRouters(router *gin.RouterGroup, routerEngine *gin.Engine, controller api.IApiController, enforcer *casbin.Enforcer) {
+
+	// 用户获取接口列表
+	if routerSetter, ok := controller.(api.RouterSetter); ok {
+		routerSetter.SetRouter(routerEngine)
+	}
 	u := router.Group("/api")
 	u.Use(middlewares.AuthJWTMiddleware())
+	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		u.POST("", controller.NewApi)
 		u.GET("", controller.GetAllApis)
@@ -20,6 +27,6 @@ func ApiRouters(router *gin.RouterGroup, controller api.IApiController) {
 		u.GET("/groups", controller.GetGroups)
 		u.POST("/delete-batch", controller.DeleteOperations)
 		u.GET("/group-list", controller.GetApisGroup)
-
+		u.POST("/synchronize", controller.SynchronizeRouterToApi)
 	}
 }

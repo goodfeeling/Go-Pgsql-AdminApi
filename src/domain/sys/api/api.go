@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
+	"github.com/gin-gonic/gin"
 )
 
 type Api struct {
@@ -26,6 +27,7 @@ type IApiService interface {
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*Api, error)
 	GetApisGroup() (*[]GroupApiItem, error)
+	SynchronizeRouterToApi(router gin.RoutesInfo) (*int, error)
 }
 type GroupApiItem struct {
 	GroupName string          `json:"title"`

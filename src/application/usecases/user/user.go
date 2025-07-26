@@ -1,14 +1,17 @@
 package user
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
+	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	userDomain "github.com/gbrayhan/microservices-go/src/domain/user"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	userRoleRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/user_role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
+	sharedUtil "github.com/gbrayhan/microservices-go/src/shared/utils"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -26,6 +29,7 @@ type IUserUseCase interface {
 	GetOneByMap(userMap map[string]interface{}) (*userDomain.User, error)
 	UserBindRoles(userId int64, updateMap map[string]interface{}) error
 	ResetPassword(userId int64) (*userDomain.User, error)
+	EditPassword(userId int64, data userDomain.PasswordEditRequest) (*userDomain.User, error)
 }
 
 type UserUseCase struct {
@@ -113,6 +117,28 @@ func (s *UserUseCase) ResetPassword(userId int64) (*userDomain.User, error) {
 		s.Logger.Error("Error hashing password", zap.Error(err))
 		return nil, err
 	}
+	updateMap["hash_password"] = hash
+	return s.userRepository.Update(userId, updateMap)
+}
+
+func (s *UserUseCase) EditPassword(userId int64, data userDomain.PasswordEditRequest) (*userDomain.User, error) {
+	userInfo, err := s.userRepository.GetByID(int(userId))
+	if err != nil {
+		s.Logger.Error("Error getting user info", zap.Error(err))
+		return nil, err
+	}
+	isAuthenticated := sharedUtil.CheckPasswordHash(data.OldPassword, userInfo.HashPassword)
+	if !isAuthenticated {
+		s.Logger.Warn("EditPassword failed: invalid password", zap.String("username", userInfo.UserName))
+		return nil, domainErrors.NewAppError(errors.New("old password is incorrect"), domainErrors.NotAuthorized)
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(data.NewPasswd), bcrypt.DefaultCost)
+	if err != nil {
+		s.Logger.Error("Error hashing password", zap.Error(err))
+		return nil, err
+	}
+	updateMap := make(map[string]interface{})
 	updateMap["hash_password"] = hash
 	return s.userRepository.Update(userId, updateMap)
 }

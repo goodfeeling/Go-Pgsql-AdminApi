@@ -1,6 +1,8 @@
 package menu
 
 import (
+	"fmt"
+
 	"github.com/gbrayhan/microservices-go/src/domain"
 	menuDomain "github.com/gbrayhan/microservices-go/src/domain/sys/menu"
 	menuBtnDomain "github.com/gbrayhan/microservices-go/src/domain/sys/menu_btn"
@@ -102,6 +104,7 @@ func (s *SysMenuUseCase) GetOneByMap(userMap map[string]interface{}) (*menuDomai
 
 // GetUserMenus
 func (s *SysMenuUseCase) GetUserMenus(roleId int64) ([]*menuDomain.MenuGroup, error) {
+	fmt.Println(s)
 	s.Logger.Info("Getting user menus", zap.Int64("roleId", roleId))
 	var roleMenuIds []int
 	// role bind menu list

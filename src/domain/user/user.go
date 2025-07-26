@@ -30,7 +30,11 @@ type SearchResultUser struct {
 	PageSize   int     `json:"page_size"`
 	TotalPages int     `json:"total_page"`
 }
-
+type PasswordEditRequest struct {
+	ID          int    `json:"id"`
+	OldPassword string `json:"oldPassword"`
+	NewPasswd   string `json:"newPassword"`
+}
 type IUserService interface {
 	GetAll() (*[]User, error)
 	GetByID(id int) (*User, error)
@@ -42,4 +46,5 @@ type IUserService interface {
 	GetOneByMap(userMap map[string]interface{}) (*User, error)
 	UserBindRoles(userId int64, updateMap map[string]interface{}) error
 	ResetPassword(userId int64) (*User, error)
+	EditPassword(userId int64, data PasswordEditRequest) (*User, error)
 }

@@ -52,6 +52,7 @@ type IUserController interface {
 	SearchByProperty(ctx *gin.Context)
 	UserBindRoles(ctx *gin.Context)
 	ResetPassword(ctx *gin.Context)
+	EditPassword(ctx *gin.Context)
 }
 
 type UserController struct {
@@ -443,6 +444,45 @@ func (c *UserController) ResetPassword(ctx *gin.Context) {
 		return
 	}
 	userModal, err := c.userService.ResetPassword(int64(userId))
+	if err != nil {
+		c.Logger.Error("Error updating  user bind role ", zap.Error(err), zap.Int("id", userId))
+		_ = ctx.Error(err)
+		return
+	}
+	response := controllers.NewCommonResponseBuilder[*domainUser.User]().
+		Data(userModal).
+		Message("success").
+		Status(0).
+		Build()
+	c.Logger.Info("Role updated successfully", zap.Int("id", userId))
+	ctx.JSON(http.StatusOK, response)
+}
+
+// EditPassword
+// @Summary edit password
+// @Description edit password
+// @Tags password edit
+// @Accept json
+// @Produce json
+// @Success 200 {object} domain.CommonResponse
+// @Router /v1/user/{id}/edit-password [post]
+func (c *UserController) EditPassword(ctx *gin.Context) {
+	userId, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		c.Logger.Error("Invalid user ID parameter ", zap.Error(err), zap.String("id", ctx.Param("id")))
+		appError := domainErrors.NewAppError(errors.New("param id is necessary"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	c.Logger.Info("Creating new user")
+	var request domainUser.PasswordEditRequest
+	if err := controllers.BindJSON(ctx, &request); err != nil {
+		c.Logger.Error("Error binding JSON for password data", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	userModal, err := c.userService.EditPassword(int64(userId), request)
 	if err != nil {
 		c.Logger.Error("Error updating  user bind role ", zap.Error(err), zap.Int("id", userId))
 		_ = ctx.Error(err)

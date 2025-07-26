@@ -31,6 +31,10 @@ type DeleteBatchOperationRequest struct {
 	IDS []int `json:"ids"`
 }
 
+type SynchronizeResponse struct {
+	Count int `json:"count"`
+}
+
 type ResponseApi struct {
 	ID          int               `json:"id"`
 	Path        string            `json:"path"`
@@ -51,10 +55,19 @@ type IApiController interface {
 	GetGroups(ctx *gin.Context)
 	DeleteOperations(ctx *gin.Context)
 	GetApisGroup(ctx *gin.Context)
+	SynchronizeRouterToApi(ctx *gin.Context)
 }
 type ApiController struct {
 	apiService domainApi.IApiService
 	Logger     *logger.Logger
+	Router     *gin.Engine
+}
+type RouterSetter interface {
+	SetRouter(router *gin.Engine)
+}
+
+func (c *ApiController) SetRouter(router *gin.Engine) {
+	c.Router = router
 }
 
 func NewApiController(apiService domainApi.IApiService, loggerInstance *logger.Logger) IApiController {
@@ -460,6 +473,43 @@ func (c *ApiController) GetApisGroup(ctx *gin.Context) {
 		Status(0).
 		Build()
 	c.Logger.Info("Successfully retrieved all apis", zap.Int("count", len(*apis)))
+	ctx.JSON(http.StatusOK, apiResponse)
+}
+
+// synchronize apis with router
+// @Summary synchronize apis with router
+// @Description synchronize apis with router
+// @Tags sync apis
+// @Accept json
+// @Produce json
+// @Success 200 {object} SynchronizeResponse
+// @Router /v1/api/synchronize [post]
+func (c *ApiController) SynchronizeRouterToApi(ctx *gin.Context) {
+	c.Logger.Info("Synchronizing router to api")
+
+	// 检查router是否存在
+	if c.Router == nil {
+		c.Logger.Error("Router is not available for synchronization")
+		appError := domainErrors.NewAppError(errors.New("router not available"), domainErrors.UnknownError)
+		_ = ctx.Error(appError)
+		return
+	}
+	// 获取所有路由信息
+	routes := c.Router.Routes()
+	fmt.Println("Synchronizing router to api", routes)
+	apis, err := c.apiService.SynchronizeRouterToApi(routes)
+	if err != nil {
+		c.Logger.Error("Error synchronizing router to api", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.RepositoryError)
+		_ = ctx.Error(appError)
+		return
+	}
+	apiResponse := controllers.NewCommonResponseBuilder[SynchronizeResponse]().
+		Data(SynchronizeResponse{Count: *apis}).
+		Message("success").
+		Status(0).
+		Build()
+	c.Logger.Info("Successfully synchronized router to api", zap.Int("count", *apis))
 	ctx.JSON(http.StatusOK, apiResponse)
 }
 

@@ -1,10 +1,17 @@
 package api
 
-import "sync"
-
-var (
-	ApiGroup ApiGroupType
-	once     sync.Once
+const (
+	// API 分组常量
+	GroupAuth             = "鉴权"
+	GroupApi              = "api"
+	GroupRole             = "角色"
+	GroupUpload           = "文件上传与下载"
+	GroupMenu             = "菜单"
+	GroupDictionary       = "系统字典"
+	GroupDictionaryDetail = "系统字典详情"
+	GroupOperation        = "操作记录"
+	GroupUser             = "系统用户"
+	GroupOther            = "其它"
 )
 
 type ApiGroupResponse struct {
@@ -22,38 +29,35 @@ type ApiGroupType struct {
 	DictionaryDetail string `json:"dictionary_detail"`
 	Operation        string `json:"operation"`
 	User             string `json:"user"`
-}
-
-func initApiGroup() {
-	ApiGroup = ApiGroupType{
-		Auth:             "鉴权",
-		Api:              "api",
-		Role:             "角色",
-		Upload:           "文件上传与下载",
-		Menu:             "菜单",
-		Dictionary:       "系统字典",
-		DictionaryDetail: "系统字典详情",
-		Operation:        "操作记录",
-		User:             "系统用户",
-	}
+	Other            string `json:"other"`
 }
 
 func GetApiGroup() ApiGroupType {
-	once.Do(initApiGroup)
-	return ApiGroup
+	return ApiGroupType{
+		Auth:             GroupAuth,
+		Api:              GroupApi,
+		Role:             GroupRole,
+		Upload:           GroupUpload,
+		Menu:             GroupMenu,
+		Dictionary:       GroupDictionary,
+		DictionaryDetail: GroupDictionaryDetail,
+		Operation:        GroupOperation,
+		User:             GroupUser,
+		Other:            GroupOther,
+	}
 }
 
 func GetApiGroupNames() []string {
-	group := GetApiGroup()
 	return []string{
-		group.Auth,
-		group.Api,
-		group.Role,
-		group.Upload,
-		group.Menu,
-		group.Dictionary,
-		group.DictionaryDetail,
-		group.Operation,
-		group.User,
+		GroupAuth,
+		GroupApi,
+		GroupRole,
+		GroupUpload,
+		GroupMenu,
+		GroupDictionary,
+		GroupDictionaryDetail,
+		GroupOperation,
+		GroupUser,
+		GroupOther,
 	}
 }

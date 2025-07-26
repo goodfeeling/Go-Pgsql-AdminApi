@@ -1,14 +1,16 @@
 package routes
 
 import (
+	"github.com/casbin/casbin/v2"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
-func RoleRoutes(router *gin.RouterGroup, controller role.IRoleController) {
+func RoleRoutes(router *gin.RouterGroup, controller role.IRoleController, enforcer *casbin.Enforcer) {
 	u := router.Group("/role")
 	u.Use(middlewares.AuthJWTMiddleware())
+	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		u.POST("", controller.NewRole)
 		u.GET("", controller.GetAllRoles)

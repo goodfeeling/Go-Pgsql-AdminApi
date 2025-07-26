@@ -10,6 +10,7 @@ import (
 	operationRecordsDomain "github.com/gbrayhan/microservices-go/src/domain/sys/operation_records"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	operationRecordsRepository "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/operation_records"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -28,6 +29,7 @@ func GinBodyLogMiddleware(db *gorm.DB, logger *logger.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var reqBody string
 		var resp string
+		appCtx := controllers.NewAppUtils(c)
 		if c.Request.RequestURI == "/v1/upload/single" {
 			reqBody = ""
 			resp = ""
@@ -51,28 +53,7 @@ func GinBodyLogMiddleware(db *gorm.DB, logger *logger.Logger) gin.HandlerFunc {
 		c.Next()
 		latency := time.Since(start).Milliseconds()
 		operationRecordsRepository := operationRecordsRepository.NewOperationRepository(db, logger)
-
-		// handle user Id
-		userIdRaw, exist := c.Get("user_id")
-
-		var userId int64
-		if !exist {
-			userId = 0 // no auth user
-		} else {
-			switch v := userIdRaw.(type) {
-			case int:
-				userId = int64(v)
-			case int64:
-				userId = v
-			case float64:
-				userId = int64(v)
-			case string:
-				fmt.Sscanf(v, "%d", &userId)
-			default:
-				userId = 0
-			}
-		}
-
+		userId, _ := appCtx.GetUserID()
 		operationRecordsRepository.Create(&operationRecordsDomain.SysOperationRecord{
 			IP:           c.ClientIP(),
 			Method:       c.Request.Method,
@@ -82,11 +63,10 @@ func GinBodyLogMiddleware(db *gorm.DB, logger *logger.Logger) gin.HandlerFunc {
 			Body:         reqBody,
 			Resp:         resp,
 			ErrorMessage: c.Errors.String(),
-			UserID:       userId,
+			UserID:       int64(userId),
 			Latency:      latency,
 			CreatedAt:    domain.CustomTime{Time: time.Now().In(loc)},
 		})
-
 		allDataIO := map[string]any{
 			"ruta":          c.FullPath(),
 			"request_uri":   c.Request.RequestURI,

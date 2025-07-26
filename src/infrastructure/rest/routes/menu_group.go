@@ -1,14 +1,16 @@
 package routes
 
 import (
+	"github.com/casbin/casbin/v2"
 	menu_group "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menuGroup"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
-func MenuGroupRouters(router *gin.RouterGroup, controller menu_group.IMenuGroupController) {
+func MenuGroupRouters(router *gin.RouterGroup, controller menu_group.IMenuGroupController, enforcer *casbin.Enforcer) {
 	u := router.Group("/menu_group")
 	u.Use(middlewares.AuthJWTMiddleware())
+	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		u.POST("", controller.NewMenuGroup)
 		u.GET("", controller.GetAllMenuGroups)

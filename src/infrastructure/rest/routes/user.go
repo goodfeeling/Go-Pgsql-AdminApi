@@ -1,14 +1,16 @@
 package routes
 
 import (
+	"github.com/casbin/casbin/v2"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/user"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
-func UserRoutes(router *gin.RouterGroup, controller user.IUserController) {
+func UserRoutes(router *gin.RouterGroup, controller user.IUserController, enforcer *casbin.Enforcer) {
 	u := router.Group("/user")
 	u.Use(middlewares.AuthJWTMiddleware())
+	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		u.POST("", controller.NewUser)
 		u.GET("", controller.GetAllUsers)
@@ -19,5 +21,6 @@ func UserRoutes(router *gin.RouterGroup, controller user.IUserController) {
 		u.GET("/search-property", controller.SearchByProperty)
 		u.POST(":id/role", controller.UserBindRoles)
 		u.POST("/:id/reset-password", controller.ResetPassword)
+		u.POST("/:id/edit-password", controller.EditPassword)
 	}
 }

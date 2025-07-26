@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -52,6 +53,7 @@ type ApiRepositoryInterface interface {
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainApi.Api], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(apiMap map[string]interface{}) (*domainApi.Api, error)
+	Upsert(api *SysApi) (bool, error)
 }
 
 type Repository struct {
@@ -268,6 +270,29 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 		zap.Int("results", len(coincidences)))
 
 	return &coincidences, nil
+}
+
+func (r *Repository) Upsert(api *SysApi) (bool, error) {
+	var existingApi SysApi
+
+	// 查找是否已存在
+	err := r.DB.Where("path = ? AND method = ?", api.Path, api.Method).
+		First(&existingApi).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, err
+	}
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// 不存在则创建
+		result := r.DB.Create(api)
+		if result.Error != nil {
+			return false, result.Error
+		}
+	} else {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (u *SysApi) toDomainMapper() *domainApi.Api {

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
-	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/medicine"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -147,10 +147,10 @@ func (r *PSQLRepository) InitDatabase() error {
 func (r *PSQLRepository) MigrateEntitiesGORM() error {
 	// Import the models to register them with GORM
 	userModel := &user.User{}
-	medicineModel := &medicine.Medicine{}
+	apiModal := &api.SysApi{}
 
 	// Auto migrate the models to create/update tables
-	err := r.DB.AutoMigrate(userModel, medicineModel)
+	err := r.DB.AutoMigrate(userModel, apiModal)
 	if err != nil {
 		r.Logger.Error("Error migrating database entities", zap.Error(err))
 		return err

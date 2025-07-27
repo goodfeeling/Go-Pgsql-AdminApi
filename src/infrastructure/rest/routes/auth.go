@@ -15,7 +15,6 @@ func AuthRoutes(router *gin.RouterGroup, controller authController.IAuthControll
 		routerAuth.POST("/access-token", controller.GetAccessTokenByRefreshToken)
 	}
 	loginAuth := routerAuth.Use(middlewares.AuthJWTMiddleware())
-	loginAuth.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		loginAuth.POST("/switch-role", controller.SwitchRole)
 		loginAuth.GET("/logout", controller.Logout)

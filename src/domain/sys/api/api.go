@@ -29,8 +29,10 @@ type IApiService interface {
 	GetApisGroup() (*[]GroupApiItem, error)
 	SynchronizeRouterToApi(router gin.RoutesInfo) (*int, error)
 }
+
 type GroupApiItem struct {
-	GroupName string          `json:"title"`
-	GroupKey  string          `json:"key"`
-	Children  []*GroupApiItem `json:"children"`
+	GroupName       string          `json:"title"`
+	GroupKey        string          `json:"key"`
+	DisableCheckbox bool            `json:"disableCheckbox"`
+	Children        []*GroupApiItem `json:"children"`
 }

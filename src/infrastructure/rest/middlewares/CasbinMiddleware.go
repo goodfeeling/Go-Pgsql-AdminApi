@@ -18,8 +18,21 @@ func CasbinMiddleware(enforcer *casbin.Enforcer) gin.HandlerFunc {
 		roleId, ok := appCtx.GetRoleID()
 		if !ok {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "Unauthorized - Role not found",
+			})
+			return
+		}
+
+		userId, ok := appCtx.GetUserID()
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "Unauthorized - User not found",
 			})
+			return
+		}
+		// super user jump verify
+		if userId == 1 {
+			c.Next()
 			return
 		}
 

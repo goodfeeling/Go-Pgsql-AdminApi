@@ -54,7 +54,7 @@ func (r *Repository) GetByRoleId(roleId int) ([]string, error) {
 	}
 	var rulePaths []string
 	for _, item := range casbinRules {
-		rulePaths = append(rulePaths, fmt.Sprintf("%v-%v", item.V1, item.V2))
+		rulePaths = append(rulePaths, fmt.Sprintf("%v---%v", item.V1, item.V2))
 	}
 	return rulePaths, nil
 }
@@ -80,7 +80,7 @@ func (r *Repository) Insert(roleId int, UpdateMap map[string]any) error {
 			r.Logger.Error("apiPath is not a string")
 			return domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 		}
-		apiPaths := strings.Split(apiPathString, "-")
+		apiPaths := strings.Split(apiPathString, "---")
 		roleMenu := CasbinRule{
 			PType: "p",
 			V0:    strconv.Itoa(roleId),

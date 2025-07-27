@@ -94,23 +94,23 @@ func (s *SysApiUseCase) GetApisGroup() (*[]apiDomain.GroupApiItem, error) {
 		for _, api := range *apis {
 			if api.ApiGroup == groupName {
 				groupApis = append(groupApis, &apiDomain.GroupApiItem{
-					GroupKey:  fmt.Sprintf("%v-%v", api.Path, api.Method),
+					GroupKey:  fmt.Sprintf("%v---%v", api.Path, api.Method),
 					GroupName: api.Description,
 					Children:  nil,
 				})
 			}
 		}
 		groups[i] = apiDomain.GroupApiItem{
-			GroupName: groupName,
-			GroupKey:  fmt.Sprintf("0-%v", i),
-			Children:  groupApis,
+			GroupName:       groupName,
+			GroupKey:        fmt.Sprintf("0---%v", i),
+			DisableCheckbox: len(groupApis) == 0,
+			Children:        groupApis,
 		}
 	}
 	return &groups, nil
 }
 
 func (c *SysApiUseCase) SynchronizeRouterToApi(routes gin.RoutesInfo) (*int, error) {
-
 	count := 0
 	for _, route := range routes {
 		if c.shouldSyncRoute(route.Path) {

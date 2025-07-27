@@ -8,9 +8,8 @@ import (
 )
 
 func MenuRouters(router *gin.RouterGroup, controller menu.IMenuController, enforcer *casbin.Enforcer) {
+	router.Use(middlewares.OptionalAuthMiddleware()).GET("/menu/user", controller.GetUserMenus)
 	u := router.Group("/menu")
-	u.Use(middlewares.OptionalAuthMiddleware()).GET("/user", controller.GetUserMenus)
-
 	u.Use(middlewares.AuthJWTMiddleware())
 	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{

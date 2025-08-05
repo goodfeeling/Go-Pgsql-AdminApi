@@ -8,6 +8,7 @@ import (
 	apiDomain "github.com/gbrayhan/microservices-go/src/domain/sys/api"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	apiRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
+	dictionaryRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -26,14 +27,19 @@ type ISysApiService interface {
 }
 
 type SysApiUseCase struct {
-	sysApiRepository apiRepo.ApiRepositoryInterface
-	Logger           *logger.Logger
+	sysApiRepository     apiRepo.ApiRepositoryInterface
+	dictionaryRepository dictionaryRepo.DictionaryRepositoryInterface
+	Logger               *logger.Logger
 }
 
-func NewSysApiUseCase(sysApiRepository apiRepo.ApiRepositoryInterface, loggerInstance *logger.Logger) ISysApiService {
+func NewSysApiUseCase(
+	sysApiRepository apiRepo.ApiRepositoryInterface,
+	dictionaryRepository dictionaryRepo.DictionaryRepositoryInterface,
+	loggerInstance *logger.Logger) ISysApiService {
 	return &SysApiUseCase{
-		sysApiRepository: sysApiRepository,
-		Logger:           loggerInstance,
+		sysApiRepository:     sysApiRepository,
+		dictionaryRepository: dictionaryRepository,
+		Logger:               loggerInstance,
 	}
 }
 
@@ -87,12 +93,17 @@ func (s *SysApiUseCase) GetApisGroup() (*[]apiDomain.GroupApiItem, error) {
 	if err != nil {
 		return nil, err
 	}
-	groupNames := apiDomain.GetApiGroupNames()
-	groups := make([]apiDomain.GroupApiItem, len(groupNames))
-	for i, groupName := range groupNames {
+
+	dictionary, err := s.dictionaryRepository.GetByType("api_group")
+	if err != nil {
+		return nil, err
+	}
+
+	groups := make([]apiDomain.GroupApiItem, len(*dictionary.Details))
+	for i, item := range *dictionary.Details {
 		groupApis := make([]*apiDomain.GroupApiItem, 0)
 		for _, api := range *apis {
-			if api.ApiGroup == groupName {
+			if api.ApiGroup == item.Label {
 				groupApis = append(groupApis, &apiDomain.GroupApiItem{
 					GroupKey:  fmt.Sprintf("%v---%v", api.Path, api.Method),
 					GroupName: api.Description,
@@ -101,7 +112,7 @@ func (s *SysApiUseCase) GetApisGroup() (*[]apiDomain.GroupApiItem, error) {
 			}
 		}
 		groups[i] = apiDomain.GroupApiItem{
-			GroupName:       groupName,
+			GroupName:       item.Label,
 			GroupKey:        fmt.Sprintf("0---%v", i),
 			DisableCheckbox: len(groupApis) == 0,
 			Children:        groupApis,

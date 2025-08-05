@@ -44,14 +44,14 @@ var ColumnsDictionaryMapping = map[string]string{
 
 // DictionaryRepositoryInterface defines the interface for dictionary repository operations
 type DictionaryRepositoryInterface interface {
-	GetAll() (*[]domainDictionary.Dictionary, error)
-	Create(dictionaryDomain *domainDictionary.Dictionary) (*domainDictionary.Dictionary, error)
-	GetByID(id int) (*domainDictionary.Dictionary, error)
-	Update(id int, dictionaryMap map[string]interface{}) (*domainDictionary.Dictionary, error)
+	GetAll() (*[]domainDictionary.DictionaryDetail, error)
+	Create(dictionaryDomain *domainDictionary.DictionaryDetail) (*domainDictionary.DictionaryDetail, error)
+	GetByID(id int) (*domainDictionary.DictionaryDetail, error)
+	Update(id int, dictionaryMap map[string]interface{}) (*domainDictionary.DictionaryDetail, error)
 	Delete(ids []int) error
-	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainDictionary.Dictionary], error)
+	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainDictionary.DictionaryDetail], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
-	GetOneByMap(dictionaryMap map[string]interface{}) (*domainDictionary.Dictionary, error)
+	GetOneByMap(dictionaryMap map[string]interface{}) (*domainDictionary.DictionaryDetail, error)
 }
 
 type Repository struct {
@@ -63,17 +63,17 @@ func NewDictionaryRepository(db *gorm.DB, loggerInstance *logger.Logger) Diction
 	return &Repository{DB: db, Logger: loggerInstance}
 }
 
-func (r *Repository) GetAll() (*[]domainDictionary.Dictionary, error) {
+func (r *Repository) GetAll() (*[]domainDictionary.DictionaryDetail, error) {
 	var dictionarys []SysDictionaryDetail
 	if err := r.DB.Find(&dictionarys).Error; err != nil {
 		r.Logger.Error("Error getting all dictionarys", zap.Error(err))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 	r.Logger.Info("Successfully retrieved all dictionarys", zap.Int("count", len(dictionarys)))
-	return arrayToDomainMapper(&dictionarys), nil
+	return ArrayToDomainMapper(&dictionarys), nil
 }
 
-func (r *Repository) Create(dictionaryDomain *domainDictionary.Dictionary) (*domainDictionary.Dictionary, error) {
+func (r *Repository) Create(dictionaryDomain *domainDictionary.DictionaryDetail) (*domainDictionary.DictionaryDetail, error) {
 	r.Logger.Info("Creating new dictionary", zap.String("label", dictionaryDomain.Label))
 	dictionaryRepository := fromDomainMapper(dictionaryDomain)
 	txDb := r.DB.Create(dictionaryRepository)
@@ -84,12 +84,12 @@ func (r *Repository) Create(dictionaryDomain *domainDictionary.Dictionary) (*dom
 		var newError domainErrors.GormErr
 		errUnmarshal := json.Unmarshal(byteErr, &newError)
 		if errUnmarshal != nil {
-			return &domainDictionary.Dictionary{}, errUnmarshal
+			return nil, errUnmarshal
 		}
 		switch newError.Number {
 		case 1062:
 			err = domainErrors.NewAppErrorWithType(domainErrors.ResourceAlreadyExists)
-			return &domainDictionary.Dictionary{}, err
+			return nil, err
 		default:
 			err = domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 		}
@@ -98,7 +98,7 @@ func (r *Repository) Create(dictionaryDomain *domainDictionary.Dictionary) (*dom
 	return dictionaryRepository.toDomainMapper(), err
 }
 
-func (r *Repository) GetByID(id int) (*domainDictionary.Dictionary, error) {
+func (r *Repository) GetByID(id int) (*domainDictionary.DictionaryDetail, error) {
 	var dictionary SysDictionaryDetail
 	err := r.DB.Where("id = ?", id).First(&dictionary).Error
 	if err != nil {
@@ -109,13 +109,13 @@ func (r *Repository) GetByID(id int) (*domainDictionary.Dictionary, error) {
 			r.Logger.Error("Error getting dictionary by ID", zap.Error(err), zap.Int("id", id))
 			err = domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 		}
-		return &domainDictionary.Dictionary{}, err
+		return nil, err
 	}
 	r.Logger.Info("Successfully retrieved dictionary by ID", zap.Int("id", id))
 	return dictionary.toDomainMapper(), nil
 }
 
-func (r *Repository) Update(id int, dictionaryMap map[string]interface{}) (*domainDictionary.Dictionary, error) {
+func (r *Repository) Update(id int, dictionaryMap map[string]interface{}) (*domainDictionary.DictionaryDetail, error) {
 	var dictionaryObj SysDictionaryDetail
 	dictionaryObj.ID = id
 	err := r.DB.Model(&dictionaryObj).
@@ -126,18 +126,18 @@ func (r *Repository) Update(id int, dictionaryMap map[string]interface{}) (*doma
 		var newError domainErrors.GormErr
 		errUnmarshal := json.Unmarshal(byteErr, &newError)
 		if errUnmarshal != nil {
-			return &domainDictionary.Dictionary{}, errUnmarshal
+			return nil, errUnmarshal
 		}
 		switch newError.Number {
 		case 1062:
-			return &domainDictionary.Dictionary{}, domainErrors.NewAppErrorWithType(domainErrors.ResourceAlreadyExists)
+			return nil, domainErrors.NewAppErrorWithType(domainErrors.ResourceAlreadyExists)
 		default:
-			return &domainDictionary.Dictionary{}, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
+			return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 		}
 	}
 	if err := r.DB.Where("id = ?", id).First(&dictionaryObj).Error; err != nil {
 		r.Logger.Error("Error retrieving updated dictionary", zap.Error(err), zap.Int("id", id))
-		return &domainDictionary.Dictionary{}, err
+		return nil, err
 	}
 	r.Logger.Info("Successfully updated dictionary", zap.Int("id", id))
 	return dictionaryObj.toDomainMapper(), nil
@@ -158,7 +158,7 @@ func (r *Repository) Delete(ids []int) error {
 	return nil
 }
 
-func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainDictionary.Dictionary], error) {
+func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainDictionary.DictionaryDetail], error) {
 	query := r.DB.Model(&SysDictionaryDetail{})
 
 	// Apply like filters
@@ -230,8 +230,8 @@ func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.Pagina
 
 	totalPages := int((total + int64(filters.PageSize) - 1) / int64(filters.PageSize))
 
-	result := &domain.PaginatedResult[domainDictionary.Dictionary]{
-		Data:       arrayToDomainMapper(&dictionarys),
+	result := &domain.PaginatedResult[domainDictionary.DictionaryDetail]{
+		Data:       ArrayToDomainMapper(&dictionarys),
 		Total:      total,
 		Page:       filters.Page,
 		PageSize:   filters.PageSize,
@@ -270,8 +270,8 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 	return &coincidences, nil
 }
 
-func (u *SysDictionaryDetail) toDomainMapper() *domainDictionary.Dictionary {
-	return &domainDictionary.Dictionary{
+func (u *SysDictionaryDetail) toDomainMapper() *domainDictionary.DictionaryDetail {
+	return &domainDictionary.DictionaryDetail{
 		ID:              u.ID,
 		Label:           u.Label,
 		Value:           u.Value,
@@ -284,7 +284,7 @@ func (u *SysDictionaryDetail) toDomainMapper() *domainDictionary.Dictionary {
 	}
 }
 
-func fromDomainMapper(u *domainDictionary.Dictionary) *SysDictionaryDetail {
+func fromDomainMapper(u *domainDictionary.DictionaryDetail) *SysDictionaryDetail {
 	return &SysDictionaryDetail{
 		ID:              u.ID,
 		Label:           u.Label,
@@ -298,15 +298,15 @@ func fromDomainMapper(u *domainDictionary.Dictionary) *SysDictionaryDetail {
 	}
 }
 
-func arrayToDomainMapper(dictionarys *[]SysDictionaryDetail) *[]domainDictionary.Dictionary {
-	dictionarysDomain := make([]domainDictionary.Dictionary, len(*dictionarys))
+func ArrayToDomainMapper(dictionarys *[]SysDictionaryDetail) *[]domainDictionary.DictionaryDetail {
+	dictionarysDomain := make([]domainDictionary.DictionaryDetail, len(*dictionarys))
 	for i, dictionary := range *dictionarys {
 		dictionarysDomain[i] = *dictionary.toDomainMapper()
 	}
 	return &dictionarysDomain
 }
 
-func (r *Repository) GetOneByMap(dictionaryMap map[string]interface{}) (*domainDictionary.Dictionary, error) {
+func (r *Repository) GetOneByMap(dictionaryMap map[string]interface{}) (*domainDictionary.DictionaryDetail, error) {
 	var dictionaryRepository SysDictionaryDetail
 	tx := r.DB.Limit(1)
 	for key, value := range dictionaryMap {
@@ -315,7 +315,7 @@ func (r *Repository) GetOneByMap(dictionaryMap map[string]interface{}) (*domainD
 		}
 	}
 	if err := tx.Find(&dictionaryRepository).Error; err != nil {
-		return &domainDictionary.Dictionary{}, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
+		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 	return dictionaryRepository.toDomainMapper(), nil
 }

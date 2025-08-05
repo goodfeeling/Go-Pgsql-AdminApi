@@ -1,4 +1,4 @@
-package api
+package file
 
 import (
 	"errors"
@@ -9,55 +9,57 @@ import (
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
-	domainApi "github.com/gbrayhan/microservices-go/src/domain/sys/api"
+	domainFile "github.com/gbrayhan/microservices-go/src/domain/sys/files"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
-	apiRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
+	apiRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/files"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
 // Structures
-type NewApiRequest struct {
-	ID          int    `json:"id"`
-	Path        string `json:"path" binding:"required"`
-	ApiGroup    string `json:"api_group" binding:"required"`
-	Method      string `json:"method" binding:"required"`
-	Description string `json:"description" binding:"required"`
+type NewFileRequest struct {
+	ID             int    `json:"id"`
+	FileName       string `json:"file_name" binding:"required"`
+	FileMD5        string `json:"file_md5" binding:"required"`
+	FilePath       string `json:"file_path" binding:"required"`
+	FileUrl        string `json:"file_url" binding:"required"`
+	StorageEngine  string `json:"storage_engine" binding:"required"`
+	FileOriginName string `json:"file_origin_name" binding:"required"`
 }
 
 // Structures
-type DeleteBatchApiRequest struct {
-	IDS []int `json:"ids"`
+type DeleteBatchFileRequest struct {
+	IDS []int64 `json:"ids"`
 }
 
 type SynchronizeResponse struct {
 	Count int `json:"count"`
 }
 
-type ResponseApi struct {
-	ID          int               `json:"id"`
-	Path        string            `json:"path"`
-	ApiGroup    string            `json:"api_group"`
-	Method      string            `json:"method"`
-	Description string            `json:"description"`
-	CreatedAt   domain.CustomTime `json:"created_at,omitempty"`
-	UpdatedAt   domain.CustomTime `json:"updated_at,omitempty"`
+type ResponseFile struct {
+	ID             int64             `json:"id"`
+	FileName       string            `json:"file_name"`
+	FileMD5        string            `json:"file_md5"`
+	FilePath       string            `json:"file_path"`
+	FileUrl        string            `json:"file_url"`
+	StorageEngine  string            `json:"storage_engine"`
+	FileOriginName string            `json:"file_origin_name"`
+	CreatedAt      domain.CustomTime `json:"created_at,omitempty"`
+	UpdatedAt      domain.CustomTime `json:"updated_at,omitempty"`
 }
-type IApiController interface {
-	NewApi(ctx *gin.Context)
-	GetAllApis(ctx *gin.Context)
-	GetApisByID(ctx *gin.Context)
-	UpdateApi(ctx *gin.Context)
-	DeleteApi(ctx *gin.Context)
+type IFileController interface {
+	NewFile(ctx *gin.Context)
+	GetAllFiles(ctx *gin.Context)
+	GetFilesByID(ctx *gin.Context)
+	UpdateFile(ctx *gin.Context)
+	DeleteFile(ctx *gin.Context)
 	SearchPaginated(ctx *gin.Context)
 	SearchByProperty(ctx *gin.Context)
-	DeleteApis(ctx *gin.Context)
-	GetApisGroup(ctx *gin.Context)
-	SynchronizeRouterToApi(ctx *gin.Context)
+	DeleteFiles(ctx *gin.Context)
 }
-type ApiController struct {
-	apiService domainApi.IApiService
+type FileController struct {
+	apiService domainFile.ISysFilesService
 	Logger     *logger.Logger
 	Router     *gin.Engine
 }
@@ -65,26 +67,26 @@ type RouterSetter interface {
 	SetRouter(router *gin.Engine)
 }
 
-func (c *ApiController) SetRouter(router *gin.Engine) {
+func (c *FileController) SetRouter(router *gin.Engine) {
 	c.Router = router
 }
 
-func NewApiController(apiService domainApi.IApiService, loggerInstance *logger.Logger) IApiController {
-	return &ApiController{apiService: apiService, Logger: loggerInstance}
+func NewFileController(apiService domainFile.ISysFilesService, loggerInstance *logger.Logger) IFileController {
+	return &FileController{apiService: apiService, Logger: loggerInstance}
 }
 
-// CreateApi
+// CreateFile
 // @Summary create api
 // @Description create api
 // @Tags api create
 // @Accept json
 // @Produce json
-// @Param book body NewApiRequest true  "JSON Data"
+// @Param book body NewFileRequest true  "JSON Data"
 // @Success 200 {object} controllers.CommonResponseBuilder
 // @Router /v1/api [post]
-func (c *ApiController) NewApi(ctx *gin.Context) {
+func (c *FileController) NewFile(ctx *gin.Context) {
 	c.Logger.Info("Creating new api")
-	var request NewApiRequest
+	var request NewFileRequest
 	if err := controllers.BindJSON(ctx, &request); err != nil {
 		c.Logger.Error("Error binding JSON for new api", zap.Error(err))
 		appError := domainErrors.NewAppError(err, domainErrors.ValidationError)
@@ -93,28 +95,28 @@ func (c *ApiController) NewApi(ctx *gin.Context) {
 	}
 	apiModel, err := c.apiService.Create(toUsecaseMapper(&request))
 	if err != nil {
-		c.Logger.Error("Error creating api", zap.Error(err), zap.String("path", request.Path))
+		c.Logger.Error("Error creating api", zap.Error(err), zap.String("path", request.FileName))
 		_ = ctx.Error(err)
 		return
 	}
-	apiResponse := controllers.NewCommonResponseBuilder[*ResponseApi]().
+	apiResponse := controllers.NewCommonResponseBuilder[*ResponseFile]().
 		Data(domainToResponseMapper(apiModel)).
 		Message("success").
 		Status(0).
 		Build()
-	c.Logger.Info("Api created successfully", zap.String("path", request.Path), zap.Int("id", int(apiModel.ID)))
+	c.Logger.Info("File created successfully", zap.String("path", request.FileName), zap.Int("id", int(apiModel.ID)))
 	ctx.JSON(http.StatusOK, apiResponse)
 }
 
-// GetAllApis
+// GetAllFiles
 // @Summary get all apis by
 // @Description get  all apis by where
 // @Tags apis
 // @Accept json
 // @Produce json
-// @Success 200 {object} domain.CommonResponse[[]domainApi.Api]
+// @Success 200 {object} domain.CommonResponse[[]domainFile.File]
 // @Router /v1/api [get]
-func (c *ApiController) GetAllApis(ctx *gin.Context) {
+func (c *FileController) GetAllFiles(ctx *gin.Context) {
 	c.Logger.Info("Getting all apis")
 	apis, err := c.apiService.GetAll()
 	if err != nil {
@@ -124,20 +126,20 @@ func (c *ApiController) GetAllApis(ctx *gin.Context) {
 		return
 	}
 	c.Logger.Info("Successfully retrieved all apis", zap.Int("count", len(*apis)))
-	ctx.JSON(http.StatusOK, domain.CommonResponse[*[]domainApi.Api]{
+	ctx.JSON(http.StatusOK, domain.CommonResponse[*[]domainFile.SysFiles]{
 		Data: apis,
 	})
 }
 
-// GetApisByID
+// GetFilesByID
 // @Summary get apis
 // @Description get apis by id
 // @Tags apis
 // @Accept json
 // @Produce json
-// @Success 200 {object} ResponseApi
+// @Success 200 {object} ResponseFile
 // @Router /v1/api/{id} [get]
-func (c *ApiController) GetApisByID(ctx *gin.Context) {
+func (c *FileController) GetFilesByID(ctx *gin.Context) {
 	apiID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		c.Logger.Error("Invalid api ID parameter", zap.Error(err), zap.String("id", ctx.Param("id")))
@@ -156,16 +158,16 @@ func (c *ApiController) GetApisByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, domainToResponseMapper(api))
 }
 
-// UpdateApi
+// UpdateFile
 // @Summary update api
 // @Description update api
 // @Tags api
 // @Accept json
 // @Produce json
 // @Param book body map[string]any  true  "JSON Data"
-// @Success 200 {array} controllers.CommonResponseBuilder[ResponseApi]
+// @Success 200 {array} controllers.CommonResponseBuilder[ResponseFile]
 // @Router /v1/api [put]
-func (c *ApiController) UpdateApi(ctx *gin.Context) {
+func (c *FileController) UpdateFile(ctx *gin.Context) {
 	apiID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		c.Logger.Error("Invalid api ID parameter for update", zap.Error(err), zap.String("id", ctx.Param("id")))
@@ -194,16 +196,16 @@ func (c *ApiController) UpdateApi(ctx *gin.Context) {
 		_ = ctx.Error(err)
 		return
 	}
-	response := controllers.NewCommonResponseBuilder[*ResponseApi]().
+	response := controllers.NewCommonResponseBuilder[*ResponseFile]().
 		Data(domainToResponseMapper(apiUpdated)).
 		Message("success").
 		Status(0).
 		Build()
-	c.Logger.Info("Api updated successfully", zap.Int("id", apiID))
+	c.Logger.Info("File updated successfully", zap.Int("id", apiID))
 	ctx.JSON(http.StatusOK, response)
 }
 
-// DeleteApi
+// DeleteFile
 // @Summary delete api
 // @Description delete api by id
 // @Tags api
@@ -211,7 +213,7 @@ func (c *ApiController) UpdateApi(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {object} domain.CommonResponse[int]
 // @Router /v1/api/{id} [delete]
-func (c *ApiController) DeleteApi(ctx *gin.Context) {
+func (c *FileController) DeleteFile(ctx *gin.Context) {
 	apiID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		c.Logger.Error("Invalid api ID parameter for deletion", zap.Error(err), zap.String("id", ctx.Param("id")))
@@ -220,13 +222,13 @@ func (c *ApiController) DeleteApi(ctx *gin.Context) {
 		return
 	}
 	c.Logger.Info("Deleting api", zap.Int("id", apiID))
-	err = c.apiService.Delete([]int{apiID})
+	err = c.apiService.Delete([]int64{int64(apiID)})
 	if err != nil {
 		c.Logger.Error("Error deleting api", zap.Error(err), zap.Int("id", apiID))
 		_ = ctx.Error(err)
 		return
 	}
-	c.Logger.Info("Api deleted successfully", zap.Int("id", apiID))
+	c.Logger.Info("File deleted successfully", zap.Int("id", apiID))
 	ctx.JSON(http.StatusOK, domain.CommonResponse[int]{
 		Data:    apiID,
 		Message: "resource deleted successfully",
@@ -234,15 +236,15 @@ func (c *ApiController) DeleteApi(ctx *gin.Context) {
 	})
 }
 
-// SearchApiPageList
+// SearchFilePageList
 // @Summary search apis
 // @Description search apis by query
 // @Tags search apis
 // @Accept json
 // @Produce json
-// @Success 200 {object} domain.PageList[[]ResponseApi]
+// @Success 200 {object} domain.PageList[[]ResponseFile]
 // @Router /v1/api/search [get]
-func (c *ApiController) SearchPaginated(ctx *gin.Context) {
+func (c *FileController) SearchPaginated(ctx *gin.Context) {
 	c.Logger.Info("Searching apis with pagination")
 
 	// Parse query parameters
@@ -263,7 +265,7 @@ func (c *ApiController) SearchPaginated(ctx *gin.Context) {
 
 	// Parse like filters
 	likeFilters := make(map[string][]string)
-	for field := range apiRepo.ColumnsApiMapping {
+	for field := range apiRepo.ColumnsSysFilesMapping {
 		if values := ctx.QueryArray(field + "_like"); len(values) > 0 {
 			likeFilters[field] = values
 		}
@@ -272,7 +274,7 @@ func (c *ApiController) SearchPaginated(ctx *gin.Context) {
 
 	// Parse exact matches
 	matches := make(map[string][]string)
-	for field := range apiRepo.ColumnsApiMapping {
+	for field := range apiRepo.ColumnsSysFilesMapping {
 		if values := ctx.QueryArray(field + "_match"); len(values) > 0 {
 			matches[field] = values
 		}
@@ -283,7 +285,7 @@ func (c *ApiController) SearchPaginated(ctx *gin.Context) {
 
 	// Parse date range filters
 	var dateRanges []domain.DateRangeFilter
-	for field := range apiRepo.ColumnsApiMapping {
+	for field := range apiRepo.ColumnsSysFilesMapping {
 		startStr := ctx.Query(field + "_start")
 		endStr := ctx.Query(field + "_end")
 
@@ -326,7 +328,7 @@ func (c *ApiController) SearchPaginated(ctx *gin.Context) {
 		_ = ctx.Error(err)
 		return
 	}
-	type PageResult = domain.PageList[*[]*ResponseApi]
+	type PageResult = domain.PageList[*[]*ResponseFile]
 	response := controllers.NewCommonResponseBuilder[PageResult]().
 		Data(PageResult{
 			List:       arrayDomainToResponseMapper(result.Data),
@@ -354,7 +356,7 @@ func (c *ApiController) SearchPaginated(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {array} []string
 // @Router /v1/api/search-property [get]
-func (c *ApiController) SearchByProperty(ctx *gin.Context) {
+func (c *FileController) SearchByProperty(ctx *gin.Context) {
 	property := ctx.Query("property")
 	searchText := ctx.Query("searchText")
 
@@ -393,18 +395,18 @@ func (c *ApiController) SearchByProperty(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, coincidences)
 }
 
-// DeleteApis
-// @Summary delete apis
-// @Description delete apis by id
+// BatchDeleteFile
+// @Summary delete operations
+// @Description delete operations by id
 // @Tags batch delete
 // @Accept json
 // @Produce json
-// @Param book body DeleteBatchApiRequest true  "JSON Data"
+// @Param book body DeleteBatchFileRequest true  "JSON Data"
 // @Success 200 {object} domain.CommonResponse[int]
 // @Router /v1/api/delete-batch [post]
-func (c *ApiController) DeleteApis(ctx *gin.Context) {
+func (c *FileController) DeleteFiles(ctx *gin.Context) {
 	c.Logger.Info("Creating new dictionary")
-	var request DeleteBatchApiRequest
+	var request DeleteBatchFileRequest
 	var err error
 	if err = controllers.BindJSON(ctx, &request); err != nil {
 		c.Logger.Error("Error binding JSON for new dictionary", zap.Error(err))
@@ -419,104 +421,44 @@ func (c *ApiController) DeleteApis(ctx *gin.Context) {
 		_ = ctx.Error(err)
 		return
 	}
-	c.Logger.Info("Operation deleted successfully", zap.String("ids", fmt.Sprintf("%v", request.IDS)))
-	ctx.JSON(http.StatusOK, domain.CommonResponse[[]int]{
+	c.Logger.Info("File deleted successfully", zap.String("ids", fmt.Sprintf("%v", request.IDS)))
+	ctx.JSON(http.StatusOK, domain.CommonResponse[[]int64]{
 		Data:    request.IDS,
 		Message: "resource deleted successfully",
 		Status:  0,
 	})
 }
 
-// GetApisGroup
-// @Summary get apis group
-// @Description get group after apis
-// @Tags apis
-// @Accept json
-// @Produce json
-// @Success 200 {array} []domainApi.GroupApiItem
-// @Router /v1/api/group-list [get]
-func (c *ApiController) GetApisGroup(ctx *gin.Context) {
-	c.Logger.Info("Getting all apis")
-	apis, err := c.apiService.GetApisGroup()
-	if err != nil {
-		c.Logger.Error("Error getting all apis", zap.Error(err))
-		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
-		_ = ctx.Error(appError)
-		return
-	}
-	apiResponse := controllers.NewCommonResponseBuilder[*[]domainApi.GroupApiItem]().
-		Data(apis).
-		Message("success").
-		Status(0).
-		Build()
-	c.Logger.Info("Successfully retrieved all apis", zap.Int("count", len(*apis)))
-	ctx.JSON(http.StatusOK, apiResponse)
-}
-
-// synchronize apis with router
-// @Summary synchronize apis with router
-// @Description synchronize apis with router
-// @Tags sync apis
-// @Accept json
-// @Produce json
-// @Success 200 {object} SynchronizeResponse
-// @Router /v1/api/synchronize [post]
-func (c *ApiController) SynchronizeRouterToApi(ctx *gin.Context) {
-	c.Logger.Info("Synchronizing router to api")
-
-	// 检查router是否存在
-	if c.Router == nil {
-		c.Logger.Error("Router is not available for synchronization")
-		appError := domainErrors.NewAppError(errors.New("router not available"), domainErrors.UnknownError)
-		_ = ctx.Error(appError)
-		return
-	}
-	// 获取所有路由信息
-	routes := c.Router.Routes()
-	fmt.Println("Synchronizing router to api", routes)
-	apis, err := c.apiService.SynchronizeRouterToApi(routes)
-	if err != nil {
-		c.Logger.Error("Error synchronizing router to api", zap.Error(err))
-		appError := domainErrors.NewAppError(err, domainErrors.RepositoryError)
-		_ = ctx.Error(appError)
-		return
-	}
-	apiResponse := controllers.NewCommonResponseBuilder[SynchronizeResponse]().
-		Data(SynchronizeResponse{Count: *apis}).
-		Message("success").
-		Status(0).
-		Build()
-	c.Logger.Info("Successfully synchronized router to api", zap.Int("count", *apis))
-	ctx.JSON(http.StatusOK, apiResponse)
-}
-
 // Mappers
-func domainToResponseMapper(domainApi *domainApi.Api) *ResponseApi {
-
-	return &ResponseApi{
-		ID:          domainApi.ID,
-		Path:        domainApi.Path,
-		ApiGroup:    domainApi.ApiGroup,
-		Method:      domainApi.Method,
-		Description: domainApi.Description,
-		CreatedAt:   domain.CustomTime{Time: domainApi.CreatedAt},
-		UpdatedAt:   domain.CustomTime{Time: domainApi.UpdatedAt},
+func domainToResponseMapper(domainFile *domainFile.SysFiles) *ResponseFile {
+	return &ResponseFile{
+		ID:             domainFile.ID,
+		FileName:       domainFile.FileName,
+		FileMD5:        domainFile.FileMD5,
+		FilePath:       domainFile.FilePath,
+		FileUrl:        domainFile.FileUrl,
+		FileOriginName: domainFile.FileOriginName,
+		StorageEngine:  domainFile.StorageEngine,
+		CreatedAt:      domain.CustomTime{Time: domainFile.CreatedAt},
+		UpdatedAt:      domain.CustomTime{Time: domainFile.UpdatedAt},
 	}
 }
 
-func arrayDomainToResponseMapper(apis *[]domainApi.Api) *[]*ResponseApi {
-	res := make([]*ResponseApi, len(*apis))
+func arrayDomainToResponseMapper(apis *[]domainFile.SysFiles) *[]*ResponseFile {
+	res := make([]*ResponseFile, len(*apis))
 	for i, u := range *apis {
 		res[i] = domainToResponseMapper(&u)
 	}
 	return &res
 }
 
-func toUsecaseMapper(req *NewApiRequest) *domainApi.Api {
-	return &domainApi.Api{
-		Path:        req.Path,
-		ApiGroup:    req.ApiGroup,
-		Method:      req.Method,
-		Description: req.Description,
+func toUsecaseMapper(req *NewFileRequest) *domainFile.SysFiles {
+	return &domainFile.SysFiles{
+		FileName:       req.FileName,
+		FileMD5:        req.FileMD5,
+		FilePath:       req.FilePath,
+		FileUrl:        req.FileUrl,
+		FileOriginName: req.FileOriginName,
+		StorageEngine:  req.StorageEngine,
 	}
 }

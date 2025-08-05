@@ -6,7 +6,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 )
 
-type Dictionary struct {
+type DictionaryDetail struct {
 	ID              int       `json:"id"`
 	Label           string    `json:"label"`
 	Value           string    `json:"value"`
@@ -18,13 +18,13 @@ type Dictionary struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 }
 
-type IDictionaryService interface {
-	GetAll() (*[]Dictionary, error)
-	GetByID(id int) (*Dictionary, error)
-	Create(newDictionary *Dictionary) (*Dictionary, error)
+type IDictionaryDetailService interface {
+	GetAll() (*[]DictionaryDetail, error)
+	GetByID(id int) (*DictionaryDetail, error)
+	Create(newDictionary *DictionaryDetail) (*DictionaryDetail, error)
 	Delete(ids []int) error
-	Update(id int, userMap map[string]interface{}) (*Dictionary, error)
-	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[Dictionary], error)
+	Update(id int, userMap map[string]interface{}) (*DictionaryDetail, error)
+	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[DictionaryDetail], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
-	GetOneByMap(userMap map[string]interface{}) (*Dictionary, error)
+	GetOneByMap(userMap map[string]interface{}) (*DictionaryDetail, error)
 }

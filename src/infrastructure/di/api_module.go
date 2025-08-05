@@ -17,7 +17,10 @@ func setupApiModule(appContext *ApplicationContext) error {
 	// Initialize repositories
 	apiRepository := api.NewApiRepository(appContext.DB, appContext.Logger)
 	// Initialize use cases
-	apiUC := apiUseCase.NewSysApiUseCase(apiRepository, appContext.Logger)
+	apiUC := apiUseCase.NewSysApiUseCase(
+		apiRepository,
+		appContext.Repositories.DictionaryRepository,
+		appContext.Logger)
 	// Initialize controllers
 	apiController := apiController.NewApiController(apiUC, appContext.Logger)
 

@@ -24,8 +24,7 @@ func ApiRouters(router *gin.RouterGroup, routerEngine *gin.Engine, controller ap
 		u.DELETE("/:id", controller.DeleteApi)
 		u.GET("/search", controller.SearchPaginated)
 		u.GET("/search-property", controller.SearchByProperty)
-		u.GET("/groups", controller.GetGroups)
-		u.POST("/delete-batch", controller.DeleteOperations)
+		u.POST("/delete-batch", controller.DeleteApis)
 		u.GET("/group-list", controller.GetApisGroup)
 		u.POST("/synchronize", controller.SynchronizeRouterToApi)
 	}

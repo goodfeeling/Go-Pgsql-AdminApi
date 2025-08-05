@@ -10,6 +10,7 @@ import (
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainDictionary "github.com/gbrayhan/microservices-go/src/domain/sys/dictionary"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	dictionaryDetailRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary_detail"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/utils"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -26,6 +27,8 @@ type SysDictionary struct {
 	Type   string `gorm:"column:type;type:varchar(191)"` // 字典名（英）
 	Status int16  `gorm:"column:status;type:smallint"`   // 状态
 	Desc   string `gorm:"column:desc;type:varchar(191)"` // 描述
+	// 关联关系
+	Details []dictionaryDetailRepo.SysDictionaryDetail `gorm:"foreignKey:SysDictionaryID"`
 }
 
 // TableName returns the name of the database table for this model
@@ -53,6 +56,8 @@ type DictionaryRepositoryInterface interface {
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainDictionary.Dictionary], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(dictionaryMap map[string]interface{}) (*domainDictionary.Dictionary, error)
+
+	GetByType(typeText string) (*domainDictionary.Dictionary, error)
 }
 
 type Repository struct {
@@ -279,6 +284,7 @@ func (u *SysDictionary) toDomainMapper() *domainDictionary.Dictionary {
 		Status:    u.Status,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
+		Details:   dictionaryDetailRepo.ArrayToDomainMapper(&u.Details),
 	}
 }
 
@@ -314,4 +320,18 @@ func (r *Repository) GetOneByMap(dictionaryMap map[string]interface{}) (*domainD
 		return &domainDictionary.Dictionary{}, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 	return dictionaryRepository.toDomainMapper(), nil
+}
+
+func (r *Repository) GetByType(typeText string) (*domainDictionary.Dictionary, error) {
+	var dictionarys SysDictionary
+	if err := r.DB.
+		Preload("Details", func(db *gorm.DB) *gorm.DB {
+			return db.Where("status = ?", 1)
+		}).
+		Where("type = ? and status = ?", typeText, 1).First(&dictionarys).Error; err != nil {
+		r.Logger.Error("Error getting all dictionarys", zap.Error(err))
+		return nil, nil
+	}
+	r.Logger.Info("Successfully retrieved all dictionarys", zap.String("typeText", typeText))
+	return dictionarys.toDomainMapper(), nil
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/casbin_rule"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary_detail"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/files"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_btn"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_menu"
@@ -59,6 +60,7 @@ type ApplicationContext struct {
 	MenuParameterModule    MenuParameterModule
 	OperationModule        OperationModule
 	RoleModule             RoleModule
+	FileModule             FileModule
 }
 type RepositoryContainer struct {
 	RoleMenuRepository         role_menu.ISysRoleMenuRepository
@@ -75,6 +77,7 @@ type RepositoryContainer struct {
 	MenuParameterRepository    base_menu_parameter.MenuParameterRepositoryInterface
 	RoleRepository             role.ISysRolesRepository
 	UserRepository             user.UserRepositoryInterface
+	FileRepository             files.ISysFilesRepository
 }
 
 // SetupDependencies creates a new application context with all dependencies
@@ -105,6 +108,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		MenuParameterRepository: base_menu_parameter.NewMenuParameterRepository(db, loggerInstance),
 		RoleRepository:          role.NewSysRolesRepository(db, loggerInstance),
 		UserRepository:          user.NewUserRepository(db, loggerInstance),
+		FileRepository:          files.NewSysFilesRepository(db, loggerInstance),
 	}
 
 	// Initialize JWT service
@@ -133,6 +137,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		setupOperationModule,
 		setupUploadModule,
 		setupMenuParameterModule,
+		setupFileModule,
 	}
 
 	for _, setupFunc := range moduleSetupFuncs {

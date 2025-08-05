@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
@@ -30,7 +31,9 @@ func GinBodyLogMiddleware(db *gorm.DB, logger *logger.Logger) gin.HandlerFunc {
 		var reqBody string
 		var resp string
 		appCtx := controllers.NewAppUtils(c)
-		if c.Request.RequestURI == "/v1/upload/single" {
+
+		// jump upload api
+		if strings.HasPrefix(c.Request.RequestURI, "/v1/upload") {
 			reqBody = ""
 			resp = ""
 		} else {

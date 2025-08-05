@@ -55,11 +55,11 @@ type IIDictionaryDetailController interface {
 	DeleteDictionaryDetails(ctx *gin.Context)
 }
 type DictionaryDetailController struct {
-	dictionaryService domainDictionary.IDictionaryService
+	dictionaryService domainDictionary.IDictionaryDetailService
 	Logger            *logger.Logger
 }
 
-func NewIDictionaryDetailController(dictionaryService domainDictionary.IDictionaryService, loggerInstance *logger.Logger) IIDictionaryDetailController {
+func NewIDictionaryDetailController(dictionaryService domainDictionary.IDictionaryDetailService, loggerInstance *logger.Logger) IIDictionaryDetailController {
 	return &DictionaryDetailController{dictionaryService: dictionaryService, Logger: loggerInstance}
 }
 
@@ -114,7 +114,7 @@ func (c *DictionaryDetailController) GetAllDictionaries(ctx *gin.Context) {
 		return
 	}
 	c.Logger.Info("Successfully retrieved all dictionaries", zap.Int("count", len(*dictionaries)))
-	ctx.JSON(http.StatusOK, domain.CommonResponse[*[]domainDictionary.Dictionary]{
+	ctx.JSON(http.StatusOK, domain.CommonResponse[*[]domainDictionary.DictionaryDetail]{
 		Data: dictionaries,
 	})
 }
@@ -417,7 +417,7 @@ func (c *DictionaryDetailController) DeleteDictionaryDetails(ctx *gin.Context) {
 }
 
 // Mappers
-func domainToResponseMapper(domainDictionary *domainDictionary.Dictionary) *ResponseDictionary {
+func domainToResponseMapper(domainDictionary *domainDictionary.DictionaryDetail) *ResponseDictionary {
 
 	return &ResponseDictionary{
 		ID:              domainDictionary.ID,
@@ -432,7 +432,7 @@ func domainToResponseMapper(domainDictionary *domainDictionary.Dictionary) *Resp
 	}
 }
 
-func arrayDomainToResponseMapper(dictionaries *[]domainDictionary.Dictionary) *[]*ResponseDictionary {
+func arrayDomainToResponseMapper(dictionaries *[]domainDictionary.DictionaryDetail) *[]*ResponseDictionary {
 	res := make([]*ResponseDictionary, len(*dictionaries))
 	for i, u := range *dictionaries {
 		res[i] = domainToResponseMapper(&u)
@@ -440,8 +440,8 @@ func arrayDomainToResponseMapper(dictionaries *[]domainDictionary.Dictionary) *[
 	return &res
 }
 
-func toUsecaseMapper(req *NewDictionaryRequest) *domainDictionary.Dictionary {
-	return &domainDictionary.Dictionary{
+func toUsecaseMapper(req *NewDictionaryRequest) *domainDictionary.DictionaryDetail {
+	return &domainDictionary.DictionaryDetail{
 		Label:           req.Label,
 		Value:           req.Value,
 		Extend:          req.Extend,

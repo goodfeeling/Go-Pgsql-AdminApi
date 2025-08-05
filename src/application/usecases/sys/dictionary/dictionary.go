@@ -18,6 +18,7 @@ type ISysDictionaryService interface {
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[dictionaryDomain.Dictionary], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*dictionaryDomain.Dictionary, error)
+	GetByType(typeText string) (*dictionaryDomain.Dictionary, error)
 }
 
 type SysDictionaryUseCase struct {
@@ -25,7 +26,10 @@ type SysDictionaryUseCase struct {
 	Logger                  *logger.Logger
 }
 
-func NewSysDictionaryUseCase(sysDictionaryRepository dictionaryRepo.DictionaryRepositoryInterface, loggerInstance *logger.Logger) ISysDictionaryService {
+func NewSysDictionaryUseCase(
+	sysDictionaryRepository dictionaryRepo.DictionaryRepositoryInterface,
+	loggerInstance *logger.Logger,
+) ISysDictionaryService {
 	return &SysDictionaryUseCase{
 		sysDictionaryRepository: sysDictionaryRepository,
 		Logger:                  loggerInstance,
@@ -73,4 +77,8 @@ func (s *SysDictionaryUseCase) SearchByProperty(property string, searchText stri
 
 func (s *SysDictionaryUseCase) GetOneByMap(userMap map[string]interface{}) (*dictionaryDomain.Dictionary, error) {
 	return s.sysDictionaryRepository.GetOneByMap(userMap)
+}
+
+func (s *SysDictionaryUseCase) GetByType(typeText string) (*dictionaryDomain.Dictionary, error) {
+	return s.sysDictionaryRepository.GetByType(typeText)
 }

@@ -4,25 +4,26 @@ import (
 	filesUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/files"
 
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/files"
-	uploadController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/upload"
+	fileController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/file"
 )
 
-type UploadModule struct {
-	Controller uploadController.IUploadController
+type FileModule struct {
+	Controller fileController.IFileController
 	UseCase    filesUseCase.ISysFilesService
 	Repository files.ISysFilesRepository
 }
 
-func setupUploadModule(appContext *ApplicationContext) error {
+func setupFileModule(appContext *ApplicationContext) error {
 	// Initialize use cases
 	filesUC := filesUseCase.NewSysFilesUseCase(
 		appContext.Repositories.FileRepository,
 		appContext.Logger)
 
 	// Initialize controllers
-	uploadController := uploadController.NewAuthController(filesUC, appContext.Logger)
-	appContext.UploadModule = UploadModule{
-		Controller: uploadController,
+	fileController := fileController.NewFileController(filesUC, appContext.Logger)
+
+	appContext.FileModule = FileModule{
+		Controller: fileController,
 		UseCase:    filesUC,
 		Repository: appContext.Repositories.FileRepository,
 	}

@@ -24,7 +24,7 @@ func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
 
 	AuthRoutes(v1, appContext.AuthModule.Controller, appContext.Enforcer)
 	UserRoutes(v1, appContext.UserModule.Controller, appContext.Enforcer)
-	UploadRoutes(v1, appContext.UploadModule.Controller)
+	UploadRoutes(v1, appContext.UploadModule.Controller, appContext.Enforcer)
 	RoleRoutes(v1, appContext.RoleModule.Controller, appContext.Enforcer)
 	ApiRouters(v1, router, appContext.ApiModule.Controller, appContext.Enforcer)
 	OperationRouters(v1, appContext.OperationModule.Controller, appContext.Enforcer)
@@ -34,4 +34,5 @@ func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
 	MenuGroupRouters(v1, appContext.MenuGroupModule.Controller, appContext.Enforcer)
 	MenuBtnRouters(v1, appContext.MenuBtnModule.Controller, appContext.Enforcer)
 	MenuParameterRouters(v1, appContext.MenuParameterModule.Controller, appContext.Enforcer)
+	FileRouters(v1, appContext.FileModule.Controller, appContext.Enforcer)
 }

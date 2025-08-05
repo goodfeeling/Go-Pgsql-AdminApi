@@ -12,14 +12,14 @@ import (
 )
 
 type ISysDictionaryService interface {
-	GetAll() (*[]dictionaryDomain.Dictionary, error)
-	GetByID(id int) (*dictionaryDomain.Dictionary, error)
-	Create(newDictionary *dictionaryDomain.Dictionary) (*dictionaryDomain.Dictionary, error)
+	GetAll() (*[]dictionaryDomain.DictionaryDetail, error)
+	GetByID(id int) (*dictionaryDomain.DictionaryDetail, error)
+	Create(newDictionary *dictionaryDomain.DictionaryDetail) (*dictionaryDomain.DictionaryDetail, error)
 	Delete(ids []int) error
-	Update(id int, userMap map[string]interface{}) (*dictionaryDomain.Dictionary, error)
-	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[dictionaryDomain.Dictionary], error)
+	Update(id int, userMap map[string]interface{}) (*dictionaryDomain.DictionaryDetail, error)
+	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[dictionaryDomain.DictionaryDetail], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
-	GetOneByMap(userMap map[string]interface{}) (*dictionaryDomain.Dictionary, error)
+	GetOneByMap(userMap map[string]interface{}) (*dictionaryDomain.DictionaryDetail, error)
 }
 
 type SysDictionaryUseCase struct {
@@ -34,17 +34,17 @@ func NewSysDictionaryUseCase(sysDictionaryRepository dictionaryRepo.DictionaryRe
 	}
 }
 
-func (s *SysDictionaryUseCase) GetAll() (*[]dictionaryDomain.Dictionary, error) {
+func (s *SysDictionaryUseCase) GetAll() (*[]dictionaryDomain.DictionaryDetail, error) {
 	s.Logger.Info("Getting all roles")
 	return s.sysDictionaryRepository.GetAll()
 }
 
-func (s *SysDictionaryUseCase) GetByID(id int) (*dictionaryDomain.Dictionary, error) {
+func (s *SysDictionaryUseCase) GetByID(id int) (*dictionaryDomain.DictionaryDetail, error) {
 	s.Logger.Info("Getting dictionary by ID", zap.Int("id", id))
 	return s.sysDictionaryRepository.GetByID(id)
 }
 
-func (s *SysDictionaryUseCase) Create(newDictionary *dictionaryDomain.Dictionary) (*dictionaryDomain.Dictionary, error) {
+func (s *SysDictionaryUseCase) Create(newDictionary *dictionaryDomain.DictionaryDetail) (*dictionaryDomain.DictionaryDetail, error) {
 	s.Logger.Info("Creating new dictionary", zap.String("Label", newDictionary.Label))
 	return s.sysDictionaryRepository.Create(newDictionary)
 }
@@ -54,12 +54,12 @@ func (s *SysDictionaryUseCase) Delete(ids []int) error {
 	return s.sysDictionaryRepository.Delete(ids)
 }
 
-func (s *SysDictionaryUseCase) Update(id int, userMap map[string]interface{}) (*dictionaryDomain.Dictionary, error) {
+func (s *SysDictionaryUseCase) Update(id int, userMap map[string]interface{}) (*dictionaryDomain.DictionaryDetail, error) {
 	s.Logger.Info("Updating dictionary", zap.Int("id", id))
 	return s.sysDictionaryRepository.Update(id, userMap)
 }
 
-func (s *SysDictionaryUseCase) SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[dictionaryDomain.Dictionary], error) {
+func (s *SysDictionaryUseCase) SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[dictionaryDomain.DictionaryDetail], error) {
 	s.Logger.Info("Searching dictionary with pagination",
 		zap.Int("page", filters.Page),
 		zap.Int("pageSize", filters.PageSize))
@@ -73,6 +73,6 @@ func (s *SysDictionaryUseCase) SearchByProperty(property string, searchText stri
 	return s.sysDictionaryRepository.SearchByProperty(property, searchText)
 }
 
-func (s *SysDictionaryUseCase) GetOneByMap(userMap map[string]interface{}) (*dictionaryDomain.Dictionary, error) {
+func (s *SysDictionaryUseCase) GetOneByMap(userMap map[string]interface{}) (*dictionaryDomain.DictionaryDetail, error) {
 	return s.sysDictionaryRepository.GetOneByMap(userMap)
 }

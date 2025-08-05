@@ -32,6 +32,7 @@ type ResponseDictionary struct {
 	Type      string            `json:"type"`
 	Status    int16             `json:"status"`
 	Desc      string            `json:"desc"`
+	IsDefault int16             `json:"is_default"`
 	CreatedAt domain.CustomTime `json:"created_at"`
 	UpdatedAt domain.CustomTime `json:"updated_at"`
 }
@@ -43,6 +44,7 @@ type IDictionaryController interface {
 	DeleteDictionary(ctx *gin.Context)
 	SearchPaginated(ctx *gin.Context)
 	SearchByProperty(ctx *gin.Context)
+	GetByType(ctx *gin.Context)
 }
 type DictionaryController struct {
 	dictionaryService domainDictionary.IDictionaryService
@@ -224,7 +226,6 @@ func (c *DictionaryController) DeleteDictionary(ctx *gin.Context) {
 // @Router /v1/dictionary/search [get]
 func (c *DictionaryController) SearchPaginated(ctx *gin.Context) {
 	c.Logger.Info("Searching dictionaries with pagination")
-	fmt.Println("=====11111")
 	// Parse query parameters
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	if page < 1 {
@@ -370,6 +371,26 @@ func (c *DictionaryController) SearchByProperty(ctx *gin.Context) {
 		zap.String("property", property),
 		zap.Int("results", len(*coincidences)))
 	ctx.JSON(http.StatusOK, coincidences)
+}
+
+func (c *DictionaryController) GetByType(ctx *gin.Context) {
+	typeText := ctx.Param("type")
+	c.Logger.Info("getting dictionary by type", zap.String("type", typeText))
+	dictionaries, err := c.dictionaryService.GetByType(typeText)
+	if err != nil {
+		c.Logger.Error("Error getting all dictionaries", zap.Error(err))
+		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
+		_ = ctx.Error(appError)
+		return
+	}
+	dictionaryResponse := controllers.NewCommonResponseBuilder[*domainDictionary.Dictionary]().
+		Data(dictionaries).
+		Message("success").
+		Status(0).
+		Build()
+	c.Logger.Info("Successfully retrieved all dictionaries", zap.String("Type", typeText))
+	ctx.JSON(http.StatusOK, dictionaryResponse)
+
 }
 
 // Mappers

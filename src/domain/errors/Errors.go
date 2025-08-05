@@ -41,6 +41,9 @@ const (
 
 	TokenExpired        ErrorType    = "TokenIsExpired"
 	TokenExpiredMessage ErrorMessage = "token is expired"
+
+	UploadError        ErrorType    = "UploadError"
+	UploadErrorMessage ErrorMessage = "upload has error"
 )
 
 type AppError struct {
@@ -77,6 +80,8 @@ func NewAppErrorWithType(errType ErrorType) *AppError {
 		err = errors.New(string(TokenErrorMessage))
 	case TokenExpired:
 		err = errors.New(string(TokenExpiredMessage))
+	case UploadError:
+		err = errors.New(string(UploadErrorMessage))
 	default:
 		err = errors.New(string(unknownErrorMessage))
 	}
@@ -108,6 +113,8 @@ func AppErrorToHTTP(appErr *AppError) (int, string) {
 		return http.StatusUnauthorized, appErr.Error()
 	case TokenExpired:
 		return http.StatusUnauthorized, appErr.Error()
+	case UploadError:
+		return http.StatusBadRequest, appErr.Error()
 	default:
 		return http.StatusInternalServerError, "Internal Server Error"
 	}

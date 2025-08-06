@@ -29,12 +29,12 @@ type IUploadController interface {
 }
 
 type STSTokenResponse struct {
-	access_key_id     string
-	access_key_secret string
-	security_token    string
-	expiration        string
-	bucket_name       string
-	region            string
+	AccessKeyId     string `json:"access_key_id"`
+	AccessKeySecret string `json:"access_key_secret"`
+	SecurityToken   string `json:"security_token"`
+	Expiration      string `json:"expiration"`
+	BucketName      string `json:"bucket_name"`
+	Region          string `json:"region"`
 }
 
 type UploadController struct {
@@ -42,9 +42,84 @@ type UploadController struct {
 	Logger          *logger.Logger
 }
 
-// multiple implements IUploadController.
+// MultipleUpload
+// @Summary multiple files upload
+// @Description upload multiple files get files info
+// @Tags upload
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "fileResources" collectionFormat(multi)
+// @Success 200 {object} domain.CommonResponse[[]domainFiles.SysFiles]
+// @Router /v1/upload/multiple [post]
 func (u *UploadController) Multiple(ctx *gin.Context) {
-	panic("unimplemented")
+	// 获取多文件表单
+	form, err := ctx.MultipartForm()
+	if err != nil {
+		u.Logger.Error("Failed to get multipart form", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.UploadError)
+		_ = ctx.Error(appError)
+		return
+	}
+
+	files := form.File["file"]
+	var uploadedFiles []domainFiles.SysFiles
+
+	for _, file := range files {
+		filename := filepath.Base(file.Filename)
+		ext := filepath.Ext(filename)
+		newFilename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+		savePath := filepath.Join("public", newFilename)
+
+		if err := os.MkdirAll("public", os.ModePerm); err != nil {
+			u.Logger.Error("Error creating dir", zap.Error(err))
+			appError := domainErrors.NewAppError(err, domainErrors.UploadError)
+			_ = ctx.Error(appError)
+			return
+		}
+
+		if err := ctx.SaveUploadedFile(file, savePath); err != nil {
+			u.Logger.Error("Error save file", zap.Error(err))
+			appError := domainErrors.NewAppError(err, domainErrors.UploadError)
+			_ = ctx.Error(appError)
+			return
+		}
+
+		md5Value, err := shareUtils.CalculateFileMD5(savePath)
+		if err != nil {
+			u.Logger.Error("calculate file to md5", zap.Error(err))
+			appError := domainErrors.NewAppError(err, domainErrors.UploadError)
+			_ = ctx.Error(appError)
+			return
+		}
+
+		fileInfo := domainFiles.SysFiles{
+			FileName:       newFilename,
+			FilePath:       savePath,
+			FileMD5:        md5Value,
+			FileOriginName: filename,
+			StorageEngine:  "local",
+		}
+
+		res, err := u.sysFilesUseCase.Create(&fileInfo)
+		if err != nil {
+			u.Logger.Error("insert file info to database", zap.Error(err))
+			appError := domainErrors.NewAppError(err, domainErrors.UploadError)
+			_ = ctx.Error(appError)
+			return
+		}
+
+		uploadedFiles = append(uploadedFiles, *res)
+	}
+
+	response := &domain.CommonResponse[[]domainFiles.SysFiles]{
+		Data:    uploadedFiles,
+		Message: "Upload success",
+		Status:  200,
+	}
+
+	u.Logger.Info("multiple upload successful", zap.Int("fileCount", len(files)))
+
+	ctx.JSON(http.StatusOK, response)
 }
 
 // SingleUpload
@@ -137,7 +212,6 @@ func (u *UploadController) GetSTSToken(ctx *gin.Context) {
 	// 从环境变量中获取步骤1.3生成的RAM角色的RamRoleArn。
 	roleArn := os.Getenv("RAM_ROLE_ARN")
 	serviceAddress := os.Getenv("SECURITY_SERVICE_ADDRESS")
-
 	// 创建权限策略客户端。
 	config := &openapi.Config{
 		// 必填，步骤1.1获取到的 AccessKey ID。
@@ -150,7 +224,9 @@ func (u *UploadController) GetSTSToken(ctx *gin.Context) {
 	config.Endpoint = tea.String(serviceAddress)
 	client, err := sts20150401.NewClient(config)
 	if err != nil {
-		fmt.Printf("Failed to create client: %v\n", err)
+		u.Logger.Error("Failed to create client:", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.UploadError)
+		_ = ctx.Error(appError)
 		return
 	}
 	// 生成唯一的会话名称
@@ -167,7 +243,9 @@ func (u *UploadController) GetSTSToken(ctx *gin.Context) {
 	}
 	response, err := client.AssumeRoleWithOptions(request, &util.RuntimeOptions{})
 	if err != nil {
-		fmt.Printf("Failed to assume role: %v\n", err)
+		u.Logger.Error("Failed to assume role:", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.UploadError)
+		_ = ctx.Error(appError)
 		return
 	}
 
@@ -175,12 +253,12 @@ func (u *UploadController) GetSTSToken(ctx *gin.Context) {
 	credentials := response.Body.Credentials
 	result := controllers.NewCommonResponseBuilder[*STSTokenResponse]().
 		Data(&STSTokenResponse{
-			access_key_id:     *credentials.AccessKeyId,
-			access_key_secret: *credentials.AccessKeySecret,
-			security_token:    *credentials.SecurityToken,
-			expiration:        *credentials.Expiration,
-			bucket_name:       os.Getenv("OSS_BUCKET_NAME"),
-			region:            os.Getenv("SECURITY_REGION_ID"),
+			AccessKeyId:     *credentials.AccessKeyId,
+			AccessKeySecret: *credentials.AccessKeySecret,
+			SecurityToken:   *credentials.SecurityToken,
+			Expiration:      *credentials.Expiration,
+			BucketName:      os.Getenv("OSS_BUCKET_NAME"),
+			Region:          os.Getenv("SECURITY_REGION_ID"),
 		}).
 		Message("success").
 		Status(0).

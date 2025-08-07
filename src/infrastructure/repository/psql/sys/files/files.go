@@ -78,7 +78,6 @@ func NewSysFilesRepository(db *gorm.DB, loggerInstance *logger.Logger) ISysFiles
 func fromDomainMapper(u *filesDomain.SysFiles) *SysFiles {
 	return &SysFiles{
 		FileName:       u.FileName,
-		FileMD5:        u.FileMD5,
 		FilePath:       u.FilePath,
 		StorageEngine:  u.StorageEngine,
 		FileOriginName: u.FileOriginName,
@@ -90,11 +89,22 @@ func (u *SysFiles) toDomainMapper() *filesDomain.SysFiles {
 		ID:             u.ID,
 		FileName:       u.FileName,
 		FileMD5:        u.FileMD5,
-		FileUrl:        fmt.Sprintf("%s/%s", os.Getenv("APP_URL"), u.FilePath),
+		FileUrl:        u.getUrl(),
 		StorageEngine:  u.StorageEngine,
 		FileOriginName: u.FileOriginName,
 		CreatedAt:      *u.CreatedAt,
 		UpdatedAt:      *u.UpdatedAt,
+	}
+}
+
+func (u *SysFiles) getUrl() string {
+	switch u.StorageEngine {
+	case "local":
+		return fmt.Sprintf("%s/%s", os.Getenv("APP_URL"), u.FilePath)
+	case "aliyunoss":
+		return fmt.Sprintf("%s%s", os.Getenv("OSS_BASE_URL"), u.FilePath)
+	default:
+		return ""
 	}
 }
 

@@ -21,9 +21,7 @@ import (
 type NewFileRequest struct {
 	ID             int    `json:"id"`
 	FileName       string `json:"file_name" binding:"required"`
-	FileMD5        string `json:"file_md5" binding:"required"`
 	FilePath       string `json:"file_path" binding:"required"`
-	FileUrl        string `json:"file_url" binding:"required"`
 	StorageEngine  string `json:"storage_engine" binding:"required"`
 	FileOriginName string `json:"file_origin_name" binding:"required"`
 }
@@ -455,9 +453,7 @@ func arrayDomainToResponseMapper(apis *[]domainFile.SysFiles) *[]*ResponseFile {
 func toUsecaseMapper(req *NewFileRequest) *domainFile.SysFiles {
 	return &domainFile.SysFiles{
 		FileName:       req.FileName,
-		FileMD5:        req.FileMD5,
 		FilePath:       req.FilePath,
-		FileUrl:        req.FileUrl,
 		FileOriginName: req.FileOriginName,
 		StorageEngine:  req.StorageEngine,
 	}

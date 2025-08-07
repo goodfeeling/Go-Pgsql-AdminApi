@@ -20,7 +20,7 @@ func setupUploadModule(appContext *ApplicationContext) error {
 		appContext.Logger)
 
 	// Initialize controllers
-	uploadController := uploadController.NewAuthController(filesUC, appContext.Logger)
+	uploadController := uploadController.NewAuthController(filesUC, appContext.Logger, appContext.RedisClient)
 	appContext.UploadModule = UploadModule{
 		Controller: uploadController,
 		UseCase:    filesUC,

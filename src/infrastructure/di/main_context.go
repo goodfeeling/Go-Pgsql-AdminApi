@@ -7,6 +7,7 @@ import (
 
 	"github.com/casbin/casbin/v2"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	redisClient "github.com/gbrayhan/microservices-go/src/infrastructure/redis"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/jwt_blacklist"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
@@ -25,6 +26,8 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/security"
 	sharedUtil "github.com/gbrayhan/microservices-go/src/shared/utils"
+	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -43,6 +46,7 @@ func GetLogger() *logger.Logger {
 // ApplicationContext holds all application dependencies and services
 type ApplicationContext struct {
 	DB           *gorm.DB
+	RedisClient  *redis.Client // 添加Redis客户端
 	Logger       *logger.Logger
 	Enforcer     *casbin.Enforcer
 	JWTService   security.IJWTService
@@ -88,6 +92,12 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		return nil, err
 	}
 
+	// Initialize Redis client
+	redisClientInstance, err := redisClient.InitRedisClient(loggerInstance)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Redis client: %w", err)
+	}
+
 	// 初始化Casbin执行器
 	enforcer, err := sharedUtil.InitCasbinEnforcer(db, loggerInstance)
 	if err != nil {
@@ -117,6 +127,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	// 创建应用上下文
 	appContext := &ApplicationContext{
 		DB:           db,
+		RedisClient:  redisClientInstance,
 		Logger:       loggerInstance,
 		Enforcer:     enforcer,
 		JWTService:   jwtService,
@@ -147,4 +158,26 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	}
 
 	return appContext, nil
+}
+
+// 在main.go或应用关闭处理中添加
+func (appContext *ApplicationContext) Close() error {
+	// 关闭数据库连接
+	if appContext.DB != nil {
+		db, _ := appContext.DB.DB()
+		if err := db.Close(); err != nil {
+			appContext.Logger.Error("Error closing database connection", zap.Error(err))
+		}
+	}
+
+	// 关闭Redis连接
+	if appContext.RedisClient != nil {
+		if err := appContext.RedisClient.Close(); err != nil {
+			appContext.Logger.Error("Error closing Redis connection", zap.Error(err))
+		} else {
+			appContext.Logger.Info("Redis connection closed successfully")
+		}
+	}
+
+	return nil
 }

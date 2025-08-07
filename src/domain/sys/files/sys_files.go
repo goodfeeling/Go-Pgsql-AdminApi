@@ -17,7 +17,22 @@ type SysFiles struct {
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }
+type STSTokenCache struct {
+	AccessKeyId     string    `json:"access_key_id"`
+	AccessKeySecret string    `json:"access_key_secret"`
+	SecurityToken   string    `json:"security_token"`
+	Expiration      time.Time `json:"expiration"`
+	BucketName      string    `json:"bucket_name"`
+	Region          string    `json:"region"`
+	CreatedAt       time.Time `json:"created_at"`
+}
 
+type RefreshToken struct {
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+	UserID    string    `json:"user_id"` // 可选，用于关联用户
+	CreatedAt time.Time `json:"created_at"`
+}
 type ISysFilesService interface {
 	Create(data *SysFiles) (*SysFiles, error)
 	GetAll() (*[]SysFiles, error)

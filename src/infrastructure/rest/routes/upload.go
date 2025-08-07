@@ -15,5 +15,6 @@ func UploadRoutes(router *gin.RouterGroup, controller upload.IUploadController, 
 		u.POST("/single", controller.Single)
 		u.POST("/multiple", controller.Multiple)
 		u.GET("/sts-token", controller.GetSTSToken)
+		u.GET("/refresh-sts", controller.RefreshSTSToken)
 	}
 }

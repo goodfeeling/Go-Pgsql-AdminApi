@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gbrayhan/microservices-go/docs"
@@ -85,6 +88,13 @@ func main() {
 		loggerInstance.Panic("Error initializing application context", zap.Error(err))
 	}
 
+	// Close relation resource
+	defer func() {
+		if err := appContext.Close(); err != nil {
+			loggerInstance.Error("Error closing application context", zap.Error(err))
+		}
+	}()
+
 	// Setup router
 	router := setupRouter(appContext, loggerInstance)
 
@@ -92,10 +102,29 @@ func main() {
 	server := setupServer(router, serverConfig.Port)
 
 	// Start server
-	loggerInstance.Info("Server starting", zap.String("port", serverConfig.Port))
-	if err := server.ListenAndServe(); err != nil {
-		loggerInstance.Panic("Server failed to start", zap.Error(err))
+	// 在goroutine中启动服务器，以便可以捕获关闭信号
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			loggerInstance.Fatal("Failed to start server", zap.Error(err))
+		}
+	}()
+
+	// 等待中断信号以优雅地关闭服务器
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	loggerInstance.Info("Shutting down server...")
+
+	// 创建一个带超时的上下文用于关闭
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// 优雅关闭服务器
+	if err := server.Shutdown(ctx); err != nil {
+		loggerInstance.Fatal("Server forced to shutdown", zap.Error(err))
 	}
+
+	loggerInstance.Info("Server exiting")
 }
 
 func setupRouter(appContext *di.ApplicationContext, logger *logger.Logger) *gin.Engine {

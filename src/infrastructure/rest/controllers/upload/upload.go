@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -20,12 +21,15 @@ import (
 	sts20150401 "github.com/alibabacloud-go/sts-20150401/v2/client"
 	util "github.com/alibabacloud-go/tea-utils/v2/service"
 	"github.com/alibabacloud-go/tea/tea"
+	cacheService "github.com/gbrayhan/microservices-go/src/infrastructure/cache"
+	"github.com/redis/go-redis/v9"
 )
 
 type IUploadController interface {
 	Single(ctx *gin.Context)
 	Multiple(ctx *gin.Context)
 	GetSTSToken(ctx *gin.Context)
+	RefreshSTSToken(ctx *gin.Context)
 }
 
 type STSTokenResponse struct {
@@ -35,11 +39,14 @@ type STSTokenResponse struct {
 	Expiration      string `json:"expiration"`
 	BucketName      string `json:"bucket_name"`
 	Region          string `json:"region"`
+	RefreshToken    string `json:"refresh_token,omitempty"`
 }
 
 type UploadController struct {
 	sysFilesUseCase domainFiles.ISysFilesService
 	Logger          *logger.Logger
+	RedisClient     *redis.Client
+	CacheService    *cacheService.STSCacheService
 }
 
 // MultipleUpload
@@ -206,12 +213,88 @@ func (u *UploadController) Single(ctx *gin.Context) {
 // @Success 200 {object} domain.CommonResponse
 // @Router /v1/upload/sts-token [get]
 func (u *UploadController) GetSTSToken(ctx *gin.Context) {
+	userID := ctx.GetString("user_id") // 从JWT中获取用户ID
+	if userID == "" {
+		userID = "anonymous" // 匿名用户
+	}
+
+	cacheKey := fmt.Sprintf("sts_token:%s", userID)
+	ctxBg := context.Background()
+
+	// 尝试从缓存获取
+	if cachedToken, err := u.CacheService.GetSTSToken(ctxBg, cacheKey); err == nil {
+		// 检查token是否即将过期（提前5分钟刷新）
+		if time.Until(cachedToken.Expiration) > 5*time.Minute {
+			result := controllers.NewCommonResponseBuilder[*STSTokenResponse]().
+				Data(&STSTokenResponse{
+					AccessKeyId:     cachedToken.AccessKeyId,
+					AccessKeySecret: cachedToken.AccessKeySecret,
+					SecurityToken:   cachedToken.SecurityToken,
+					Expiration:      cachedToken.Expiration.Format(time.RFC3339),
+					BucketName:      cachedToken.BucketName,
+					Region:          cachedToken.Region,
+				}).
+				Message("success").
+				Status(0).
+				Build()
+			ctx.JSON(http.StatusOK, result)
+			return
+		}
+	}
+
+	// 如果缓存中没有有效token，则生成新的token
+	u.processSTSToken(ctx, userID, cacheKey)
+}
+
+// 添加刷新Token的接口
+// @Summary refresh token
+// @Description refresh sts token
+// @Tags sts token
+// @Accept json
+// @Produce json
+// @Success 200 {object} domain.CommonResponse
+// @Router /v1/upload/refresh-sts [get]
+func (u *UploadController) RefreshSTSToken(ctx *gin.Context) {
+	refreshToken := ctx.Query("refresh_token")
+	if refreshToken == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "refresh_token is required"})
+		return
+	}
+
+	ctxBg := context.Background()
+
+	// 验证Refresh Token
+	rt, err := u.CacheService.ValidateRefreshToken(ctxBg, refreshToken)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired refresh token"})
+		return
+	}
+
+	// 删除已使用的refresh token（一次性使用）
+	u.CacheService.DeleteRefreshToken(ctxBg, refreshToken)
+
+	// 生成新的STS Token
+	userID := rt.UserID
+	cacheKey := fmt.Sprintf("sts_token:%s", userID)
+
+	u.processSTSToken(ctx, userID, cacheKey)
+}
+func NewAuthController(sysFilesUseCase domainFiles.ISysFilesService, loggerInstance *logger.Logger, redisClient *redis.Client) IUploadController {
+	return &UploadController{
+		sysFilesUseCase: sysFilesUseCase,
+		Logger:          loggerInstance,
+		RedisClient:     redisClient,
+		CacheService:    cacheService.NewSTSCacheService(redisClient),
+	}
+}
+
+// generateSTSToken 生成新的STS Token
+func (u *UploadController) generateSTSToken(sessionName string, roleArn string) (*sts20150401.AssumeRoleResponseBodyCredentials, error) {
 	// 从环境变量中获取步骤1.1生成的RAM用户的访问密钥（AccessKey ID和AccessKey Secret）。
 	accessKeyId := os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_ID")
 	accessKeySecret := os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET")
-	// 从环境变量中获取步骤1.3生成的RAM角色的RamRoleArn。
-	roleArn := os.Getenv("RAM_ROLE_ARN")
 	serviceAddress := os.Getenv("SECURITY_SERVICE_ADDRESS")
+
 	// 创建权限策略客户端。
 	config := &openapi.Config{
 		// 必填，步骤1.1获取到的 AccessKey ID。
@@ -224,13 +307,8 @@ func (u *UploadController) GetSTSToken(ctx *gin.Context) {
 	config.Endpoint = tea.String(serviceAddress)
 	client, err := sts20150401.NewClient(config)
 	if err != nil {
-		u.Logger.Error("Failed to create client:", zap.Error(err))
-		appError := domainErrors.NewAppError(err, domainErrors.UploadError)
-		_ = ctx.Error(appError)
-		return
+		return nil, err
 	}
-	// 生成唯一的会话名称
-	sessionName := fmt.Sprintf("upload-session-%d", time.Now().Unix())
 
 	// 使用RAM用户的AccessKey ID和AccessKey Secret向STS申请临时访问凭证。
 	request := &sts20150401.AssumeRoleRequest{
@@ -238,19 +316,60 @@ func (u *UploadController) GetSTSToken(ctx *gin.Context) {
 		DurationSeconds: tea.Int64(3600),
 		// 从环境变量中获取步骤1.3生成的RAM角色的RamRoleArn。
 		RoleArn: tea.String(roleArn),
-		// 指定自定义角色会话名称，这里使用和第一段代码一致的 examplename
+		// 指定自定义角色会话名称
 		RoleSessionName: tea.String(sessionName),
 	}
+
 	response, err := client.AssumeRoleWithOptions(request, &util.RuntimeOptions{})
 	if err != nil {
-		u.Logger.Error("Failed to assume role:", zap.Error(err))
+		return nil, err
+	}
+
+	return response.Body.Credentials, nil
+}
+
+// processSTSToken 处理STS Token的完整流程
+func (u *UploadController) processSTSToken(ctx *gin.Context, userID string, cacheKey string) {
+	roleArn := os.Getenv("RAM_ROLE_ARN")
+	// 生成唯一的会话名称
+	sessionName := fmt.Sprintf("upload-session-%d", time.Now().Unix())
+	//  *gin.Context, userID生成STS Token
+	credentials, err := u.generateSTSToken(sessionName, roleArn)
+	ctxBg := context.Background()
+
+	// 从环境变量中获取步骤1.3生成的RAM角色的RamRole.generateSTSToken(sessionName, roleArn)
+	if err != nil {
+		u.Logger.Error("Failed to generate STS token:", zap.Error(err))
 		appError := domainErrors.NewAppError(err, domainErrors.UploadError)
 		_ = ctx.Error(appError)
 		return
 	}
 
-	// 打印STS返回的临时访问密钥（AccessKey ID和AccessKey Secret）、安全令牌（SecurityToken）以及临时访问凭证过期时间（Expiration）。
-	credentials := response.Body.Credentials
+	// 生成Refresh Token
+	refreshToken, err := u.CacheService.GenerateRefreshToken(ctxBg, userID)
+	if err != nil {
+		u.Logger.Error("Failed to generate refresh token:", zap.Error(err))
+		// 即使生成refresh token失败，也继续返回STS token
+	}
+
+	// 缓存STS Token
+	expirationTime, _ := time.Parse(time.RFC3339, *credentials.Expiration)
+	tokenCache := &domainFiles.STSTokenCache{
+		AccessKeyId:     *credentials.AccessKeyId,
+		AccessKeySecret: *credentials.AccessKeySecret,
+		SecurityToken:   *credentials.SecurityToken,
+		Expiration:      expirationTime,
+		BucketName:      os.Getenv("OSS_BUCKET_NAME"),
+		Region:          os.Getenv("SECURITY_REGION_ID"),
+		CreatedAt:       time.Now(),
+	}
+
+	// 缓存token，设置为过期时间减去1分钟，确保在过期前刷新
+	cacheDuration := time.Until(expirationTime) - time.Minute
+	if cacheDuration > 0 {
+		u.CacheService.SetSTSToken(ctxBg, cacheKey, tokenCache, cacheDuration)
+	}
+
 	result := controllers.NewCommonResponseBuilder[*STSTokenResponse]().
 		Data(&STSTokenResponse{
 			AccessKeyId:     *credentials.AccessKeyId,
@@ -259,16 +378,11 @@ func (u *UploadController) GetSTSToken(ctx *gin.Context) {
 			Expiration:      *credentials.Expiration,
 			BucketName:      os.Getenv("OSS_BUCKET_NAME"),
 			Region:          os.Getenv("SECURITY_REGION_ID"),
+			RefreshToken:    refreshToken,
 		}).
 		Message("success").
 		Status(0).
 		Build()
-	ctx.JSON(http.StatusOK, result)
-}
 
-func NewAuthController(sysFilesUseCase domainFiles.ISysFilesService, loggerInstance *logger.Logger) IUploadController {
-	return &UploadController{
-		sysFilesUseCase: sysFilesUseCase,
-		Logger:          loggerInstance,
-	}
+	ctx.JSON(http.StatusOK, result)
 }

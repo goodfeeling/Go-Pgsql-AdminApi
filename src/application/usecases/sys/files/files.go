@@ -40,34 +40,34 @@ func NewSysFilesUseCase(sysFilesRepository files.ISysFilesRepository, loggerInst
 }
 
 func (s *SysFilesUseCase) GetAll() (*[]filesDomain.SysFiles, error) {
-	s.Logger.Info("Getting all roles")
+	s.Logger.Info("Getting all files")
 	return s.sysFilesRepository.GetAll()
 }
 
 func (s *SysFilesUseCase) GetByID(id int) (*filesDomain.SysFiles, error) {
-	s.Logger.Info("Getting dictionary by ID", zap.Int("id", id))
+	s.Logger.Info("Getting file by ID", zap.Int("id", id))
 	return s.sysFilesRepository.GetByID(id)
 }
 
 func (s *SysFilesUseCase) Delete(ids []int64) error {
-	s.Logger.Info("Deleting dictionary", zap.String("ids", fmt.Sprintf("%s", ids)))
+	s.Logger.Info("Deleting file", zap.String("ids", fmt.Sprintf("%s", ids)))
 	return s.sysFilesRepository.Delete(ids)
 }
 
 func (s *SysFilesUseCase) Update(id int, userMap map[string]interface{}) (*filesDomain.SysFiles, error) {
-	s.Logger.Info("Updating dictionary", zap.Int("id", id))
+	s.Logger.Info("Updating file", zap.Int("id", id))
 	return s.sysFilesRepository.Update(id, userMap)
 }
 
 func (s *SysFilesUseCase) SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[filesDomain.SysFiles], error) {
-	s.Logger.Info("Searching dictionary with pagination",
+	s.Logger.Info("Searching file with pagination",
 		zap.Int("page", filters.Page),
 		zap.Int("pageSize", filters.PageSize))
 	return s.sysFilesRepository.SearchPaginated(filters)
 }
 
 func (s *SysFilesUseCase) SearchByProperty(property string, searchText string) (*[]string, error) {
-	s.Logger.Info("Searching dictionary by property",
+	s.Logger.Info("Searching file by property",
 		zap.String("property", property),
 		zap.String("searchText", searchText))
 	return s.sysFilesRepository.SearchByProperty(property, searchText)

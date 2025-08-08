@@ -124,6 +124,7 @@ func (r *Repository) GetByID(id int) (*domainOperation.SysOperationRecord, error
 func (r *Repository) Update(id int, apiMap map[string]interface{}) (*domainOperation.SysOperationRecord, error) {
 	var apiObj SysOperationRecord
 	apiObj.ID = id
+	delete(apiMap, "updated_at")
 	err := r.DB.Model(&apiObj).
 		Select("api_name", "email", "nick_name", "status", "phone", "header_img").
 		Updates(apiMap).Error

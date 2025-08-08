@@ -129,7 +129,7 @@ func (c *SysApiUseCase) SynchronizeRouterToApi(routes gin.RoutesInfo) (*int, err
 				Path:        route.Path,
 				Method:      route.Method,
 				Description: c.generateDescription(route.Path, route.Method),
-				ApiGroup:    apiDomain.GroupOther,
+				ApiGroup:    "Other",
 			}
 
 			ok, err := c.sysApiRepository.Upsert(apiModel)

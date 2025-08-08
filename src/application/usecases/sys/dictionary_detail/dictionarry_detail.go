@@ -35,22 +35,22 @@ func NewSysDictionaryUseCase(sysDictionaryRepository dictionaryRepo.DictionaryRe
 }
 
 func (s *SysDictionaryUseCase) GetAll() (*[]dictionaryDomain.DictionaryDetail, error) {
-	s.Logger.Info("Getting all roles")
+	s.Logger.Info("Getting all dictionary_detail")
 	return s.sysDictionaryRepository.GetAll()
 }
 
 func (s *SysDictionaryUseCase) GetByID(id int) (*dictionaryDomain.DictionaryDetail, error) {
-	s.Logger.Info("Getting dictionary by ID", zap.Int("id", id))
+	s.Logger.Info("Getting dictionary_detailby ID", zap.Int("id", id))
 	return s.sysDictionaryRepository.GetByID(id)
 }
 
 func (s *SysDictionaryUseCase) Create(newDictionary *dictionaryDomain.DictionaryDetail) (*dictionaryDomain.DictionaryDetail, error) {
-	s.Logger.Info("Creating new dictionary", zap.String("Label", newDictionary.Label))
+	s.Logger.Info("Creating new dictionary_detail", zap.String("Label", newDictionary.Label))
 	return s.sysDictionaryRepository.Create(newDictionary)
 }
 
 func (s *SysDictionaryUseCase) Delete(ids []int) error {
-	s.Logger.Info("Deleting dictionary", zap.String("ids", fmt.Sprintf("%v", ids)))
+	s.Logger.Info("Deleting dictionary_detail", zap.String("ids", fmt.Sprintf("%v", ids)))
 	return s.sysDictionaryRepository.Delete(ids)
 }
 
@@ -60,14 +60,14 @@ func (s *SysDictionaryUseCase) Update(id int, userMap map[string]interface{}) (*
 }
 
 func (s *SysDictionaryUseCase) SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[dictionaryDomain.DictionaryDetail], error) {
-	s.Logger.Info("Searching dictionary with pagination",
+	s.Logger.Info("Searching dictionary_detail with pagination",
 		zap.Int("page", filters.Page),
 		zap.Int("pageSize", filters.PageSize))
 	return s.sysDictionaryRepository.SearchPaginated(filters)
 }
 
 func (s *SysDictionaryUseCase) SearchByProperty(property string, searchText string) (*[]string, error) {
-	s.Logger.Info("Searching dictionary by property",
+	s.Logger.Info("Searching dictionary_detail by property",
 		zap.String("property", property),
 		zap.String("searchText", searchText))
 	return s.sysDictionaryRepository.SearchByProperty(property, searchText)

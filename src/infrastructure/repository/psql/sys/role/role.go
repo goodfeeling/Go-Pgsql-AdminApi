@@ -144,6 +144,7 @@ func (r *Repository) GetByName(name string) (*domainRole.Role, error) {
 func (r *Repository) Update(id int, roleMap map[string]interface{}) (*domainRole.Role, error) {
 	var roleObj SysRole
 	roleObj.ID = int64(id)
+	delete(roleMap, "updated_at")
 	err := r.DB.Model(&roleObj).Updates(roleMap).Error
 	if err != nil {
 		r.Logger.Error("Error updating role", zap.Error(err), zap.Int("id", id))

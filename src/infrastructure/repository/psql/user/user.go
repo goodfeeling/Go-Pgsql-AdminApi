@@ -169,6 +169,7 @@ func (r *Repository) GetByUsername(username string) (*domainUser.User, error) {
 func (r *Repository) Update(id int64, userMap map[string]interface{}) (*domainUser.User, error) {
 	var userObj User
 	userObj.ID = id
+	delete(userMap, "updated_at")
 	err := r.DB.Model(&userObj).
 		Select("user_name", "email", "nick_name", "status", "phone", "header_img", "hash_password").
 		Updates(userMap).Error

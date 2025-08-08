@@ -143,8 +143,8 @@ func (r *Repository) GetByID(id int) (*domainMenuGroup.MenuGroup, error) {
 func (r *Repository) Update(id int, apiMap map[string]interface{}) (*domainMenuGroup.MenuGroup, error) {
 	var apiObj SysBaseMenuGroups
 	apiObj.ID = id
-	err := r.DB.Model(&apiObj).
-		Updates(apiMap).Error
+	delete(apiMap, "updated_at")
+	err := r.DB.Model(&apiObj).Updates(apiMap).Error
 	if err != nil {
 		r.Logger.Error("Error updating api", zap.Error(err), zap.Int("id", id))
 		byteErr, _ := json.Marshal(err)

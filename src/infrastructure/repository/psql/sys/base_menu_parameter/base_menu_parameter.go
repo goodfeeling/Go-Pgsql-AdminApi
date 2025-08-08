@@ -122,6 +122,7 @@ func (r *Repository) GetByID(id int) (*domainMenuParameter.MenuParameter, error)
 func (r *Repository) Update(id int, menuMap map[string]interface{}) (*domainMenuParameter.MenuParameter, error) {
 	var menuObj SysBaseMenuParameter
 	menuObj.ID = id
+	delete(menuMap, "updated_at")
 	err := r.DB.Model(&menuObj).
 		Select("key", "type", "value").
 		Updates(menuMap).Error

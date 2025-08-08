@@ -37,7 +37,7 @@ func NewSysDictionaryUseCase(
 }
 
 func (s *SysDictionaryUseCase) GetAll() (*[]dictionaryDomain.Dictionary, error) {
-	s.Logger.Info("Getting all roles")
+	s.Logger.Info("Getting all dictionaries")
 	return s.sysDictionaryRepository.GetAll()
 }
 

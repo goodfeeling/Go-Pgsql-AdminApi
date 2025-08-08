@@ -49,7 +49,7 @@ func (r *Repository) GetByRoleId(roleId int) ([]string, error) {
 	var casbinRules []CasbinRule
 	err := r.DB.Where(&CasbinRule{V0: strconv.Itoa(roleId)}).Find(&casbinRules).Error
 	if err != nil {
-		r.Logger.Error("Error getting all roles", zap.Error(err))
+		r.Logger.Error("Error getting all casbin_rule", zap.Error(err))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 	var rulePaths []string

@@ -35,8 +35,8 @@ func (SysFiles) TableName() string {
 var ColumnsSysFilesMapping = map[string]string{
 	"id":             "id",
 	"path":           "path",
-	"dictionaryName": "dictionary_name",
-	"selectedDictId": "dictionary_group",
+	"fileName":       "file_name",
+	"selectedDictId": "file_group",
 	"method":         "method",
 	"createdAt":      "created_at",
 	"updatedAt":      "updated_at",
@@ -46,11 +46,11 @@ type ISysFilesRepository interface {
 	Create(data *filesDomain.SysFiles) (*filesDomain.SysFiles, error)
 	GetAll() (*[]filesDomain.SysFiles, error)
 	GetByID(id int) (*filesDomain.SysFiles, error)
-	Update(id int, dictionaryMap map[string]interface{}) (*filesDomain.SysFiles, error)
+	Update(id int, fileMap map[string]interface{}) (*filesDomain.SysFiles, error)
 	Delete(ids []int64) error
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[filesDomain.SysFiles], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
-	GetOneByMap(dictionaryMap map[string]interface{}) (*filesDomain.SysFiles, error)
+	GetOneByMap(fileMap map[string]interface{}) (*filesDomain.SysFiles, error)
 }
 
 type Repository struct {
@@ -119,29 +119,29 @@ func (r *Repository) GetAll() (*[]filesDomain.SysFiles, error) {
 }
 
 func (r *Repository) GetByID(id int) (*filesDomain.SysFiles, error) {
-	var dictionary SysFiles
-	err := r.DB.Where("id = ?", id).First(&dictionary).Error
+	var file SysFiles
+	err := r.DB.Where("id = ?", id).First(&file).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			r.Logger.Warn("SysFiles not found", zap.Int("id", id))
 			err = domainErrors.NewAppErrorWithType(domainErrors.NotFound)
 		} else {
-			r.Logger.Error("Error getting dictionary by ID", zap.Error(err), zap.Int("id", id))
+			r.Logger.Error("Error getting file by ID", zap.Error(err), zap.Int("id", id))
 			err = domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 		}
 		return &filesDomain.SysFiles{}, err
 	}
-	r.Logger.Info("Successfully retrieved dictionary by ID", zap.Int("id", id))
-	return dictionary.toDomainMapper(), nil
+	r.Logger.Info("Successfully retrieved file by ID", zap.Int("id", id))
+	return file.toDomainMapper(), nil
 }
 
-func (r *Repository) Update(id int, dictionaryMap map[string]interface{}) (*filesDomain.SysFiles, error) {
-	var dictionaryObj SysFiles
-	dictionaryObj.ID = int64(id)
-	err := r.DB.Model(&dictionaryObj).
-		Updates(dictionaryMap).Error
+func (r *Repository) Update(id int, fileMap map[string]interface{}) (*filesDomain.SysFiles, error) {
+	var fileObj SysFiles
+	fileObj.ID = int64(id)
+	delete(fileMap, "updated_at")
+	err := r.DB.Model(&fileObj).Updates(fileMap).Error
 	if err != nil {
-		r.Logger.Error("Error updating dictionary", zap.Error(err), zap.Int("id", id))
+		r.Logger.Error("Error updating file", zap.Error(err), zap.Int("id", id))
 		byteErr, _ := json.Marshal(err)
 		var newError domainErrors.GormErr
 		errUnmarshal := json.Unmarshal(byteErr, &newError)
@@ -155,12 +155,12 @@ func (r *Repository) Update(id int, dictionaryMap map[string]interface{}) (*file
 			return &filesDomain.SysFiles{}, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 		}
 	}
-	if err := r.DB.Where("id = ?", id).First(&dictionaryObj).Error; err != nil {
-		r.Logger.Error("Error retrieving updated dictionary", zap.Error(err), zap.Int("id", id))
+	if err := r.DB.Where("id = ?", id).First(&fileObj).Error; err != nil {
+		r.Logger.Error("Error retrieving updated file", zap.Error(err), zap.Int("id", id))
 		return &filesDomain.SysFiles{}, err
 	}
-	r.Logger.Info("Successfully updated dictionary", zap.Int("id", id))
-	return dictionaryObj.toDomainMapper(), nil
+	r.Logger.Info("Successfully updated file", zap.Int("id", id))
+	return fileObj.toDomainMapper(), nil
 }
 
 func (r *Repository) Delete(ids []int64) error {
@@ -292,22 +292,22 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 
 func arrayToDomainMapper(files *[]SysFiles) *[]filesDomain.SysFiles {
 	filesDomain := make([]filesDomain.SysFiles, len(*files))
-	for i, dictionary := range *files {
-		filesDomain[i] = *dictionary.toDomainMapper()
+	for i, file := range *files {
+		filesDomain[i] = *file.toDomainMapper()
 	}
 	return &filesDomain
 }
 
-func (r *Repository) GetOneByMap(dictionaryMap map[string]interface{}) (*filesDomain.SysFiles, error) {
-	var dictionaryRepository SysFiles
+func (r *Repository) GetOneByMap(fileMap map[string]interface{}) (*filesDomain.SysFiles, error) {
+	var fileRepository SysFiles
 	tx := r.DB.Limit(1)
-	for key, value := range dictionaryMap {
+	for key, value := range fileMap {
 		if !utils.IsZeroValue(value) {
 			tx = tx.Where(fmt.Sprintf("%s = ?", key), value)
 		}
 	}
-	if err := tx.Find(&dictionaryRepository).Error; err != nil {
+	if err := tx.Find(&fileRepository).Error; err != nil {
 		return &filesDomain.SysFiles{}, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
-	return dictionaryRepository.toDomainMapper(), nil
+	return fileRepository.toDomainMapper(), nil
 }

@@ -124,8 +124,8 @@ func (r *Repository) GetByID(id int) (*domainDictionary.Dictionary, error) {
 func (r *Repository) Update(id int, dictionaryMap map[string]interface{}) (*domainDictionary.Dictionary, error) {
 	var dictionaryObj SysDictionary
 	dictionaryObj.ID = id
-	err := r.DB.Model(&dictionaryObj).
-		Updates(dictionaryMap).Error
+	delete(dictionaryMap, "updated_at")
+	err := r.DB.Model(&dictionaryObj).Updates(dictionaryMap).Error
 	if err != nil {
 		r.Logger.Error("Error updating dictionary", zap.Error(err), zap.Int("id", id))
 		byteErr, _ := json.Marshal(err)

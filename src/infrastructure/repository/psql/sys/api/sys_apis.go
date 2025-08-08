@@ -20,7 +20,7 @@ import (
 type SysApi struct {
 	ID          int            `gorm:"column:id;primary_key" json:"id,string"`
 	CreatedAt   time.Time      `gorm:"column:created_at" json:"createdAt,omitempty"`
-	UpdatedAt   time.Time      `gorm:"column:updated_at" json:"updatedAt,omitempty"`
+	UpdatedAt   time.Time      `gorm:"column:updated_at;autoUpdateTime" json:"updatedAt,omitempty"`
 	DeletedAt   gorm.DeletedAt `gorm:"column:deleted_at;index:idx_sys_apis_deleted_at" json:"deletedAt,omitempty"`
 	Path        string         `gorm:"column:path" json:"path,omitempty"`               // api路径
 	Description string         `gorm:"column:description" json:"description,omitempty"` // api中文描述
@@ -120,8 +120,8 @@ func (r *Repository) GetByID(id int) (*domainApi.Api, error) {
 func (r *Repository) Update(id int, apiMap map[string]interface{}) (*domainApi.Api, error) {
 	var apiObj SysApi
 	apiObj.ID = id
-	err := r.DB.Model(&apiObj).
-		Updates(apiMap).Error
+	delete(apiMap, "updated_at")
+	err := r.DB.Model(&apiObj).Updates(apiMap).Error
 	if err != nil {
 		r.Logger.Error("Error updating api", zap.Error(err), zap.Int("id", id))
 		byteErr, _ := json.Marshal(err)

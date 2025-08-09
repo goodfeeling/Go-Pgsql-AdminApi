@@ -30,6 +30,7 @@ type NewDictionaryRequest struct {
 	Extend          string `json:"extend"  binding:"required"`
 	Status          int16  `json:"status"  binding:"required"`
 	Sort            int8   `json:"sort"  binding:"required"`
+	Type            string `json:"type"  binding:"required"`
 	SysDictionaryID int64  `json:"sys_dictionary_id"  binding:"required"`
 }
 
@@ -40,6 +41,7 @@ type ResponseDictionary struct {
 	Extend          string            `json:"extend"`
 	Status          int16             `json:"status"`
 	Sort            int8              `json:"sort"`
+	Type            string            `json:"type"`
 	SysDictionaryID int64             `json:"sys_dictionary_id"`
 	CreatedAt       domain.CustomTime `json:"created_at,omitempty"`
 	UpdatedAt       domain.CustomTime `json:"updated_at,omitempty"`
@@ -426,6 +428,7 @@ func domainToResponseMapper(domainDictionary *domainDictionary.DictionaryDetail)
 		Extend:          domainDictionary.Extend,
 		Status:          domainDictionary.Status,
 		Sort:            domainDictionary.Sort,
+		Type:            domainDictionary.Type,
 		SysDictionaryID: domainDictionary.SysDictionaryID,
 		CreatedAt:       domain.CustomTime{Time: domainDictionary.CreatedAt},
 		UpdatedAt:       domain.CustomTime{Time: domainDictionary.UpdatedAt},
@@ -447,6 +450,7 @@ func toUsecaseMapper(req *NewDictionaryRequest) *domainDictionary.DictionaryDeta
 		Extend:          req.Extend,
 		Status:          req.Status,
 		Sort:            req.Sort,
+		Type:            req.Type,
 		SysDictionaryID: req.SysDictionaryID,
 	}
 }

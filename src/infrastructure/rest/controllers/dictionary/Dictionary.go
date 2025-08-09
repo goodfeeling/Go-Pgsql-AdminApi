@@ -32,7 +32,6 @@ type ResponseDictionary struct {
 	Type      string            `json:"type"`
 	Status    int16             `json:"status"`
 	Desc      string            `json:"desc"`
-	IsDefault int16             `json:"is_default"`
 	CreatedAt domain.CustomTime `json:"created_at"`
 	UpdatedAt domain.CustomTime `json:"updated_at"`
 }

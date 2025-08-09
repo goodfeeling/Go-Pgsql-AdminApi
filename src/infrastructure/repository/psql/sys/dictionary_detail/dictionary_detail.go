@@ -26,6 +26,7 @@ type SysDictionaryDetail struct {
 	Value           string `gorm:"column:value;type:varchar(191)"`              // 字典值
 	Extend          string `gorm:"column:extend;type:varchar(191)"`             // 扩展值
 	Status          int16  `gorm:"column:status;type:smallint"`                 // 启用状态
+	Type            string `gorm:"column:type;type:varchar(30)`                 // 类型
 	Sort            int8   `gorm:"column:sort;type:bigint"`                     // 排序标记
 	SysDictionaryID int64  `gorm:"column:sys_dictionary_id;type:numeric(20,0)"` // 关联字典ID
 }
@@ -278,6 +279,7 @@ func (u *SysDictionaryDetail) toDomainMapper() *domainDictionary.DictionaryDetai
 		Extend:          u.Extend,
 		Status:          u.Status,
 		Sort:            u.Sort,
+		Type:            u.Type,
 		SysDictionaryID: u.SysDictionaryID,
 		CreatedAt:       u.CreatedAt,
 		UpdatedAt:       u.UpdatedAt,
@@ -292,6 +294,7 @@ func fromDomainMapper(u *domainDictionary.DictionaryDetail) *SysDictionaryDetail
 		Extend:          u.Extend,
 		Status:          u.Status,
 		Sort:            u.Sort,
+		Type:            u.Type,
 		SysDictionaryID: u.SysDictionaryID,
 		CreatedAt:       u.CreatedAt,
 		UpdatedAt:       u.UpdatedAt,

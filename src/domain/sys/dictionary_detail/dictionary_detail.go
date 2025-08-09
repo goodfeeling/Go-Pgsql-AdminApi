@@ -13,6 +13,7 @@ type DictionaryDetail struct {
 	Extend          string    `json:"extend"`
 	Status          int16     `json:"status"`
 	Sort            int8      `json:"sort"`
+	Type            string    `json:"type"`
 	SysDictionaryID int64     `json:"sys_dictionary_id"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`

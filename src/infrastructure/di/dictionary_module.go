@@ -1,7 +1,7 @@
 package di
 
 import (
-	dictionaryUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/dictionary"
+	dictionaryUseCase "github.com/gbrayhan/microservices-go/src/application/services/sys/dictionary"
 
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary"
 	dictionaryController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/dictionary"

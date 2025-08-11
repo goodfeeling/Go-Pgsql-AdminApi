@@ -7,6 +7,7 @@ import (
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 
+	"github.com/gbrayhan/microservices-go/src/domain/constants"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainMenuGroup "github.com/gbrayhan/microservices-go/src/domain/sys/menu_group"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
@@ -21,7 +22,7 @@ type SysBaseMenuGroups struct {
 	Name      string                 `gorm:"column:name" json:"name"`
 	Sort      int8                   `gorm:"column:sort" json:"sort"`
 	Path      string                 `gorm:"column:path" json:"path"`
-	Status    bool                   `gorm:"column:status" json:"status"`
+	Status    int16                  `gorm:"column:status" json:"status"`
 	CreatedAt time.Time              `gorm:"column:created_at" json:"createdAt"`
 	UpdatedAt time.Time              `gorm:"column:updated_at" json:"updatedAt"`
 	DeletedAt *time.Time             `gorm:"column:deleted_at" json:"deletedAt"`
@@ -81,7 +82,7 @@ func (r *Repository) GetAll() (*[]domainMenuGroup.MenuGroup, error) {
 
 func (r *Repository) GetByRoleId(menuIds []int, roleId int64) (*[]domainMenuGroup.MenuGroup, error) {
 	var apis []SysBaseMenuGroups
-	db := r.DB.Where("status = ?", true)
+	db := r.DB.Where("status = ?", constants.StatusEnable)
 	if roleId != 0 {
 		db = db.Preload("MenuItems", "id in (?)", menuIds)
 	} else {

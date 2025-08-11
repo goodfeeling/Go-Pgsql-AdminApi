@@ -34,10 +34,9 @@ func NewUJwtBlacklistRepository(db *gorm.DB) JwtBlacklistRepository {
 
 // AddToBlacklist implements JwtBlacklistRepository.
 func (r *Repository) AddToBlacklist(jwtToken string) error {
-	blacklist := JwtBlacklist{
+	result := r.DB.Create(&JwtBlacklist{
 		Jwt: jwtToken,
-	}
-	result := r.DB.Create(&blacklist)
+	})
 	return result.Error
 }
 

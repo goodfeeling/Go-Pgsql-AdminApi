@@ -12,7 +12,7 @@ type MenuGroup struct {
 	Name      string             `json:"name"`
 	Path      string             `json:"path"`
 	Sort      int8               `json:"sort"`
-	Status    bool               `json:"status"`
+	Status    int16              `json:"status"`
 	CreatedAt time.Time          `json:"created_at"`
 	UpdatedAt time.Time          `json:"updated_at"`
 	MenuItems *[]menuDomain.Menu `json:"menu_items"`

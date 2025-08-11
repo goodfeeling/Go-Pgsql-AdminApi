@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
+	"github.com/gbrayhan/microservices-go/src/domain/constants"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainUser "github.com/gbrayhan/microservices-go/src/domain/user"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
@@ -24,7 +25,7 @@ type User struct {
 	HashPassword  string             `gorm:"column:hash_password;type:text"`
 	HeaderImg     string             `gorm:"column:header_img;type:text"`
 	Phone         string             `gorm:"column:phone;type:text"`
-	Status        bool               `gorm:"column:status"`
+	Status        int16              `gorm:"column:status"`
 	OriginSetting string             `gorm:"column:origin_setting;type:text"`
 	CreatedAt     time.Time          `gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt     time.Time          `gorm:"column:updated_at;autoUpdateTime:milli"`
@@ -113,7 +114,7 @@ func (r *Repository) Create(userDomain *domainUser.User) (*domainUser.User, erro
 func (r *Repository) GetByID(id int) (*domainUser.User, error) {
 	var user User
 	err := r.DB.Where("id = ?", id).Preload("Roles", func(db *gorm.DB) *gorm.DB {
-		return db.Where("status = ?", true).Order("id asc")
+		return db.Where("status = ?", constants.StatusEnable).Order("id asc")
 	}).First(&user).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -149,7 +150,7 @@ func (r *Repository) GetByEmail(email string) (*domainUser.User, error) {
 func (r *Repository) GetByUsername(username string) (*domainUser.User, error) {
 	var user User
 	err := r.DB.Where("user_name = ?", username).Preload("Roles", func(db *gorm.DB) *gorm.DB {
-		return db.Where("status = ?", true).Order("id asc")
+		return db.Where("status = ?", constants.StatusEnable).Order("id asc")
 	}).First(&user).Error
 
 	if err != nil {

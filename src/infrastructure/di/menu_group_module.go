@@ -1,10 +1,10 @@
 package di
 
 import (
-	menuGroupUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/menu_group"
+	menuGroupUseCase "github.com/gbrayhan/microservices-go/src/application/services/sys/menu_group"
 
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_group"
-	menuGroupController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menuGroup"
+	menuGroupController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menu_group"
 )
 
 type MenuGroupModule struct {

@@ -35,4 +35,7 @@ func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
 	MenuBtnRouters(v1, appContext.MenuBtnModule.Controller, appContext.Enforcer)
 	MenuParameterRouters(v1, appContext.MenuParameterModule.Controller, appContext.Enforcer)
 	FileRouters(v1, appContext.FileModule.Controller, appContext.Enforcer)
+
+	ScheduledTaskRouters(v1, appContext.ScheduledTaskModule.Controller, appContext.Enforcer)
+	TaskExecutionLogRouters(v1, appContext.TaskExecutionLogModule.Controller, appContext.Enforcer)
 }

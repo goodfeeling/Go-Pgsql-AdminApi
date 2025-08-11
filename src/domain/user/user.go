@@ -13,7 +13,7 @@ type User struct {
 	UserName      string            `json:"user_name"`
 	NickName      string            `json:"nick_name"`
 	Email         string            `json:"email"`
-	Status        bool              `json:"status"`
+	Status        int16             `json:"status"`
 	HashPassword  string            `json:"hash_password"`
 	HeaderImg     string            `json:"header_img"`
 	Phone         string            `json:"phone"`

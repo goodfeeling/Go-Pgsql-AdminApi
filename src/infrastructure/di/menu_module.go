@@ -1,7 +1,7 @@
 package di
 
 import (
-	menuUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/menu"
+	menuUseCase "github.com/gbrayhan/microservices-go/src/application/services/sys/menu"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_btn"
 
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu"

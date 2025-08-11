@@ -1,7 +1,9 @@
 package di
 
 import (
-	userUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/user"
+	eventHandler "github.com/gbrayhan/microservices-go/src/application/event/handler"
+	eventModel "github.com/gbrayhan/microservices-go/src/application/event/model"
+	userUseCase "github.com/gbrayhan/microservices-go/src/application/services/user"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
 
 	userController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/user"
@@ -14,10 +16,17 @@ type UserModule struct {
 }
 
 func setupUserModule(appContext *ApplicationContext) error {
+
+	// Initialize event
+	appContext.EventBus.Subscribe(
+		eventModel.UserRegisteredEventType, eventHandler.NewNotificationEventHandler())
+
 	// Initialize use cases
 	userUC := userUseCase.NewUserUseCase(
 		appContext.Repositories.UserRepository,
-		appContext.Repositories.UserRoleRepository, appContext.Logger)
+		appContext.Repositories.UserRoleRepository,
+		appContext.EventBus,
+		appContext.Logger)
 
 	// Initialize controllers
 	userController := userController.NewUserController(userUC, appContext.Logger)

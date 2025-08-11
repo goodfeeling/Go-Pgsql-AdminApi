@@ -1,10 +1,10 @@
 package di
 
 import (
-	menuParameterUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/menu_parameter"
+	menuParameterUseCase "github.com/gbrayhan/microservices-go/src/application/services/sys/menu_parameter"
 
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_parameter"
-	menuParameterController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menuParameter"
+	menuParameterController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menu_parameter"
 )
 
 type MenuParameterModule struct {

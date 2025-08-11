@@ -8,14 +8,15 @@ import (
 )
 
 type Dictionary struct {
-	ID        int                              `json:"id"`
-	Name      string                           `json:"name"`
-	Type      string                           `json:"type"`
-	Status    int16                            `json:"status"`
-	Desc      string                           `json:"desc"`
-	CreatedAt time.Time                        `json:"created_at"`
-	UpdatedAt time.Time                        `json:"updated_at"`
-	Details   *[]domainDetail.DictionaryDetail `json:"details"`
+	ID             int                              `json:"id"`
+	Name           string                           `json:"name"`
+	Type           string                           `json:"type"`
+	Status         int16                            `json:"status"`
+	Desc           string                           `json:"desc"`
+	IsGenerateFile int16                            `json:"is_generate_file"`
+	CreatedAt      time.Time                        `json:"created_at"`
+	UpdatedAt      time.Time                        `json:"updated_at"`
+	Details        *[]domainDetail.DictionaryDetail `json:"details"`
 }
 
 type IDictionaryService interface {

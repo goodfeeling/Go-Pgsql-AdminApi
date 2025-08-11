@@ -9,6 +9,8 @@ import (
 
 func DictionaryRouters(router *gin.RouterGroup, controller dictionary.IDictionaryController, enforcer *casbin.Enforcer) {
 	u := router.Group("/dictionary")
+	u.GET("/type/:type", controller.GetByType)
+
 	u.Use(middlewares.AuthJWTMiddleware())
 	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
@@ -19,6 +21,5 @@ func DictionaryRouters(router *gin.RouterGroup, controller dictionary.IDictionar
 		u.DELETE("/:id", controller.DeleteDictionary)
 		u.GET("/search", controller.SearchPaginated)
 		u.GET("/search-property", controller.SearchByProperty)
-		u.GET("/type/:type", controller.GetByType)
 	}
 }

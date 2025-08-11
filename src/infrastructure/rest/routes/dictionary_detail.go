@@ -2,7 +2,7 @@ package routes
 
 import (
 	"github.com/casbin/casbin/v2"
-	dictionary_detail "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/dictionaryDetail"
+	dictionary_detail "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/dictionary_detail"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gin-gonic/gin"
 )

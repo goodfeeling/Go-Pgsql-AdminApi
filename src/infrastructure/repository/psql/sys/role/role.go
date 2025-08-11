@@ -17,12 +17,12 @@ import (
 type SysRole struct {
 	ID            int64          `gorm:"column:id;primary_key;autoIncrement" json:"id,omitempty"`
 	CreatedAt     time.Time      `gorm:"column:created_at"`
-	UpdatedAt     time.Time      `gorm:"column:updated_at"`
+	UpdatedAt     time.Time      `gorm:"column:updated_at;autoUpdateTime"`
 	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at;index"`
 	Name          string         `gorm:"column:name"`
 	ParentID      int64          `gorm:"column:parent_id;type:numeric(20,0)"`
 	DefaultRouter string         `gorm:"column:default_router"`
-	Status        bool           `gorm:"column:status"`
+	Status        int16          `gorm:"column:status"`
 	Order         int64          `gorm:"column:order;type:numeric(10,0)"`
 	Label         string         `gorm:"column:label"`
 	Description   string         `gorm:"column:description"`

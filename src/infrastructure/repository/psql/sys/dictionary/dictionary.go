@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
-
+	"github.com/gbrayhan/microservices-go/src/domain/constants"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainDictionary "github.com/gbrayhan/microservices-go/src/domain/sys/dictionary"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
@@ -23,10 +23,11 @@ type SysDictionary struct {
 	UpdatedAt time.Time      `gorm:"column:updated_at;autoUpdateTime:milli"`  // 更新时间
 	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;index"`                 // 软删除标记
 
-	Name   string `gorm:"column:name;type:varchar(191)"` // 字典名（中）
-	Type   string `gorm:"column:type;type:varchar(191)"` // 字典名（英）
-	Status int16  `gorm:"column:status;type:smallint"`   // 状态
-	Desc   string `gorm:"column:desc;type:varchar(191)"` // 描述
+	Name           string `gorm:"column:name;type:varchar(191)"` // 字典名（中）
+	Type           string `gorm:"column:type;type:varchar(191)"` // 字典名（英）
+	Status         int16  `gorm:"column:status;type:smallint"`   // 状态
+	Desc           string `gorm:"column:desc;type:varchar(191)"` // 描述
+	IsGenerateFile int16  `gorm:"column:is_generate_file;type:smallint"`
 	// 关联关系
 	Details []dictionaryDetailRepo.SysDictionaryDetail `gorm:"foreignKey:SysDictionaryID"`
 }
@@ -70,13 +71,13 @@ func NewDictionaryRepository(db *gorm.DB, loggerInstance *logger.Logger) Diction
 }
 
 func (r *Repository) GetAll() (*[]domainDictionary.Dictionary, error) {
-	var dictionarys []SysDictionary
-	if err := r.DB.Find(&dictionarys).Error; err != nil {
-		r.Logger.Error("Error getting all dictionarys", zap.Error(err))
+	var dictionaries []SysDictionary
+	if err := r.DB.Find(&dictionaries).Error; err != nil {
+		r.Logger.Error("Error getting all dictionaries", zap.Error(err))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
-	r.Logger.Info("Successfully retrieved all dictionarys", zap.Int("count", len(dictionarys)))
-	return arrayToDomainMapper(&dictionarys), nil
+	r.Logger.Info("Successfully retrieved all dictionaries", zap.Int("count", len(dictionaries)))
+	return arrayToDomainMapper(&dictionaries), nil
 }
 
 func (r *Repository) Create(dictionaryDomain *domainDictionary.Dictionary) (*domainDictionary.Dictionary, error) {
@@ -227,23 +228,23 @@ func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.Pagina
 	}
 	offset := (filters.Page - 1) * filters.PageSize
 
-	var dictionarys []SysDictionary
-	if err := query.Offset(offset).Limit(filters.PageSize).Find(&dictionarys).Error; err != nil {
-		r.Logger.Error("Error searching dictionarys", zap.Error(err))
+	var dictionaries []SysDictionary
+	if err := query.Offset(offset).Limit(filters.PageSize).Find(&dictionaries).Error; err != nil {
+		r.Logger.Error("Error searching dictionaries", zap.Error(err))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 
 	totalPages := int((total + int64(filters.PageSize) - 1) / int64(filters.PageSize))
 
 	result := &domain.PaginatedResult[domainDictionary.Dictionary]{
-		Data:       arrayToDomainMapper(&dictionarys),
+		Data:       arrayToDomainMapper(&dictionaries),
 		Total:      total,
 		Page:       filters.Page,
 		PageSize:   filters.PageSize,
 		TotalPages: totalPages,
 	}
 
-	r.Logger.Info("Successfully searched dictionarys",
+	r.Logger.Info("Successfully searched dictionaries",
 		zap.Int64("total", total),
 		zap.Int("page", filters.Page),
 		zap.Int("pageSize", filters.PageSize))
@@ -277,35 +278,37 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 
 func (u *SysDictionary) toDomainMapper() *domainDictionary.Dictionary {
 	return &domainDictionary.Dictionary{
-		ID:        u.ID,
-		Name:      u.Name,
-		Desc:      u.Desc,
-		Type:      u.Type,
-		Status:    u.Status,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
-		Details:   dictionaryDetailRepo.ArrayToDomainMapper(&u.Details),
+		ID:             u.ID,
+		Name:           u.Name,
+		Desc:           u.Desc,
+		Type:           u.Type,
+		Status:         u.Status,
+		IsGenerateFile: u.IsGenerateFile,
+		CreatedAt:      u.CreatedAt,
+		UpdatedAt:      u.UpdatedAt,
+		Details:        dictionaryDetailRepo.ArrayToDomainMapper(&u.Details),
 	}
 }
 
 func fromDomainMapper(u *domainDictionary.Dictionary) *SysDictionary {
 	return &SysDictionary{
-		ID:        u.ID,
-		Name:      u.Name,
-		Desc:      u.Desc,
-		Type:      u.Type,
-		Status:    u.Status,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		ID:             u.ID,
+		Name:           u.Name,
+		Desc:           u.Desc,
+		Type:           u.Type,
+		Status:         u.Status,
+		IsGenerateFile: u.IsGenerateFile,
+		CreatedAt:      u.CreatedAt,
+		UpdatedAt:      u.UpdatedAt,
 	}
 }
 
-func arrayToDomainMapper(dictionarys *[]SysDictionary) *[]domainDictionary.Dictionary {
-	dictionarysDomain := make([]domainDictionary.Dictionary, len(*dictionarys))
-	for i, dictionary := range *dictionarys {
-		dictionarysDomain[i] = *dictionary.toDomainMapper()
+func arrayToDomainMapper(dictionaries *[]SysDictionary) *[]domainDictionary.Dictionary {
+	dictionariesDomain := make([]domainDictionary.Dictionary, len(*dictionaries))
+	for i, dictionary := range *dictionaries {
+		dictionariesDomain[i] = *dictionary.toDomainMapper()
 	}
-	return &dictionarysDomain
+	return &dictionariesDomain
 }
 
 func (r *Repository) GetOneByMap(dictionaryMap map[string]interface{}) (*domainDictionary.Dictionary, error) {
@@ -323,15 +326,15 @@ func (r *Repository) GetOneByMap(dictionaryMap map[string]interface{}) (*domainD
 }
 
 func (r *Repository) GetByType(typeText string) (*domainDictionary.Dictionary, error) {
-	var dictionarys SysDictionary
+	var dictionaries SysDictionary
 	if err := r.DB.
 		Preload("Details", func(db *gorm.DB) *gorm.DB {
-			return db.Where("status = ?", 1)
+			return db.Where("status = ?", constants.StatusEnable)
 		}).
-		Where("type = ? and status = ?", typeText, 1).First(&dictionarys).Error; err != nil {
-		r.Logger.Error("Error getting all dictionarys", zap.Error(err))
+		Where("type = ? and status = ?", typeText, constants.StatusEnable).First(&dictionaries).Error; err != nil {
+		r.Logger.Error("Error getting all dictionaries", zap.Error(err))
 		return nil, nil
 	}
-	r.Logger.Info("Successfully retrieved all dictionarys", zap.String("typeText", typeText))
-	return dictionarys.toDomainMapper(), nil
+	r.Logger.Info("Successfully retrieved all dictionaries", zap.String("typeText", typeText))
+	return dictionaries.toDomainMapper(), nil
 }

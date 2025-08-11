@@ -1,7 +1,7 @@
 package di
 
 import (
-	apiUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/api"
+	apiUseCase "github.com/gbrayhan/microservices-go/src/application/services/sys/api"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
 
 	apiController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/api"

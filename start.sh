@@ -1,1 +1,2 @@
+make generate-dict
 air

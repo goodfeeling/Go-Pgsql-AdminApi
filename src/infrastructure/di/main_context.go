@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	"github.com/casbin/casbin/v2"
+	"github.com/gbrayhan/microservices-go/src/application/event/bus"
+	"github.com/gbrayhan/microservices-go/src/application/event/factory"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	redisClient "github.com/gbrayhan/microservices-go/src/infrastructure/redis"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql"
@@ -45,8 +47,9 @@ func GetLogger() *logger.Logger {
 
 // ApplicationContext holds all application dependencies and services
 type ApplicationContext struct {
-	DB           *gorm.DB
-	RedisClient  *redis.Client // 添加Redis客户端
+	DB           *gorm.DB      // database connection
+	RedisClient  *redis.Client // redis client
+	EventBus     bus.EventBus  // event bus
 	Logger       *logger.Logger
 	Enforcer     *casbin.Enforcer
 	JWTService   security.IJWTService
@@ -65,6 +68,8 @@ type ApplicationContext struct {
 	OperationModule        OperationModule
 	RoleModule             RoleModule
 	FileModule             FileModule
+	ScheduledTaskModule    ScheduledTaskModule
+	TaskExecutionLogModule TaskExecutionLogModule
 }
 type RepositoryContainer struct {
 	RoleMenuRepository         role_menu.ISysRoleMenuRepository
@@ -91,6 +96,9 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	if err != nil {
 		return nil, err
 	}
+
+	// create event bus
+	eventBus := factory.CreateEventBus(loggerInstance)
 
 	// Initialize Redis client
 	redisClientInstance, err := redisClient.InitRedisClient(loggerInstance)
@@ -128,6 +136,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	appContext := &ApplicationContext{
 		DB:           db,
 		RedisClient:  redisClientInstance,
+		EventBus:     eventBus,
 		Logger:       loggerInstance,
 		Enforcer:     enforcer,
 		JWTService:   jwtService,
@@ -149,6 +158,8 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		setupUploadModule,
 		setupMenuParameterModule,
 		setupFileModule,
+		setupScheduledTaskModule,
+		setupTaskExecutionLogModule,
 	}
 
 	for _, setupFunc := range moduleSetupFuncs {
@@ -160,9 +171,9 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	return appContext, nil
 }
 
-// 在main.go或应用关闭处理中添加
+// close response
 func (appContext *ApplicationContext) Close() error {
-	// 关闭数据库连接
+	// close database connection
 	if appContext.DB != nil {
 		db, _ := appContext.DB.DB()
 		if err := db.Close(); err != nil {
@@ -170,7 +181,7 @@ func (appContext *ApplicationContext) Close() error {
 		}
 	}
 
-	// 关闭Redis连接
+	// down redis client
 	if appContext.RedisClient != nil {
 		if err := appContext.RedisClient.Close(); err != nil {
 			appContext.Logger.Error("Error closing Redis connection", zap.Error(err))

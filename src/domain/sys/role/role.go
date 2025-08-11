@@ -9,7 +9,7 @@ type Role struct {
 	Name          string            `json:"name"`
 	ParentID      int64             `json:"parent_id"`
 	DefaultRouter string            `json:"default_router"`
-	Status        bool              `json:"status"`
+	Status        int16             `json:"status"`
 	Order         int64             `json:"order"`
 	Label         string            `json:"label"`
 	Description   string            `json:"description"`
@@ -37,7 +37,7 @@ type RoleTree struct {
 	Name          string            `json:"name"`
 	ParentID      int64             `json:"parent_id"`
 	DefaultRouter string            `json:"default_router"`
-	Status        bool              `json:"status"`
+	Status        int16             `json:"status"`
 	Order         int64             `json:"order"`
 	Label         string            `json:"label"`
 	Description   string            `json:"description"`

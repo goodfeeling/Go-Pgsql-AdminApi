@@ -1,7 +1,7 @@
 package di
 
 import (
-	roleUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/role"
+	roleUseCase "github.com/gbrayhan/microservices-go/src/application/services/sys/role"
 
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/casbin_rule"

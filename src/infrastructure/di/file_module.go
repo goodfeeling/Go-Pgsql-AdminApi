@@ -1,7 +1,7 @@
 package di
 
 import (
-	filesUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/sys/files"
+	filesUseCase "github.com/gbrayhan/microservices-go/src/application/services/sys/files"
 
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/files"
 	fileController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/file"

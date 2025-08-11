@@ -2,7 +2,7 @@ package routes
 
 import (
 	"github.com/casbin/casbin/v2"
-	menuParameter "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menuParameter"
+	menuParameter "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menu_parameter"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gin-gonic/gin"
 )

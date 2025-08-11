@@ -10,7 +10,7 @@ func TestUser_Fields(t *testing.T) {
 		ID:           1,
 		UserName:     "testuser",
 		Email:        "test@example.com",
-		Status:       true,
+		Status:       1,
 		HashPassword: "hashedpassword",
 		Password:     "password",
 		CreatedAt:    time.Now(),
@@ -29,7 +29,7 @@ func TestUser_Fields(t *testing.T) {
 		t.Errorf("Expected Email to be 'test@example.com', got %s", user.Email)
 	}
 
-	if !user.Status {
+	if user.Status == 2 {
 		t.Errorf("Expected Status to be true, got %t", user.Status)
 	}
 
@@ -73,7 +73,7 @@ func TestUser_ZeroValues(t *testing.T) {
 		t.Errorf("Expected Email to be empty, got %s", user.Email)
 	}
 
-	if user.Status {
+	if user.Status == 2 {
 		t.Errorf("Expected Status to be false, got %t", user.Status)
 	}
 

@@ -2,7 +2,7 @@
 package di
 
 import (
-	authUseCase "github.com/gbrayhan/microservices-go/src/application/usecases/auth"
+	authUseCase "github.com/gbrayhan/microservices-go/src/application/services/auth"
 
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/jwt_blacklist"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"

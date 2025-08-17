@@ -167,14 +167,13 @@ func (c *AuthController) GetAccessTokenByRefreshToken(ctx *gin.Context) {
 
 	domainUser, authTokens, err := c.authUseCase.AccessTokenByRefreshToken(request.RefreshToken)
 	if err != nil {
-		c.Logger.Error("Token refresh failed", zap.Error(err))
-		appError := domainErrors.NewAppError(err, domainErrors.TokenExpired)
+		c.Logger.Error("Error Token", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.TokenError)
 		_ = ctx.Error(appError)
 		return
 	}
-
-	response := &domain.CommonResponse[useCaseAuth.SecurityAuthenticatedUser]{
-		Data: useCaseAuth.SecurityAuthenticatedUser{
+	response := controllers.NewCommonResponseBuilder[*useCaseAuth.SecurityAuthenticatedUser]().
+		Data(&useCaseAuth.SecurityAuthenticatedUser{
 			UserInfo: useCaseAuth.DataUserAuthenticated{},
 			Security: useCaseAuth.DataSecurityAuthenticated{
 				JWTAccessToken:            authTokens.AccessToken,
@@ -182,8 +181,10 @@ func (c *AuthController) GetAccessTokenByRefreshToken(ctx *gin.Context) {
 				ExpirationAccessDateTime:  authTokens.ExpirationAccessDateTime,
 				ExpirationRefreshDateTime: authTokens.ExpirationRefreshDateTime,
 			},
-		},
-	}
+		}).
+		Message("success").
+		Status(0).
+		Build()
 
 	c.Logger.Info("Token refresh successful", zap.Int64("userID", domainUser.ID))
 	ctx.JSON(http.StatusOK, response)

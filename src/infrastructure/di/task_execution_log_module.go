@@ -3,7 +3,6 @@ package di
 import (
 	taskExecutionLogUseCase "github.com/gbrayhan/microservices-go/src/application/services/sys/task_execution_log"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/task_execution_log"
-
 	taskExecutionLogController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/task_execution_log"
 )
 

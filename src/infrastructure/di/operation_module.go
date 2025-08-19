@@ -3,7 +3,6 @@ package di
 import (
 	"github.com/gbrayhan/microservices-go/src/application/services/sys/operation_record"
 	operationUseCase "github.com/gbrayhan/microservices-go/src/application/services/sys/operation_record"
-
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/operation_records"
 	operationController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/operation"
 )

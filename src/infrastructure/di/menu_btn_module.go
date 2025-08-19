@@ -2,7 +2,6 @@ package di
 
 import (
 	menuBtnUseCase "github.com/gbrayhan/microservices-go/src/application/services/sys/menu_btn"
-
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_btn"
 	menuBtnController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menu_btn"
 )

@@ -2,7 +2,6 @@ package di
 
 import (
 	menuParameterUseCase "github.com/gbrayhan/microservices-go/src/application/services/sys/menu_parameter"
-
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_parameter"
 	menuParameterController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menu_parameter"
 )

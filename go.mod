@@ -3,6 +3,7 @@ module github.com/gbrayhan/microservices-go
 go 1.24.2
 
 require (
+	github.com/ThreeDotsLabs/watermill v1.4.7
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.9
 	github.com/alibabacloud-go/sts-20150401/v2 v2.0.4
 	github.com/alibabacloud-go/tea v1.3.10
@@ -10,10 +11,13 @@ require (
 	github.com/cucumber/godog v0.15.0
 	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-gonic/gin v1.10.0
+	github.com/go-co-op/gocron v1.37.0
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
+	github.com/redis/go-redis/v9 v9.12.0
+	github.com/streadway/amqp v1.1.0
 	github.com/stretchr/testify v1.10.0
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
@@ -26,7 +30,6 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/ThreeDotsLabs/watermill v1.4.7 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.5 // indirect
 	github.com/alibabacloud-go/debug v1.0.1 // indirect
 	github.com/alibabacloud-go/endpoint-util v1.1.0 // indirect
@@ -45,10 +48,10 @@ require (
 	github.com/microsoft/go-mssqldb v1.7.2 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/redis/go-redis/v9 v9.12.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230126093431-47fa9a501578 // indirect
-	github.com/streadway/amqp v1.1.0 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
+	go.uber.org/atomic v1.9.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gorm.io/driver/mysql v1.5.7 // indirect
 	gorm.io/driver/sqlserver v1.6.0 // indirect

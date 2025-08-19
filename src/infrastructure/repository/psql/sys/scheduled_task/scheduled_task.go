@@ -57,7 +57,7 @@ type Repository struct {
 	Logger *logger.Logger
 }
 
-func NewRoleBtnRepository(db *gorm.DB, loggerInstance *logger.Logger) IScheduledTaskRepository {
+func NewScheduledTaskRepository(db *gorm.DB, loggerInstance *logger.Logger) IScheduledTaskRepository {
 	return &Repository{DB: db, Logger: loggerInstance}
 }
 
@@ -270,7 +270,16 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 
 func (u *ScheduledTask) toDomainMapper() *domainScheduledTask.ScheduledTask {
 	return &domainScheduledTask.ScheduledTask{
-		ID:        u.ID,
+		ID:              u.ID,
+		TaskName:        u.TaskName,
+		TaskType:        u.TaskType,
+		TaskDescription: u.TaskDescription,
+		TaskParams:      u.TaskParams,
+		CronExpression:  u.CronExpression,
+		Status:          u.Status,
+		LastExecuteTime: u.LastExecuteTime,
+		NextExecuteTime: u.NextExecuteTime,
+
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}
@@ -278,9 +287,17 @@ func (u *ScheduledTask) toDomainMapper() *domainScheduledTask.ScheduledTask {
 
 func fromDomainMapper(u *domainScheduledTask.ScheduledTask) *ScheduledTask {
 	return &ScheduledTask{
-		ID:        u.ID,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		ID:              u.ID,
+		TaskName:        u.TaskName,
+		TaskType:        u.TaskType,
+		TaskDescription: u.TaskDescription,
+		TaskParams:      u.TaskParams,
+		CronExpression:  u.CronExpression,
+		Status:          u.Status,
+		LastExecuteTime: u.LastExecuteTime,
+		NextExecuteTime: u.NextExecuteTime,
+		CreatedAt:       u.CreatedAt,
+		UpdatedAt:       u.UpdatedAt,
 	}
 }
 

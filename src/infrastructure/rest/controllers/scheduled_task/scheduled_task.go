@@ -15,6 +15,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"gorm.io/datatypes"
 )
 
 // Structures
@@ -24,23 +25,27 @@ type DeleteBatchScheduledTaskRequest struct {
 
 // Structures
 type NewScheduledTaskRequest struct {
-	ID              int       `json:"id"`
-	TaskID          uint      `json:"task_id"  binding:"required"`
-	ExecuteTime     time.Time `json:"execute_time"  binding:"required"`
-	ExecuteResult   int       `json:"execute_result"  binding:"required"`
-	ExecuteDuration *int      `json:"execute_duration"  binding:"required"`
-	ErrorMessage    *string   `json:"error_message"  binding:"required"`
+	ID              int            `json:"id"`
+	TaskName        string         `json:"task_name"  binding:"required"`
+	TaskDescription string         `json:"task_description"  binding:"required"`
+	CronExpression  string         `json:"cron_expression"  binding:"required"`
+	TaskParams      datatypes.JSON `json:"task_params"`
+	TaskType        string         `json:"task_type"  binding:"required"`
+	Status          int            `json:"status"  binding:"required"`
 }
 
 type ResponseScheduledTask struct {
 	ID              int               `json:"id"`
-	TaskID          uint              `json:"task_id"`
-	ExecuteTime     time.Time         `json:"execute_time"`
-	ExecuteResult   int               `json:"execute_result"`
-	ExecuteDuration *int              `json:"execute_duration"`
-	ErrorMessage    *string           `json:"error_message"`
+	TaskName        string            `json:"task_name"`
+	TaskDescription string            `json:"task_description"`
+	CronExpression  string            `json:"cron_expression"`
+	TaskParams      datatypes.JSON    `json:"task_params"`
+	Status          int               `json:"status"`
+	TaskType        string            `json:"task_type"`
 	CreatedAt       domain.CustomTime `json:"created_at,omitempty"`
 	UpdatedAt       domain.CustomTime `json:"updated_at,omitempty"`
+	LastExecuteTime *time.Time        `json:"last_execute_time"`
+	NextExecuteTime *time.Time        `json:"next_execute_time"`
 }
 type IScheduledTaskDetailController interface {
 	NewScheduledTask(ctx *gin.Context)
@@ -84,7 +89,7 @@ func (c *ScheduledTaskDetailController) NewScheduledTask(ctx *gin.Context) {
 	}
 	ScheduledTaskModel, err := c.scheduledTaskService.Create(toUsecaseMapper(&request))
 	if err != nil {
-		c.Logger.Error("Error creating ScheduledTask", zap.Error(err), zap.Uint("TaskID", request.TaskID))
+		c.Logger.Error("Error creating ScheduledTask", zap.Error(err), zap.String("TaskName", request.TaskName))
 		_ = ctx.Error(err)
 		return
 	}
@@ -93,7 +98,7 @@ func (c *ScheduledTaskDetailController) NewScheduledTask(ctx *gin.Context) {
 		Message("success").
 		Status(0).
 		Build()
-	c.Logger.Info("ScheduledTask created successfully", zap.Uint("TaskID", request.TaskID), zap.Int("id", int(ScheduledTaskModel.ID)))
+	c.Logger.Info("ScheduledTask created successfully", zap.String("TaskName", request.TaskName), zap.Int("id", int(ScheduledTaskModel.ID)))
 	ctx.JSON(http.StatusOK, ScheduledTaskResponse)
 }
 
@@ -421,7 +426,16 @@ func (c *ScheduledTaskDetailController) DeleteScheduledTasks(ctx *gin.Context) {
 func domainToResponseMapper(domainScheduledTask *domainScheduledTask.ScheduledTask) *ResponseScheduledTask {
 
 	return &ResponseScheduledTask{
-		ID:        domainScheduledTask.ID,
+		ID:              domainScheduledTask.ID,
+		TaskName:        domainScheduledTask.TaskName,
+		TaskType:        domainScheduledTask.TaskType,
+		TaskParams:      domainScheduledTask.TaskParams,
+		TaskDescription: domainScheduledTask.TaskDescription,
+		CronExpression:  domainScheduledTask.CronExpression,
+		Status:          domainScheduledTask.Status,
+		LastExecuteTime: domainScheduledTask.LastExecuteTime,
+		NextExecuteTime: domainScheduledTask.NextExecuteTime,
+
 		CreatedAt: domain.CustomTime{Time: domainScheduledTask.CreatedAt},
 		UpdatedAt: domain.CustomTime{Time: domainScheduledTask.UpdatedAt},
 	}
@@ -436,5 +450,12 @@ func arrayDomainToResponseMapper(scheduled_task *[]domainScheduledTask.Scheduled
 }
 
 func toUsecaseMapper(req *NewScheduledTaskRequest) *domainScheduledTask.ScheduledTask {
-	return &domainScheduledTask.ScheduledTask{}
+	return &domainScheduledTask.ScheduledTask{
+		CronExpression:  req.CronExpression,
+		Status:          req.Status,
+		TaskDescription: req.TaskDescription,
+		TaskName:        req.TaskName,
+		TaskParams:      req.TaskParams,
+		TaskType:        req.TaskType,
+	}
 }

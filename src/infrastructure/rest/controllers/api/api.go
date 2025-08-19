@@ -278,7 +278,6 @@ func (c *ApiController) SearchPaginated(ctx *gin.Context) {
 		}
 	}
 
-	fmt.Println(matches)
 	filters.Matches = matches
 
 	// Parse date range filters

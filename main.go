@@ -101,6 +101,9 @@ func main() {
 	// Setup server
 	server := setupServer(router, serverConfig.Port)
 
+	// setup scheduler
+	appContext.TaskScheduler.Start()
+
 	// Start server
 	// 在goroutine中启动服务器，以便可以捕获关闭信号
 	go func() {

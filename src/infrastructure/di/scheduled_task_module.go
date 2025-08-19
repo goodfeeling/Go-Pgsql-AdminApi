@@ -3,7 +3,6 @@ package di
 import (
 	scheduledTaskUseCase "github.com/gbrayhan/microservices-go/src/application/services/sys/scheduled_task"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/scheduled_task"
-
 	scheduledTaskController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/scheduled_task"
 )
 
@@ -14,11 +13,9 @@ type ScheduledTaskModule struct {
 }
 
 func setupScheduledTaskModule(appContext *ApplicationContext) error {
-	// Initialize repositories
-	scheduledTaskRepository := scheduled_task.NewRoleBtnRepository(appContext.DB, appContext.Logger)
 	// Initialize use cases
 	apiUC := scheduledTaskUseCase.NewScheduledTaskUseCase(
-		scheduledTaskRepository,
+		appContext.Repositories.ScheduledTaskRepository,
 		appContext.Logger)
 	// Initialize controllers
 	scheduledTaskController := scheduledTaskController.NewScheduledTaskDetailController(apiUC, appContext.Logger)
@@ -26,7 +23,7 @@ func setupScheduledTaskModule(appContext *ApplicationContext) error {
 	appContext.ScheduledTaskModule = ScheduledTaskModule{
 		Controller: scheduledTaskController,
 		UseCase:    apiUC,
-		Repository: scheduledTaskRepository,
+		Repository: appContext.Repositories.ScheduledTaskRepository,
 	}
 	return nil
 }

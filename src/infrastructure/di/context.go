@@ -8,8 +8,12 @@ import (
 	"github.com/casbin/casbin/v2"
 	"github.com/gbrayhan/microservices-go/src/application/event/bus"
 	"github.com/gbrayhan/microservices-go/src/application/event/factory"
+	taskConstants "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task/constants"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/executor"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	redisClient "github.com/gbrayhan/microservices-go/src/infrastructure/redis"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/scheduled_task"
+
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/jwt_blacklist"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
@@ -26,6 +30,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_menu"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/user_role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/scheduler"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/security"
 	sharedUtil "github.com/gbrayhan/microservices-go/src/shared/utils"
 	"github.com/redis/go-redis/v9"
@@ -47,13 +52,17 @@ func GetLogger() *logger.Logger {
 
 // ApplicationContext holds all application dependencies and services
 type ApplicationContext struct {
-	DB           *gorm.DB      // database connection
-	RedisClient  *redis.Client // redis client
-	EventBus     bus.EventBus  // event bus
-	Logger       *logger.Logger
-	Enforcer     *casbin.Enforcer
-	JWTService   security.IJWTService
-	Repositories RepositoryContainer
+	DB               *gorm.DB      // database connection
+	RedisClient      *redis.Client // redis client
+	EventBus         bus.EventBus  // event bus
+	Logger           *logger.Logger
+	Enforcer         *casbin.Enforcer
+	JWTService       security.IJWTService
+	Repositories     RepositoryContainer
+	TaskExecutor     *executor.TaskExecutorManager
+	TaskScheduler    *scheduler.TaskScheduler
+	HttpExecutor     *executor.HTTPExecutor
+	FunctionExecutor *executor.FunctionExecutor
 
 	UserModule             UserModule
 	AuthModule             AuthModule
@@ -87,6 +96,7 @@ type RepositoryContainer struct {
 	RoleRepository             role.ISysRolesRepository
 	UserRepository             user.UserRepositoryInterface
 	FileRepository             files.ISysFilesRepository
+	ScheduledTaskRepository    scheduled_task.IScheduledTaskRepository
 }
 
 // SetupDependencies creates a new application context with all dependencies
@@ -106,13 +116,20 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		return nil, fmt.Errorf("failed to initialize Redis client: %w", err)
 	}
 
-	// 初始化Casbin执行器
+	// Initialize Casbin
 	enforcer, err := sharedUtil.InitCasbinEnforcer(db, loggerInstance)
 	if err != nil {
 		return nil, err
 	}
 
-	// 初始化共享的repositories
+	// initialize task executor
+	taskExecutor := executor.NewTaskExecutorManager(loggerInstance)
+	functionExecutor := executor.NewFunctionExecutor(loggerInstance)
+	httpCallExecutor := executor.NewHTTPExecutor(loggerInstance)
+	taskExecutor.RegisterExecutor(taskConstants.TaskTypeFunction, functionExecutor)
+	taskExecutor.RegisterExecutor(taskConstants.TaskTypeHttpCall, httpCallExecutor)
+
+	// share repositories
 	repositories := RepositoryContainer{
 		RoleMenuRepository:      role_menu.NewSysRoleMenuRepository(db, loggerInstance),
 		CasBinRepository:        casbin_rule.NewCasbinRuleRepository(db, loggerInstance),
@@ -127,23 +144,30 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		RoleRepository:          role.NewSysRolesRepository(db, loggerInstance),
 		UserRepository:          user.NewUserRepository(db, loggerInstance),
 		FileRepository:          files.NewSysFilesRepository(db, loggerInstance),
+		ScheduledTaskRepository: scheduled_task.NewScheduledTaskRepository(db, loggerInstance),
 	}
+	// initialize task scheduler
+	taskScheduler := scheduler.NewTaskScheduler(repositories.ScheduledTaskRepository, loggerInstance, taskExecutor)
 
 	// Initialize JWT service
 	jwtService := security.NewJWTService()
 
-	// 创建应用上下文
+	// create context
 	appContext := &ApplicationContext{
-		DB:           db,
-		RedisClient:  redisClientInstance,
-		EventBus:     eventBus,
-		Logger:       loggerInstance,
-		Enforcer:     enforcer,
-		JWTService:   jwtService,
-		Repositories: repositories,
+		DB:               db,
+		RedisClient:      redisClientInstance,
+		EventBus:         eventBus,
+		Logger:           loggerInstance,
+		Enforcer:         enforcer,
+		JWTService:       jwtService,
+		Repositories:     repositories,
+		TaskExecutor:     taskExecutor,
+		TaskScheduler:    taskScheduler,
+		FunctionExecutor: functionExecutor,
+		HttpExecutor:     httpCallExecutor,
 	}
 
-	// 定义模块初始化函数切片
+	// module slice
 	moduleSetupFuncs := []func(*ApplicationContext) error{
 		setupUserModule,
 		setupAuthModule,
@@ -188,6 +212,10 @@ func (appContext *ApplicationContext) Close() error {
 		} else {
 			appContext.Logger.Info("Redis connection closed successfully")
 		}
+	}
+	// down scheduler
+	if appContext.TaskScheduler != nil {
+		appContext.TaskScheduler.Stop()
 	}
 
 	return nil

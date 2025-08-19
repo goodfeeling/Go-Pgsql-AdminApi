@@ -2,10 +2,9 @@ package di
 
 import (
 	menuUseCase "github.com/gbrayhan/microservices-go/src/application/services/sys/menu"
-	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_btn"
-
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_group"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_btn"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_menu"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
 	menuController "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menu"

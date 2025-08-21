@@ -3,9 +3,13 @@ package scheduler
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"sync"
+
+	scheduleTaskConstants "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task/constants"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainScheduledTask "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task"
@@ -30,8 +34,12 @@ func NewTaskScheduler(
 	logger *logger.Logger,
 	executor *executor.TaskExecutorManager,
 ) *TaskScheduler {
+	// 创建支持秒级的调度器
+	scheduler := gocron.NewScheduler(time.UTC)
+	scheduler.SetMaxConcurrentJobs(10, gocron.RescheduleMode) // 可选：设置最大并发任务数
+
 	return &TaskScheduler{
-		scheduler: gocron.NewScheduler(time.UTC),
+		scheduler: scheduler,
 		repo:      repo,
 		logger:    logger,
 		tasks:     make(map[int]*gocron.Job),
@@ -52,7 +60,7 @@ func (s *TaskScheduler) Stop() {
 func (s *TaskScheduler) loadTasks() {
 	filters := domain.DataFilters{
 		Matches: map[string][]string{
-			"status": {"1"}, // 只加载启用的任务
+			"status": {scheduleTaskConstants.TaskStatusEnabled}, // 只加载启用的任务
 		},
 	}
 
@@ -80,11 +88,25 @@ func (s *TaskScheduler) addTaskToScheduleInternal(task *domainScheduledTask.Sche
 	}
 
 	// 使用gocron解析cron表达式并调度任务
-	job, err := s.scheduler.Cron(task.CronExpression).Do(taskFunc)
+	// 如果表达式包含6个字段（秒级），则使用 WithSeconds 选项
+	var job *gocron.Job
+	var err error
+
+	// 检查cron表达式的字段数
+	fields := strings.Fields(task.CronExpression)
+	if len(fields) == 6 {
+		// 6字段表达式，使用秒级解析
+		job, err = s.scheduler.CronWithSeconds(task.CronExpression).Do(taskFunc)
+	} else {
+		// 标准5字段表达式
+		job, err = s.scheduler.Cron(task.CronExpression).Do(taskFunc)
+	}
+
 	if err != nil {
 		s.logger.Error("Failed to schedule task",
 			zap.Int("task_id", task.ID),
 			zap.String("task_name", task.TaskName),
+			zap.String("cron", task.CronExpression),
 			zap.Error(err))
 		return
 	}
@@ -110,30 +132,73 @@ func (s *TaskScheduler) executeTask(task *domainScheduledTask.ScheduledTask) {
 		zap.Int("task_id", task.ID),
 		zap.String("task_name", task.TaskName))
 
+	// 更新任务状态为"运行中"
+	now := time.Now()
+	updateData := map[string]interface{}{
+		"status":            scheduleTaskConstants.TaskStatusRunning, // "2" 表示运行中
+		"last_execute_time": &now,
+	}
+
+	_, err := s.repo.Update(task.ID, updateData)
+	if err != nil {
+		s.logger.Error("Failed to update task status to running",
+			zap.Int("task_id", task.ID),
+			zap.Error(err))
+	}
+
 	// 执行任务
-	err := s.executor.Execute(task)
+	err = s.executor.Execute(task)
+
+	// 执行完成后，根据任务类型更新状态
+	// 对于周期性任务，执行完成后恢复为"启用"状态
+	// 对于一次性任务，可以设置为"已完成"状态
+	finalStatus := scheduleTaskConstants.TaskStatusEnabled // 默认恢复为启用状态
+
+	// 判断是否为一次性任务
+	isOneTimeTask := task.ExecType == scheduleTaskConstants.TaskExecOnetime
+
+	// 如果是一次性任务，则可以设置为已完成
+	if isOneTimeTask && err == nil { // 假设有这样的字段标识一次性任务
+		finalStatus = scheduleTaskConstants.TaskStatusCompleted // "5" 表示已完成
+	}
+
 	if err != nil {
 		s.logger.Error("Task execution failed",
 			zap.Int("task_id", task.ID),
 			zap.String("task_name", task.TaskName),
 			zap.Error(err))
+
+		// 执行失败，更新状态为"错误"
+		finalStatus = scheduleTaskConstants.TaskStatusError // "4" 表示错误
 	} else {
 		s.logger.Info("Task executed successfully",
 			zap.Int("task_id", task.ID),
 			zap.String("task_name", task.TaskName))
 	}
 
-	// 更新执行时间
-	now := time.Now()
-	updateData := map[string]interface{}{
-		"last_execute_time": &now,
+	// 更新执行结果状态
+	updateData = map[string]interface{}{
+		"status": finalStatus,
 	}
 
 	_, err = s.repo.Update(task.ID, updateData)
 	if err != nil {
-		s.logger.Error("Failed to update task execution time",
+		s.logger.Error("Failed to update task execution result",
 			zap.Int("task_id", task.ID),
 			zap.Error(err))
+	}
+
+	// 如果是一次性任务，执行完成后从调度器中移除
+	if isOneTimeTask {
+		s.mutex.Lock()
+		if job, exists := s.tasks[task.ID]; exists {
+			s.scheduler.RemoveByReference(job)
+			delete(s.tasks, task.ID)
+			s.logger.Info("One-time task removed from scheduler after execution",
+				zap.Int("task_id", task.ID),
+				zap.String("task_name", task.TaskName))
+		}
+		s.mutex.Unlock()
 	}
 }
 
@@ -169,16 +234,7 @@ func (s *TaskScheduler) StopAllTasks() {
 
 // StartTask 启动单个任务
 func (s *TaskScheduler) StartTask(taskID int) error {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	// 如果任务已经在运行，先停止它
-	if job, exists := s.tasks[taskID]; exists {
-		s.scheduler.RemoveByReference(job)
-		delete(s.tasks, taskID)
-	}
-
-	// 从数据库获取任务
+	// 先从数据库获取任务（在锁外面进行数据库操作）
 	task, err := s.repo.GetByID(taskID)
 	if err != nil {
 		s.logger.Error("Failed to get task by ID",
@@ -188,13 +244,24 @@ func (s *TaskScheduler) StartTask(taskID int) error {
 	}
 
 	// 检查任务状态是否为启用
-	if task.Status != 1 {
+	if strconv.Itoa(task.Status) != scheduleTaskConstants.TaskStatusEnabled {
 		s.logger.Warn("Task is not enabled, cannot start", zap.Int("task_id", taskID))
 		return fmt.Errorf("task is not enabled")
 	}
 
+	// 然后获取锁进行调度操作
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	// 如果任务已经在运行，先停止它
+	if job, exists := s.tasks[taskID]; exists {
+		s.scheduler.RemoveByReference(job)
+		delete(s.tasks, taskID)
+	}
+
 	// 调度任务
-	return s.addTaskToSchedule(task)
+	s.addTaskToScheduleInternal(task)
+	return nil
 }
 
 // StopTask 停止单个任务
@@ -227,7 +294,7 @@ func (s *TaskScheduler) AddTask(task *domainScheduledTask.ScheduledTask) error {
 	}
 
 	// 如果任务是启用状态，则调度它
-	if task.Status == 1 {
+	if strconv.Itoa(task.Status) != scheduleTaskConstants.TaskStatusEnabled {
 		return s.addTaskToSchedule(task)
 	}
 
@@ -262,7 +329,7 @@ func (s *TaskScheduler) UpdateTask(task *domainScheduledTask.ScheduledTask) erro
 	}
 
 	// 如果任务启用，则重新调度
-	if task.Status == 1 {
+	if strconv.Itoa(task.Status) != scheduleTaskConstants.TaskStatusEnabled {
 		return s.addTaskToSchedule(task)
 	}
 

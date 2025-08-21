@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ScheduledTaskRouters(router *gin.RouterGroup, controller scheduled_task.IScheduledTaskDetailController, enforcer *casbin.Enforcer) {
+func ScheduledTaskRouters(router *gin.RouterGroup, controller scheduled_task.IScheduledTaskController, enforcer *casbin.Enforcer) {
 	u := router.Group("/scheduled_task")
 	u.Use(middlewares.AuthJWTMiddleware())
 	u.Use(middlewares.CasbinMiddleware(enforcer))
@@ -20,5 +20,8 @@ func ScheduledTaskRouters(router *gin.RouterGroup, controller scheduled_task.ISc
 		u.GET("/search", controller.SearchPaginated)
 		u.GET("/search-property", controller.SearchByProperty)
 		u.POST("/delete-batch", controller.DeleteScheduledTasks)
+		u.POST("/enable/:id", controller.EnableTaskById)
+		u.POST("/disable/:id", controller.DisableTaskById)
+		u.POST("/reload", controller.ReloadAllTasks)
 	}
 }

@@ -21,6 +21,7 @@ type ScheduledTask struct {
 	CronExpression  string         `gorm:"size:255;not null" json:"cron_expression"`
 	TaskType        string         `gorm:"size:100;not null" json:"task_type"`
 	TaskParams      datatypes.JSON `json:"task_params"`
+	ExecType        string         `json:"exec_type"`
 	Status          int            `gorm:"default:1" json:"status"`
 	LastExecuteTime *time.Time     `json:"last_execute_time"`
 	NextExecuteTime *time.Time     `json:"next_execute_time"`
@@ -33,14 +34,10 @@ func (ScheduledTask) TableName() string {
 }
 
 var ColumnsScheduledTaskMapping = map[string]string{
-	"id":          "id",
-	"path":        "path",
-	"taskName":    "task_name",
-	"description": "description",
-	"taskGroup":   "task_group",
-	"method":      "method",
-	"createdAt":   "created_at",
-	"updatedAt":   "updated_at",
+	"id":       "id",
+	"status":   "status",
+	"taskType": "task_type",
+	"taskName": "task_name",
 }
 
 type IScheduledTaskRepository interface {
@@ -277,6 +274,7 @@ func (u *ScheduledTask) toDomainMapper() *domainScheduledTask.ScheduledTask {
 		TaskParams:      u.TaskParams,
 		CronExpression:  u.CronExpression,
 		Status:          u.Status,
+		ExecType:        u.ExecType,
 		LastExecuteTime: u.LastExecuteTime,
 		NextExecuteTime: u.NextExecuteTime,
 
@@ -294,6 +292,7 @@ func fromDomainMapper(u *domainScheduledTask.ScheduledTask) *ScheduledTask {
 		TaskParams:      u.TaskParams,
 		CronExpression:  u.CronExpression,
 		Status:          u.Status,
+		ExecType:        u.ExecType,
 		LastExecuteTime: u.LastExecuteTime,
 		NextExecuteTime: u.NextExecuteTime,
 		CreatedAt:       u.CreatedAt,

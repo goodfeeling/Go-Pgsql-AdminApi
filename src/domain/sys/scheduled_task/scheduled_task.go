@@ -16,6 +16,7 @@ type ScheduledTask struct {
 	TaskType        string         `json:"task_type"`
 	TaskParams      datatypes.JSON `json:"task_params"`
 	Status          int            `json:"status"`
+	ExecType        string         `json:"exec_type"`
 	LastExecuteTime *time.Time     `json:"last_execute_time"`
 	NextExecuteTime *time.Time     `json:"next_execute_time"`
 	CreatedAt       time.Time      `json:"created_at"`
@@ -30,4 +31,7 @@ type IScheduledTaskService interface {
 	Delete(ids []int) error
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[ScheduledTask], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
+	EnableTask(id int) error
+	DisableTask(id int) error
+	ReloadTasks() error
 }

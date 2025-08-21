@@ -5,8 +5,10 @@ import (
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	scheduledTaskDomain "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task"
+	scheduleTaskConstants "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task/constants"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	scheduledTaskRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/scheduled_task"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/scheduler"
 	"go.uber.org/zap"
 )
 
@@ -18,19 +20,24 @@ type IScheduledTaskService interface {
 	Delete(ids []int) error
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[scheduledTaskDomain.ScheduledTask], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
+	EnableTask(id int) error
+	DisableTask(id int) error
+	ReloadTasks() error
 }
 
 type ScheduledTaskUseCase struct {
 	scheduledTaskRepository scheduledTaskRepo.IScheduledTaskRepository
 	Logger                  *logger.Logger
+	scheduler               *scheduler.TaskScheduler
 }
 
 func NewScheduledTaskUseCase(
 	scheduledTaskRepository scheduledTaskRepo.IScheduledTaskRepository,
-	loggerInstance *logger.Logger) IScheduledTaskService {
+	loggerInstance *logger.Logger, scheduler *scheduler.TaskScheduler) IScheduledTaskService {
 	return &ScheduledTaskUseCase{
 		scheduledTaskRepository: scheduledTaskRepository,
 		Logger:                  loggerInstance,
+		scheduler:               scheduler,
 	}
 }
 
@@ -71,4 +78,36 @@ func (s *ScheduledTaskUseCase) SearchByProperty(property string, searchText stri
 		zap.String("property", property),
 		zap.String("searchText", searchText))
 	return s.scheduledTaskRepository.SearchByProperty(property, searchText)
+}
+
+// DisableTask implements IScheduledTaskService.
+func (s *ScheduledTaskUseCase) DisableTask(taskID int) error {
+	updateData := map[string]interface{}{
+		"status": scheduleTaskConstants.TaskStatusDisabled,
+	}
+
+	_, err := s.scheduledTaskRepository.Update(taskID, updateData)
+	if err != nil {
+		return err
+	}
+
+	return s.scheduler.StopTask(taskID)
+}
+
+// EnableTask implements IScheduledTaskService.
+func (s *ScheduledTaskUseCase) EnableTask(taskID int) error {
+	updateData := map[string]interface{}{
+		"status": scheduleTaskConstants.TaskStatusEnabled,
+	}
+	_, err := s.scheduledTaskRepository.Update(taskID, updateData)
+	if err != nil {
+		return err
+	}
+
+	return s.scheduler.StartTask(taskID)
+}
+
+// ReloadTasks implements IScheduledTaskService.
+func (s *ScheduledTaskUseCase) ReloadTasks() error {
+	return s.scheduler.ReloadTasks()
 }

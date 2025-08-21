@@ -31,6 +31,7 @@ type NewScheduledTaskRequest struct {
 	CronExpression  string         `json:"cron_expression"  binding:"required"`
 	TaskParams      datatypes.JSON `json:"task_params"`
 	TaskType        string         `json:"task_type"  binding:"required"`
+	ExecType        string         `json:"exec_type"  binding:"required"`
 	Status          int            `json:"status"  binding:"required"`
 }
 
@@ -42,12 +43,13 @@ type ResponseScheduledTask struct {
 	TaskParams      datatypes.JSON    `json:"task_params"`
 	Status          int               `json:"status"`
 	TaskType        string            `json:"task_type"`
+	ExecType        string            `json:"exec_type"`
 	CreatedAt       domain.CustomTime `json:"created_at,omitempty"`
 	UpdatedAt       domain.CustomTime `json:"updated_at,omitempty"`
 	LastExecuteTime *time.Time        `json:"last_execute_time"`
 	NextExecuteTime *time.Time        `json:"next_execute_time"`
 }
-type IScheduledTaskDetailController interface {
+type IScheduledTaskController interface {
 	NewScheduledTask(ctx *gin.Context)
 	GetAllScheduledTasks(ctx *gin.Context)
 	GetScheduledTaskByID(ctx *gin.Context)
@@ -56,17 +58,25 @@ type IScheduledTaskDetailController interface {
 	SearchPaginated(ctx *gin.Context)
 	SearchByProperty(ctx *gin.Context)
 	DeleteScheduledTasks(ctx *gin.Context)
+
+	// task manager
+	EnableTaskById(ctx *gin.Context)
+	DisableTaskById(ctx *gin.Context)
+	ReloadAllTasks(ctx *gin.Context)
 }
-type ScheduledTaskDetailController struct {
+type ScheduledTasController struct {
 	scheduledTaskService domainScheduledTask.IScheduledTaskService
 	Logger               *logger.Logger
 }
 
-func NewScheduledTaskDetailController(
+func NewScheduledTaskController(
 	scheduledTaskService domainScheduledTask.IScheduledTaskService,
 	loggerInstance *logger.Logger,
-) IScheduledTaskDetailController {
-	return &ScheduledTaskDetailController{scheduledTaskService: scheduledTaskService, Logger: loggerInstance}
+) IScheduledTaskController {
+	return &ScheduledTasController{
+		scheduledTaskService: scheduledTaskService,
+		Logger:               loggerInstance,
+	}
 }
 
 // CreateScheduledTask
@@ -78,7 +88,7 @@ func NewScheduledTaskDetailController(
 // @Param book body NewScheduledTaskRequest true  "JSON Data"
 // @Success 200 {object} controllers.CommonResponseBuilder
 // @Router /v1/scheduled_task [post]
-func (c *ScheduledTaskDetailController) NewScheduledTask(ctx *gin.Context) {
+func (c *ScheduledTasController) NewScheduledTask(ctx *gin.Context) {
 	c.Logger.Info("Creating new ScheduledTask")
 	var request NewScheduledTaskRequest
 	if err := controllers.BindJSON(ctx, &request); err != nil {
@@ -110,7 +120,7 @@ func (c *ScheduledTaskDetailController) NewScheduledTask(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {object} domain.CommonResponse[[]domainScheduledTask.ScheduledTask]
 // @Router /v1/scheduled_task [get]
-func (c *ScheduledTaskDetailController) GetAllScheduledTasks(ctx *gin.Context) {
+func (c *ScheduledTasController) GetAllScheduledTasks(ctx *gin.Context) {
 	c.Logger.Info("Getting all scheduled_task")
 	scheduled_task, err := c.scheduledTaskService.GetAll()
 	if err != nil {
@@ -133,7 +143,7 @@ func (c *ScheduledTaskDetailController) GetAllScheduledTasks(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {object} ResponseScheduledTask
 // @Router /v1/scheduled_task/{id} [get]
-func (c *ScheduledTaskDetailController) GetScheduledTaskByID(ctx *gin.Context) {
+func (c *ScheduledTasController) GetScheduledTaskByID(ctx *gin.Context) {
 	ScheduledTaskID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		c.Logger.Error("Invalid ScheduledTask ID parameter", zap.Error(err), zap.String("id", ctx.Param("id")))
@@ -161,7 +171,7 @@ func (c *ScheduledTaskDetailController) GetScheduledTaskByID(ctx *gin.Context) {
 // @Param book body map[string]any  true  "JSON Data"
 // @Success 200 {array} controllers.CommonResponseBuilder[ResponseScheduledTask]
 // @Router /v1/scheduled_task [put]
-func (c *ScheduledTaskDetailController) UpdateScheduledTask(ctx *gin.Context) {
+func (c *ScheduledTasController) UpdateScheduledTask(ctx *gin.Context) {
 	ScheduledTaskID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		c.Logger.Error("Invalid ScheduledTask ID parameter for update", zap.Error(err), zap.String("id", ctx.Param("id")))
@@ -207,7 +217,7 @@ func (c *ScheduledTaskDetailController) UpdateScheduledTask(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {object} domain.CommonResponse[int]
 // @Router /v1/scheduled_task/{id} [delete]
-func (c *ScheduledTaskDetailController) DeleteScheduledTask(ctx *gin.Context) {
+func (c *ScheduledTasController) DeleteScheduledTask(ctx *gin.Context) {
 	ScheduledTaskID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		c.Logger.Error("Invalid ScheduledTask ID parameter for deletion", zap.Error(err), zap.String("id", ctx.Param("id")))
@@ -238,7 +248,7 @@ func (c *ScheduledTaskDetailController) DeleteScheduledTask(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {object} domain.PageList[[]ResponseScheduledTask]
 // @Router /v1/scheduled_task/search [get]
-func (c *ScheduledTaskDetailController) SearchPaginated(ctx *gin.Context) {
+func (c *ScheduledTasController) SearchPaginated(ctx *gin.Context) {
 	c.Logger.Info("Searching scheduled_task with pagination")
 
 	// Parse query parameters
@@ -349,7 +359,7 @@ func (c *ScheduledTaskDetailController) SearchPaginated(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {array} []string
 // @Router /v1/scheduled_task/search-property [get]
-func (c *ScheduledTaskDetailController) SearchByProperty(ctx *gin.Context) {
+func (c *ScheduledTasController) SearchByProperty(ctx *gin.Context) {
 	property := ctx.Query("property")
 	searchText := ctx.Query("searchText")
 
@@ -397,7 +407,7 @@ func (c *ScheduledTaskDetailController) SearchByProperty(ctx *gin.Context) {
 // @Param book body DeleteBatchOperationRequest true  "JSON Data"
 // @Success 200 {object} domain.CommonResponse[int]
 // @Router /v1/operation/delete-batch [post]
-func (c *ScheduledTaskDetailController) DeleteScheduledTasks(ctx *gin.Context) {
+func (c *ScheduledTasController) DeleteScheduledTasks(ctx *gin.Context) {
 	c.Logger.Info("Creating new ScheduledTask")
 	var request DeleteBatchScheduledTaskRequest
 	var err error
@@ -435,9 +445,9 @@ func domainToResponseMapper(domainScheduledTask *domainScheduledTask.ScheduledTa
 		Status:          domainScheduledTask.Status,
 		LastExecuteTime: domainScheduledTask.LastExecuteTime,
 		NextExecuteTime: domainScheduledTask.NextExecuteTime,
-
-		CreatedAt: domain.CustomTime{Time: domainScheduledTask.CreatedAt},
-		UpdatedAt: domain.CustomTime{Time: domainScheduledTask.UpdatedAt},
+		ExecType:        domainScheduledTask.ExecType,
+		CreatedAt:       domain.CustomTime{Time: domainScheduledTask.CreatedAt},
+		UpdatedAt:       domain.CustomTime{Time: domainScheduledTask.UpdatedAt},
 	}
 }
 
@@ -457,5 +467,97 @@ func toUsecaseMapper(req *NewScheduledTaskRequest) *domainScheduledTask.Schedule
 		TaskName:        req.TaskName,
 		TaskParams:      req.TaskParams,
 		TaskType:        req.TaskType,
+		ExecType:        req.ExecType,
 	}
+}
+
+// ReloadAllTasks implements IScheduledTaskController.
+// @Summary reload all tasks
+// @Description reload all tasks
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param book body models.User  true  "JSON Data"
+// @Success 200 {array} models.User
+// @Router /api/v1/scheduled_task/reload-all [post]
+func (c *ScheduledTasController) ReloadAllTasks(ctx *gin.Context) {
+	c.Logger.Info("Reload all ScheduledTask ")
+	err := c.scheduledTaskService.ReloadTasks()
+	if err != nil {
+		c.Logger.Error("Error reload ScheduledTask")
+		_ = ctx.Error(err)
+		return
+	}
+	c.Logger.Info("Successfully Reload ScheduledTask")
+	ctx.JSON(http.StatusOK, domain.CommonResponse[bool]{
+		Data:    true,
+		Message: "resource reload successfully",
+		Status:  0,
+	})
+}
+
+// EnableTask implements IScheduledTaskController.
+// @Summary start task
+// @Description enable task
+// @Tags task
+// @Accept json
+// @Produce json
+// @Param book body models.User  true  "JSON Data"
+// @Success 200 {array} models.User
+// @Router /api/v1/scheduled_task/enable/{id} [post]
+func (c *ScheduledTasController) EnableTaskById(ctx *gin.Context) {
+	scheduledTaskID, err := strconv.Atoi(ctx.Param("id"))
+
+	if err != nil {
+		c.Logger.Error("Invalid ScheduledTask ID parameter", zap.Error(err), zap.String("id", ctx.Param("id")))
+		appError := domainErrors.NewAppError(errors.New("ScheduledTask id is invalid"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	c.Logger.Info("Starting ScheduledTask by ID", zap.Int("id", scheduledTaskID))
+	err = c.scheduledTaskService.EnableTask(scheduledTaskID)
+	if err != nil {
+		c.Logger.Error("Error Starting ScheduledTask by ID", zap.Error(err), zap.Int("id", scheduledTaskID))
+		_ = ctx.Error(err)
+		return
+	}
+
+	c.Logger.Info("Successfully Starting ScheduledTask by ID", zap.Int("id", scheduledTaskID))
+	ctx.JSON(http.StatusOK, domain.CommonResponse[int]{
+		Data:    scheduledTaskID,
+		Message: "resource start successfully",
+		Status:  0,
+	})
+}
+
+// StopTask implements IScheduledTaskController.
+// @Summary disable task
+// @Description disable task
+// @Tags disable task
+// @Accept json
+// @Produce json
+// @Param book body models.User  true  "JSON Data"
+// @Success 200 {array} models.User
+// @Router /api/v1/scheduled_task/disable/{id} [post]
+func (c *ScheduledTasController) DisableTaskById(ctx *gin.Context) {
+	scheduledTaskID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		c.Logger.Error("Invalid ScheduledTask ID parameter", zap.Error(err), zap.String("id", ctx.Param("id")))
+		appError := domainErrors.NewAppError(errors.New("ScheduledTask id is invalid"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	c.Logger.Info("disabling ScheduledTask by ID", zap.Int("id", scheduledTaskID))
+	err = c.scheduledTaskService.DisableTask(scheduledTaskID)
+	if err != nil {
+		c.Logger.Error("Error disabling ScheduledTask by ID", zap.Error(err), zap.Int("id", scheduledTaskID))
+		_ = ctx.Error(err)
+		return
+	}
+	c.Logger.Info("Successfully disabling ScheduledTask by ID", zap.Int("id", scheduledTaskID))
+	ctx.JSON(http.StatusOK, domain.CommonResponse[int]{
+		Data:    scheduledTaskID,
+		Message: "resource disabled successfully",
+		Status:  0,
+	})
 }

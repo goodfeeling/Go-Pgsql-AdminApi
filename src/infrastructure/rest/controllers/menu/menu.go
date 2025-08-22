@@ -24,30 +24,24 @@ type NewMenuRequest struct {
 	ParentID    int    `json:"parent_id"`
 	Icon        string `json:"icon"`
 	Sort        int8   `json:"sort"`
-	ActiveName  string `json:"active_name"`
 	KeepAlive   int16  `json:"keep_alive"`
-	CloseTab    int16  `json:"close_tab"`
-	DefaultMenu int16  `json:"default_menu"`
 	MenuGroupId int    `json:"menu_group_id"`
 }
 
 type ResponseMenu struct {
-	ID          int               `json:"id"`
-	MenuLevel   int               `json:"menu_level"`
-	ParentID    int               `json:"parent_id"`
-	Path        string            `json:"path"`
-	Name        string            `json:"name"`
-	Hidden      bool              `json:"hidden"`
-	Component   string            `json:"component"`
-	Sort        int8              `json:"sort"`
-	ActiveName  string            `json:"active_name"`
-	KeepAlive   int16             `json:"keep_alive"`
-	DefaultMenu int16             `json:"default_menu"`
-	Title       string            `json:"title"`
-	Icon        string            `json:"icon"`
-	CloseTab    int16             `json:"close_tab"`
-	CreatedAt   domain.CustomTime `json:"created_at"`
-	UpdatedAt   domain.CustomTime `json:"updated_at"`
+	ID        int               `json:"id"`
+	MenuLevel int               `json:"menu_level"`
+	ParentID  int               `json:"parent_id"`
+	Path      string            `json:"path"`
+	Name      string            `json:"name"`
+	Hidden    bool              `json:"hidden"`
+	Component string            `json:"component"`
+	Sort      int8              `json:"sort"`
+	KeepAlive int16             `json:"keep_alive"`
+	Title     string            `json:"title"`
+	Icon      string            `json:"icon"`
+	CreatedAt domain.CustomTime `json:"created_at"`
+	UpdatedAt domain.CustomTime `json:"updated_at"`
 }
 type IMenuController interface {
 	NewMenu(ctx *gin.Context)
@@ -287,22 +281,19 @@ func (c *MenuController) GetUserMenus(ctx *gin.Context) {
 func domainToResponseMapper(domainMenu *domainMenu.Menu) *ResponseMenu {
 
 	return &ResponseMenu{
-		ID:          domainMenu.ID,
-		Path:        domainMenu.Path,
-		Name:        domainMenu.Name,
-		ParentID:    domainMenu.ParentID,
-		DefaultMenu: domainMenu.DefaultMenu,
-		Hidden:      domainMenu.Hidden,
-		MenuLevel:   domainMenu.MenuLevel,
-		CloseTab:    domainMenu.CloseTab,
-		KeepAlive:   domainMenu.KeepAlive,
-		Icon:        domainMenu.Icon,
-		Title:       domainMenu.Title,
-		Sort:        domainMenu.Sort,
-		ActiveName:  domainMenu.ActiveName,
-		Component:   domainMenu.Component,
-		CreatedAt:   domainMenu.CreatedAt,
-		UpdatedAt:   domainMenu.UpdatedAt,
+		ID:        domainMenu.ID,
+		Path:      domainMenu.Path,
+		Name:      domainMenu.Name,
+		ParentID:  domainMenu.ParentID,
+		Hidden:    domainMenu.Hidden,
+		MenuLevel: domainMenu.MenuLevel,
+		KeepAlive: domainMenu.KeepAlive,
+		Icon:      domainMenu.Icon,
+		Title:     domainMenu.Title,
+		Sort:      domainMenu.Sort,
+		Component: domainMenu.Component,
+		CreatedAt: domainMenu.CreatedAt,
+		UpdatedAt: domainMenu.UpdatedAt,
 	}
 }
 
@@ -316,10 +307,7 @@ func toUsecaseMapper(req *NewMenuRequest) *domainMenu.Menu {
 		ParentID:    req.ParentID,
 		Icon:        req.Icon,
 		Sort:        req.Sort,
-		ActiveName:  req.ActiveName,
 		KeepAlive:   req.KeepAlive,
-		CloseTab:    req.CloseTab,
-		DefaultMenu: req.DefaultMenu,
 		MenuGroupId: req.MenuGroupId,
 	}
 }

@@ -2,6 +2,7 @@ package scheduled_task
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	scheduledTaskDomain "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task"
@@ -85,7 +86,7 @@ func (s *ScheduledTaskUseCase) DisableTask(taskID int) error {
 	updateData := map[string]interface{}{
 		"status": scheduleTaskConstants.TaskStatusDisabled,
 	}
-
+	time.Sleep(time.Millisecond * 3000)
 	_, err := s.scheduledTaskRepository.Update(taskID, updateData)
 	if err != nil {
 		return err

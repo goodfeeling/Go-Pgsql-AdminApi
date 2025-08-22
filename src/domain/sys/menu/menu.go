@@ -15,12 +15,9 @@ type Menu struct {
 	Hidden         bool                                `json:"hidden"`
 	Component      string                              `json:"component"`
 	Sort           int8                                `json:"sort"`
-	ActiveName     string                              `json:"active_name"`
 	KeepAlive      int16                               `json:"keep_alive"`
-	DefaultMenu    int16                               `json:"default_menu"`
 	Title          string                              `json:"title"`
 	Icon           string                              `json:"icon"`
-	CloseTab       int16                               `json:"close_tab"`
 	MenuGroupId    int                                 `json:"menu_group_id"`
 	CreatedAt      domain.CustomTime                   `json:"created_at"`
 	UpdatedAt      domain.CustomTime                   `json:"updated_at"`

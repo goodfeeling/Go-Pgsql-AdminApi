@@ -27,6 +27,7 @@ type TaskScheduler struct {
 	tasks     map[int]*gocron.Job
 	executor  *executor.TaskExecutorManager
 	mutex     sync.RWMutex
+	taskWg    map[int]*sync.WaitGroup
 }
 
 func NewTaskScheduler(
@@ -36,7 +37,7 @@ func NewTaskScheduler(
 ) *TaskScheduler {
 	// 创建支持秒级的调度器
 	scheduler := gocron.NewScheduler(time.UTC)
-	scheduler.SetMaxConcurrentJobs(10, gocron.RescheduleMode) // 可选：设置最大并发任务数
+	scheduler.SetMaxConcurrentJobs(10, gocron.RescheduleMode)
 
 	return &TaskScheduler{
 		scheduler: scheduler,
@@ -128,6 +129,25 @@ func (s *TaskScheduler) addTaskToSchedule(task *domainScheduledTask.ScheduledTas
 }
 
 func (s *TaskScheduler) executeTask(task *domainScheduledTask.ScheduledTask) {
+	// 初始化 WaitGroup
+	s.mutex.Lock()
+	if s.taskWg == nil {
+		s.taskWg = make(map[int]*sync.WaitGroup)
+	}
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	s.taskWg[task.ID] = wg
+	s.mutex.Unlock()
+
+	// 确保在函数结束时调用 Done
+	defer func() {
+		s.mutex.Lock()
+		if wg, exists := s.taskWg[task.ID]; exists {
+			wg.Done()
+			delete(s.taskWg, task.ID)
+		}
+		s.mutex.Unlock()
+	}()
 	s.logger.Info("Executing task",
 		zap.Int("task_id", task.ID),
 		zap.String("task_name", task.TaskName))
@@ -267,19 +287,44 @@ func (s *TaskScheduler) StartTask(taskID int) error {
 // StopTask 停止单个任务
 func (s *TaskScheduler) StopTask(taskID int) error {
 	s.mutex.Lock()
-	defer s.mutex.Unlock()
 
 	job, exists := s.tasks[taskID]
 	if !exists {
+		s.mutex.Unlock()
 		s.logger.Warn("Task not found", zap.Int("task_id", taskID))
 		return fmt.Errorf("task not found")
 	}
 
-	s.scheduler.RemoveByReference(job)
-	delete(s.tasks, taskID)
+	// 检查是否有 WaitGroup
+	var wg *sync.WaitGroup
+	if s.taskWg != nil {
+		wg = s.taskWg[taskID]
+	}
 
-	s.logger.Info("Task stopped", zap.Int("task_id", taskID))
-	return nil
+	// 先释放锁，避免死锁
+	s.mutex.Unlock()
+
+	// 如果任务正在运行且有 WaitGroup，等待完成
+	if job.IsRunning() && wg != nil {
+		s.logger.Info("Task is currently running, waiting for completion", zap.Int("task_id", taskID))
+		wg.Wait() // 等待任务完成
+		s.logger.Info("Task completed, now stopping", zap.Int("task_id", taskID))
+	}
+
+	// 重新获取锁来移除任务
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	// 再次检查任务是否存在（可能在等待期间已被删除）
+	if job, exists := s.tasks[taskID]; exists {
+		s.scheduler.RemoveByReference(job)
+		delete(s.tasks, taskID)
+		s.logger.Info("Task stopped", zap.Int("task_id", taskID))
+		return nil
+	}
+
+	s.logger.Warn("Task not found after waiting", zap.Int("task_id", taskID))
+	return fmt.Errorf("task not found")
 }
 
 // AddTask 添加新任务

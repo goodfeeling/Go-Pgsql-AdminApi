@@ -30,12 +30,9 @@ type SysBaseMenu struct {
 	Hidden         bool                                 `gorm:"column:hidden"`
 	Component      string                               `gorm:"column:component"`
 	Sort           int8                                 `gorm:"column:sort"`
-	ActiveName     string                               `gorm:"column:active_name"`
 	KeepAlive      int16                                `gorm:"column:keep_alive"`
-	DefaultMenu    int16                                `gorm:"column:default_menu"`
 	Title          string                               `gorm:"column:title"`
 	Icon           string                               `gorm:"column:icon"`
-	CloseTab       int16                                `gorm:"column:close_tab"`
 	MenuGroupId    int                                  `gorm:"column:menu_group_id"`
 	MenuBtns       []menuBtnRepo.SysBaseMenuBtn         `gorm:"foreignKey:SysBaseMenuID"`
 	MenuParameters []menuParamRepo.SysBaseMenuParameter `gorm:"foreignKey:SysBaseMenuID"`
@@ -139,7 +136,7 @@ func (r *Repository) Update(id int, menuMap map[string]interface{}) (*domainMenu
 	menuObj.ID = id
 	delete(menuMap, "updated_at")
 	err := r.DB.Model(&menuObj).
-		Select("parent_id", "menu_level", "name", "path", "component", "hidden", "sort", "icon", "title", "active_name", "default_menu", "close_tab", "keep_alive").
+		Select("parent_id", "menu_level", "name", "path", "component", "hidden", "sort", "icon", "title", "keep_alive").
 		Updates(menuMap).Error
 	if err != nil {
 		r.Logger.Error("Error updating menu", zap.Error(err), zap.Int("id", id))
@@ -306,15 +303,12 @@ func (u *SysBaseMenu) toDomainMapper() *domainMenu.Menu {
 		Path:           u.Path,
 		Name:           u.Name,
 		ParentID:       u.ParentID,
-		DefaultMenu:    u.DefaultMenu,
 		Hidden:         u.Hidden,
 		MenuLevel:      u.MenuLevel,
-		CloseTab:       u.CloseTab,
 		KeepAlive:      u.KeepAlive,
 		Icon:           u.Icon,
 		Title:          u.Title,
 		Sort:           u.Sort,
-		ActiveName:     u.ActiveName,
 		Component:      u.Component,
 		MenuGroupId:    u.MenuGroupId,
 		MenuBtns:       *menuBtnRepo.ArrayToDomainMapper(&u.MenuBtns),
@@ -330,15 +324,12 @@ func fromDomainMapper(u *domainMenu.Menu) *SysBaseMenu {
 		Path:        u.Path,
 		Name:        u.Name,
 		ParentID:    u.ParentID,
-		DefaultMenu: u.DefaultMenu,
 		Hidden:      u.Hidden,
 		MenuLevel:   u.MenuLevel,
-		CloseTab:    u.CloseTab,
 		KeepAlive:   u.KeepAlive,
 		Icon:        u.Icon,
 		Title:       u.Title,
 		Sort:        u.Sort,
-		ActiveName:  u.ActiveName,
 		Component:   u.Component,
 		MenuGroupId: u.MenuGroupId,
 	}

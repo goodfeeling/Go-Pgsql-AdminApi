@@ -38,4 +38,5 @@ func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
 
 	ScheduledTaskRouters(v1, appContext.ScheduledTaskModule.Controller, appContext.Enforcer)
 	TaskExecutionLogRouters(v1, appContext.TaskExecutionLogModule.Controller, appContext.Enforcer)
+	ConfigRouters(v1, appContext.ConfigModule.Controller, appContext.Enforcer)
 }

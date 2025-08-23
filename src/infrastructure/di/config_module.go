@@ -19,6 +19,7 @@ func setupConfigModule(appContext *ApplicationContext) error {
 	// Initialize use cases
 	configUC := configUseCase.NewSysConfigUseCase(
 		configRepository,
+		appContext.Repositories.DictionaryRepository,
 		appContext.Logger)
 	// Initialize controllers
 	configController := configController.NewConfigController(configUC, appContext.Logger)

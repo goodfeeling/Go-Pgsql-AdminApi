@@ -77,7 +77,7 @@ func (r *Repository) GetAll() (*[]domainDictionary.Dictionary, error) {
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 	r.Logger.Info("Successfully retrieved all dictionaries", zap.Int("count", len(dictionaries)))
-	return arrayToDomainMapper(&dictionaries), nil
+	return ArrayToDomainMapper(&dictionaries), nil
 }
 
 func (r *Repository) Create(dictionaryDomain *domainDictionary.Dictionary) (*domainDictionary.Dictionary, error) {
@@ -237,7 +237,7 @@ func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.Pagina
 	totalPages := int((total + int64(filters.PageSize) - 1) / int64(filters.PageSize))
 
 	result := &domain.PaginatedResult[domainDictionary.Dictionary]{
-		Data:       arrayToDomainMapper(&dictionaries),
+		Data:       ArrayToDomainMapper(&dictionaries),
 		Total:      total,
 		Page:       filters.Page,
 		PageSize:   filters.PageSize,
@@ -303,7 +303,7 @@ func fromDomainMapper(u *domainDictionary.Dictionary) *SysDictionary {
 	}
 }
 
-func arrayToDomainMapper(dictionaries *[]SysDictionary) *[]domainDictionary.Dictionary {
+func ArrayToDomainMapper(dictionaries *[]SysDictionary) *[]domainDictionary.Dictionary {
 	dictionariesDomain := make([]domainDictionary.Dictionary, len(*dictionaries))
 	for i, dictionary := range *dictionaries {
 		dictionariesDomain[i] = *dictionary.toDomainMapper()

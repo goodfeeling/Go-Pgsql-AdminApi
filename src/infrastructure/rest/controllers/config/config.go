@@ -19,8 +19,7 @@ type ResponseConfig struct {
 	ConfigType  string            `json:"config_type"`
 	Module      string            `json:"module"`
 	EnvType     string            `json:"env_type"`
-	IsEnabled   bool              `json:"is_enabled"`
-	Description string            `json:"description"`
+	Sort        int               `json:"sort"`
 	CreatedAt   domain.CustomTime `json:"created_at,omitempty"`
 	UpdatedAt   domain.CustomTime `json:"updated_at,omitempty"`
 }
@@ -28,6 +27,7 @@ type IConfigController interface {
 	GetAllConfigs(ctx *gin.Context)
 	UpdateConfig(ctx *gin.Context)
 	GetConfigByModule(ctx *gin.Context)
+	GetConfigBySystem(ctx *gin.Context)
 }
 type ConfigController struct {
 	configService domainConfig.IConfigService
@@ -69,7 +69,7 @@ func (c *ConfigController) GetAllConfigs(ctx *gin.Context) {
 // @Produce json
 // @Param book body map[string]any  true  "JSON Data"
 // @Success 200 {array} controllers.CommonResponseBuilder[ResponseConfig]
-// @Router /v1/api/config [put]
+// @Router /v1/api/config/{module} [put]
 func (c *ConfigController) UpdateConfig(ctx *gin.Context) {
 
 	var requestMap map[string]any
@@ -86,14 +86,14 @@ func (c *ConfigController) UpdateConfig(ctx *gin.Context) {
 		_ = ctx.Error(err)
 		return
 	}
-	configUpdated, err := c.configService.Update(requestMap)
+	err = c.configService.Update(ctx.Param("module"), requestMap)
 	if err != nil {
 		c.Logger.Error("Error updating config", zap.Error(err))
 		_ = ctx.Error(err)
 		return
 	}
-	response := controllers.NewCommonResponseBuilder[*ResponseConfig]().
-		Data(domainToResponseMapper(configUpdated)).
+	response := controllers.NewCommonResponseBuilder[bool]().
+		Data(true).
 		Message("success").
 		Status(0).
 		Build()
@@ -125,6 +125,30 @@ func (c *ConfigController) GetConfigByModule(ctx *gin.Context) {
 	})
 }
 
+// GetConfigBySystem implements IConfigController.
+// @Summary config module
+// @Description config module
+// @Tags config
+// @Accept json
+// @Produce json
+// @Param book body models.User  true  "JSON Data"
+// @Success 200 {array} models.User
+// @Router /v1/api/config/system [get]
+func (c *ConfigController) GetConfigBySystem(ctx *gin.Context) {
+	c.Logger.Info("Getting all configs")
+	configs, err := c.configService.GetConfigByModule("system")
+	if err != nil {
+		c.Logger.Error("Error getting all configs", zap.Error(err))
+		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
+		_ = ctx.Error(appError)
+		return
+	}
+	c.Logger.Info("Successfully retrieved all configs", zap.Int("count", len(*configs)))
+	ctx.JSON(http.StatusOK, domain.CommonResponse[*[]domainConfig.Config]{
+		Data: configs,
+	})
+}
+
 // Mappers
 func domainToResponseMapper(domainConfig *domainConfig.Config) *ResponseConfig {
 	return &ResponseConfig{
@@ -132,9 +156,8 @@ func domainToResponseMapper(domainConfig *domainConfig.Config) *ResponseConfig {
 		ConfigKey:   domainConfig.ConfigKey,
 		ConfigType:  domainConfig.ConfigType,
 		ConfigValue: domainConfig.ConfigValue,
-		IsEnabled:   domainConfig.IsEnabled,
+		Sort:        domainConfig.Sort,
 		Module:      domainConfig.Module,
-		Description: domainConfig.Description,
 		EnvType:     domainConfig.EnvType,
 		CreatedAt:   domainConfig.CreatedAt,
 		UpdatedAt:   domainConfig.UpdatedAt,

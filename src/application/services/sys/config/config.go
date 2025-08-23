@@ -4,42 +4,51 @@ import (
 	configDomain "github.com/gbrayhan/microservices-go/src/domain/sys/config"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	configRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/config"
+	dictionaryRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary"
+
 	"go.uber.org/zap"
 )
 
 type ISysConfigService interface {
 	GetConfigByGroup() (*[]configDomain.GroupConfig, error)
-	Update(dataMap map[string]interface{}) (*configDomain.Config, error)
+	Update(module string, dataMap map[string]interface{}) error
 	GetConfigByModule(module string) (*[]configDomain.Config, error)
 }
 
 type SysConfigUseCase struct {
-	sysConfigRepository configRepo.ConfigRepositoryInterface
-	Logger              *logger.Logger
+	sysConfigRepository     configRepo.ConfigRepositoryInterface
+	sysDictionaryRepository dictionaryRepo.DictionaryRepositoryInterface
+	Logger                  *logger.Logger
 }
 
 func NewSysConfigUseCase(
 	sysConfigRepository configRepo.ConfigRepositoryInterface,
+	sysDictionaryRepository dictionaryRepo.DictionaryRepositoryInterface,
 	loggerInstance *logger.Logger) ISysConfigService {
 	return &SysConfigUseCase{
-		sysConfigRepository: sysConfigRepository,
-		Logger:              loggerInstance,
+		sysConfigRepository:     sysConfigRepository,
+		sysDictionaryRepository: sysDictionaryRepository,
+		Logger:                  loggerInstance,
 	}
 }
 
 // Update implements ISysConfigService.
-func (s *SysConfigUseCase) Update(userMap map[string]interface{}) (*configDomain.Config, error) {
+func (s *SysConfigUseCase) Update(module string, userMap map[string]interface{}) error {
 	s.Logger.Info("Updating config")
 
-	for _, value := range userMap {
-		config, ok := value.(configDomain.Config)
+	for key, value := range userMap {
+		configValue, ok := value.(string)
 		if !ok {
 			// 可选：记录日志或处理类型断言失败的情况
 			continue
 		}
-		s.sysConfigRepository.Update(&config)
+		err := s.sysConfigRepository.UpdateByModule(module, key, configValue)
+		if err != nil {
+			// 可选：记录日志或处理更新失败的情况
+			continue
+		}
 	}
-	return nil, nil
+	return nil
 }
 
 // GetConfigByGroup implements ISysConfigService.
@@ -71,7 +80,17 @@ func (s *SysConfigUseCase) GetConfigByGroup() (*[]configDomain.GroupConfig, erro
 	for _, item := range *list {
 		for i, g := range groups {
 			if g.Name == item.Module {
-				groups[i].Configs = append(groups[i].Configs, item) // 修改这里，通过索引操作
+
+				if item.ConfigType == "select" {
+					dictData, err := s.sysDictionaryRepository.GetByType(item.ConfigKey)
+					if err != nil {
+						item.SelectOptions = nil
+					} else {
+						item.SelectOptions = dictData.Details
+					}
+				}
+				groups[i].Configs = append(groups[i].Configs, item)
+
 				break
 			}
 		}

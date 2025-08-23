@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
@@ -21,10 +22,9 @@ type SysConfig struct {
 	ConfigKey   string    `gorm:"column:config_key;type:varchar(100);not null;uniqueIndex:idx_sys_config_key" json:"config_key" binding:"required"`
 	ConfigValue string    `gorm:"column:config_value;type:text" json:"config_value"`
 	ConfigType  string    `gorm:"column:config_type;type:varchar(20);default:string;check:config_type IN ('string', 'number', 'boolean', 'json', 'array')" json:"config_type"`
-	Description string    `gorm:"column:description;type:text" json:"description"`
 	Module      string    `gorm:"column:module;type:varchar(50);index:idx_sys_config_module" json:"module"`
 	EnvType     string    `gorm:"column:env_type;type:varchar(20);default:default;index:idx_sys_config_env" json:"env_type"`
-	IsEnabled   bool      `gorm:"column:is_enabled;default:true" json:"isEnabled"`
+	Sort        int       `gorm:"column:sort;type:int;default:0" json:"sort"`
 	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime" json:"createdAt"`
 	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime" json:"updatedAt"`
 }
@@ -56,6 +56,7 @@ type ConfigRepositoryInterface interface {
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(configMap map[string]interface{}) (*domainConfig.Config, error)
 	GetConfigByModule(module string) (*[]domainConfig.Config, error)
+	UpdateByModule(module, configKey, configValue string) error
 }
 
 type Repository struct {
@@ -69,7 +70,7 @@ func NewConfigRepository(db *gorm.DB, loggerInstance *logger.Logger) ConfigRepos
 
 func (r *Repository) GetAll() (*[]domainConfig.Config, error) {
 	var configs []SysConfig
-	if err := r.DB.Find(&configs).Error; err != nil {
+	if err := r.DB.Order("sort ASC").Find(&configs).Error; err != nil {
 		r.Logger.Error("Error getting all configs", zap.Error(err))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
@@ -279,8 +280,7 @@ func (u *SysConfig) toDomainMapper() *domainConfig.Config {
 		ConfigKey:   u.ConfigKey,
 		ConfigType:  u.ConfigType,
 		ConfigValue: u.ConfigValue,
-		Description: u.Description,
-		IsEnabled:   u.IsEnabled,
+		Sort:        u.Sort,
 		Module:      u.Module,
 		EnvType:     u.EnvType,
 		CreatedAt:   domain.CustomTime{Time: u.CreatedAt},
@@ -294,8 +294,7 @@ func fromDomainMapper(u *domainConfig.Config) *SysConfig {
 		ConfigKey:   u.ConfigKey,
 		ConfigType:  u.ConfigType,
 		ConfigValue: u.ConfigValue,
-		Description: u.Description,
-		IsEnabled:   u.IsEnabled,
+		Sort:        u.Sort,
 		Module:      u.Module,
 		EnvType:     u.EnvType,
 	}
@@ -329,4 +328,20 @@ func (r *Repository) GetConfigByModule(module string) (*[]domainConfig.Config, e
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
 	return arrayToDomainMapper(&configs), nil
+}
+
+func (r *Repository) UpdateByModule(module, configKey, configValue string) error {
+	envType := os.Getenv("ENV_TYPE")
+	err := r.DB.
+		Model(&SysConfig{}).
+		Where("module = ? and config_key = ? and env_type = ?", module, configKey, envType).
+		Update("config_value", configValue).Error
+	if err != nil {
+		r.Logger.Error("Error updating config", zap.Error(err), zap.String("configKey", configKey))
+		return domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
+
+	}
+	fmt.Println(module, configKey, envType)
+	r.Logger.Info("Successfully updated config")
+	return nil
 }

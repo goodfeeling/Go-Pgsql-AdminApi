@@ -16,9 +16,9 @@ import (
 
 type ScheduledTask struct {
 	ID              int            `gorm:"primaryKey" json:"id"`
-	TaskName        string         `gorm:"size:255;not null;uniqueIndex" json:"task_name"`
+	TaskName        string         `gorm:"size:150;not null;uniqueIndex" json:"task_name"`
 	TaskDescription string         `json:"task_description"`
-	CronExpression  string         `gorm:"size:255;not null" json:"cron_expression"`
+	CronExpression  string         `gorm:"size:50;not null" json:"cron_expression"`
 	TaskType        string         `gorm:"size:100;not null" json:"task_type"`
 	TaskParams      datatypes.JSON `json:"task_params"`
 	ExecType        string         `json:"exec_type"`

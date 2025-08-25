@@ -12,6 +12,8 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+// CommonValidator 通用验证器
+// 用于验证各种数据结构的更新和创建操作
 type CommonValidator struct {
 	validate       *validator.Validate
 	validationMap  map[string]string
@@ -19,6 +21,8 @@ type CommonValidator struct {
 }
 
 // NewCommonValidator 创建新的通用验证器实例
+// validationMap: 字段名到验证规则的映射
+// 规则格式遵循 go-playground/validator 标准
 func NewCommonValidator(validationMap map[string]string) *CommonValidator {
 	v := &CommonValidator{
 		validate:       validator.New(),
@@ -52,6 +56,7 @@ func (v *CommonValidator) registerCustomValidations() {
 		return true
 	})
 
+	// verify status
 	_ = v.validate.RegisterValidation("status_enum", func(fl validator.FieldLevel) bool {
 		value := fl.Field().Interface()
 		switch v := value.(type) {
@@ -69,6 +74,7 @@ func (v *CommonValidator) registerCustomValidations() {
 		}
 	})
 
+	// verify phone
 	_ = v.validate.RegisterValidation("custom_phone", func(fl validator.FieldLevel) bool {
 		phone, ok := fl.Field().Interface().(string)
 		if !ok || phone == "" {
@@ -85,22 +91,52 @@ func (v *CommonValidator) ValidateUpdate(request map[string]any) error {
 	// 重置错误消息
 	v.errorsMessages = make([]string, 0)
 
-	// 基本空值检查
+	// 更详细的空值检查
 	for k, val := range request {
-		if val == "" {
-			v.errorsMessages = append(v.errorsMessages, fmt.Sprintf("%s cannot be empty", k))
+		if val == nil || val == "" {
+			v.errorsMessages = append(v.errorsMessages, fmt.Sprintf("字段 '%s' 不能为空", k))
 		}
 	}
 
 	// 执行自定义验证
 	err := v.validate.Var(request, "update_validation")
 	if err != nil {
-		return domainErrors.NewAppError(err, domainErrors.UnknownError)
+		// 提供更友好的错误信息
+		if validationErrors, ok := err.(validator.ValidationErrors); ok {
+			for _, validationErr := range validationErrors {
+				field := validationErr.Field()
+				tag := validationErr.Tag()
+				param := validationErr.Param()
+
+				errorMsg := v.getFriendlyErrorMessage(field, tag, param)
+				v.errorsMessages = append(v.errorsMessages, errorMsg)
+			}
+		} else {
+			v.errorsMessages = append(v.errorsMessages, "验证过程出错: "+err.Error())
+		}
 	}
 
 	if len(v.errorsMessages) > 0 {
-		return domainErrors.NewAppError(errors.New(strings.Join(v.errorsMessages, ", ")), domainErrors.ValidationError)
+		return domainErrors.NewAppError(
+			errors.New(strings.Join(v.errorsMessages, "; ")),
+			domainErrors.ValidationError,
+		)
 	}
 
 	return nil
+}
+func (v *CommonValidator) getFriendlyErrorMessage(field, tag, param string) string {
+	switch tag {
+	case "required":
+		return fmt.Sprintf("字段 '%s' 是必需的", field)
+	case "max":
+		return fmt.Sprintf("字段 '%s' 长度不能超过 %s 个字符", field, param)
+	case "min":
+		return fmt.Sprintf("字段 '%s' 长度不能少于 %s 个字符", field, param)
+	case "email":
+		return fmt.Sprintf("字段 '%s' 必须是有效的邮箱地址", field)
+	// 添加更多友好错误信息
+	default:
+		return fmt.Sprintf("字段 '%s' 不满足条件 %s=%s", field, tag, param)
+	}
 }

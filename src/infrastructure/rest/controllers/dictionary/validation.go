@@ -3,42 +3,25 @@ package dictionary
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 
+	"github.com/gbrayhan/microservices-go/src/domain/constants"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	"github.com/go-playground/validator/v10"
 )
 
 func updateValidation(request map[string]any) error {
 	var errorsValidation []string
-	for k, v := range request {
-		if v == "" {
-			errorsValidation = append(errorsValidation, fmt.Sprintf("%s cannot be empty", k))
-		}
-	}
-
 	validationMap := map[string]string{
-		"user_name": "omitempty,gt=3,lt=100",
-		"email":     "omitempty,email",
-		"phone":     "omitempty,custom_phone",
-		"nick_name": "omitempty",
+		"status":           "required,status_enum",
+		"name":             "required,gt=3,lt=100",
+		"type":             "required,gt=3,lt=100",
+		"desc":             "omitempty,gt=3,lt=200",
+		"is_generate_file": "omitempty",
 	}
 
 	validate := validator.New()
 
-	// 注册自定义电话号码验证规则
-	_ = validate.RegisterValidation("custom_phone", func(fl validator.FieldLevel) bool {
-		phone, ok := fl.Field().Interface().(string)
-		if !ok || phone == "" {
-			return true // 允许空值由 omitempty 处理
-		}
-		// 自定义手机号正则表达式（示例为中国手机号）
-		match := regexp.MustCompile(`^\+?\d{10,15}$`).MatchString(phone)
-		return match
-	})
-
-	// 保留原有的 update_validation 逻辑
 	err := validate.RegisterValidation("update_validation", func(fl validator.FieldLevel) bool {
 		m, ok := fl.Field().Interface().(map[string]any)
 		if !ok {
@@ -58,6 +41,27 @@ func updateValidation(request map[string]any) error {
 		}
 		return true
 	})
+	if err != nil {
+		return domainErrors.NewAppError(err, domainErrors.UnknownError)
+	}
+
+	err = validate.RegisterValidation("status_enum", func(fl validator.FieldLevel) bool {
+		value := fl.Field().Interface()
+		switch v := value.(type) {
+		case float64:
+			// 转换为字符串并检查是否匹配枚举值
+			strValue := fmt.Sprintf("%.0f", v)
+			return strValue == constants.StatusEnable || strValue == constants.StatusDisable
+		case int:
+			strValue := fmt.Sprintf("%d", v)
+			return strValue == constants.StatusEnable || strValue == constants.StatusDisable
+		case string:
+			return v == constants.StatusEnable || v == constants.StatusDisable
+		default:
+			return false
+		}
+	})
+
 	if err != nil {
 		return domainErrors.NewAppError(err, domainErrors.UnknownError)
 	}

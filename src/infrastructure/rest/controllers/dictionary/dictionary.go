@@ -23,7 +23,7 @@ type NewDictionaryRequest struct {
 	Name           string `json:"name"  binding:"required"`
 	Type           string `json:"type"  binding:"required"`
 	Status         int16  `json:"status"  binding:"required"`
-	Desc           string `json:"desc"  binding:"required"`
+	Desc           string `json:"desc"`
 	IsGenerateFile int16  `json:"is_generate_file"`
 }
 

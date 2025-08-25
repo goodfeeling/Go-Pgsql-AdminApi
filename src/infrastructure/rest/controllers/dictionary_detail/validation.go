@@ -3,7 +3,6 @@ package dictionary_detail
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
@@ -26,17 +25,6 @@ func updateValidation(request map[string]any) error {
 	}
 
 	validate := validator.New()
-
-	// 注册自定义电话号码验证规则
-	_ = validate.RegisterValidation("custom_phone", func(fl validator.FieldLevel) bool {
-		phone, ok := fl.Field().Interface().(string)
-		if !ok || phone == "" {
-			return true // 允许空值由 omitempty 处理
-		}
-		// 自定义手机号正则表达式（示例为中国手机号）
-		match := regexp.MustCompile(`^\+?\d{10,15}$`).MatchString(phone)
-		return match
-	})
 
 	// 保留原有的 update_validation 逻辑
 	err := validate.RegisterValidation("update_validation", func(fl validator.FieldLevel) bool {

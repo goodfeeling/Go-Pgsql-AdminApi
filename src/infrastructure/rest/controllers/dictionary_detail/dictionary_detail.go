@@ -27,7 +27,7 @@ type NewDictionaryRequest struct {
 	ID              int    `json:"id"`
 	Label           string `json:"label"  binding:"required"`
 	Value           string `json:"value"  binding:"required"`
-	Extend          string `json:"extend"  binding:"required"`
+	Extend          string `json:"extend"`
 	Status          int16  `json:"status"  binding:"required"`
 	Sort            int8   `json:"sort"`
 	Type            string `json:"type"  binding:"required"`

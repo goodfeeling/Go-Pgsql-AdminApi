@@ -3,15 +3,15 @@ package menu
 import "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 
 var customRules = map[string]string{
-	"component":  "required|max:191",
-	"title":      "required|max:191",
-	"name":       "required|max:191",
-	"path":       "required|max:191",
-	"hidden":     "required",
-	"keep_alive": "required",
-	"parent_id":  "required|max:11",
-	"icon":       "required|max:191",
-	"sort":       "required",
+	"component":  "required,lt=191",
+	"title":      "required,lt=191",
+	"name":       "required,lt=191",
+	"path":       "required,lt=191",
+	"hidden":     "omitempty",
+	"keep_alive": "omitempty",
+	"parent_id":  "required,gt=-1,lt=12",
+	"icon":       "required,lt=191",
+	"sort":       "omitempty",
 }
 
 func updateValidation(request map[string]any) error {

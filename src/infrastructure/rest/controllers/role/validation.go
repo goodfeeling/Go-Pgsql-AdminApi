@@ -5,11 +5,11 @@ import "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers
 var customRules = map[string]string{
 	"name":           "required",
 	"default_router": "required",
-	"order":          "required|numeric",
+	"order":          "required,numeric",
 	"label":          "required",
 	"description":    "required",
-	"parent_id":      "required|max:11",
-	"status":         "required|status_enum",
+	"parent_id":      "required,lt=11",
+	"status":         "required,status_enum",
 }
 
 func updateValidation(request map[string]any) error {

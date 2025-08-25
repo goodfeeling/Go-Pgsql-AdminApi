@@ -91,13 +91,6 @@ func (v *CommonValidator) ValidateUpdate(request map[string]any) error {
 	// 重置错误消息
 	v.errorsMessages = make([]string, 0)
 
-	// 更详细的空值检查
-	for k, val := range request {
-		if val == nil || val == "" {
-			v.errorsMessages = append(v.errorsMessages, fmt.Sprintf("字段 '%s' 不能为空", k))
-		}
-	}
-
 	// 执行自定义验证
 	err := v.validate.Var(request, "update_validation")
 	if err != nil {

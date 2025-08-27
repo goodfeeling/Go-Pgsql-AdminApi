@@ -9,7 +9,7 @@ var customRules = map[string]string{
 	"path":       "required,lt=191",
 	"hidden":     "omitempty",
 	"keep_alive": "omitempty",
-	"parent_id":  "required,gt=-1,lt=12",
+	"parent_id":  "omitempty,min=0",
 	"icon":       "required,lt=191",
 	"sort":       "omitempty",
 }

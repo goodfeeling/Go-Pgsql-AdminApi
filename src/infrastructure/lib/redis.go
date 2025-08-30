@@ -1,5 +1,4 @@
-// src/infrastructure/redis/redis.go
-package redis
+package lib
 
 import (
 	"context"

@@ -7,9 +7,9 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 	scheduledTaskDomain "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task"
 	scheduleTaskConstants "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task/constants"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/lib/scheduler"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	scheduledTaskRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/scheduled_task"
-	"github.com/gbrayhan/microservices-go/src/infrastructure/scheduler"
 	"go.uber.org/zap"
 )
 
@@ -34,7 +34,8 @@ type ScheduledTaskUseCase struct {
 
 func NewScheduledTaskUseCase(
 	scheduledTaskRepository scheduledTaskRepo.IScheduledTaskRepository,
-	loggerInstance *logger.Logger, scheduler *scheduler.TaskScheduler) IScheduledTaskService {
+	loggerInstance *logger.Logger, scheduler *scheduler.TaskScheduler,
+) IScheduledTaskService {
 	return &ScheduledTaskUseCase{
 		scheduledTaskRepository: scheduledTaskRepository,
 		Logger:                  loggerInstance,

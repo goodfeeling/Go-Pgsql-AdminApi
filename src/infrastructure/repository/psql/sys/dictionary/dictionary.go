@@ -329,9 +329,9 @@ func (r *Repository) GetByType(typeText string) (*domainDictionary.Dictionary, e
 	var dictionaries SysDictionary
 	if err := r.DB.
 		Preload("Details", func(db *gorm.DB) *gorm.DB {
-			return db.Where("status = ?", constants.StatusEnable)
+			return db.Where("status = ?", constants.StatusEnabled)
 		}).
-		Where("type = ? and status = ?", typeText, constants.StatusEnable).First(&dictionaries).Error; err != nil {
+		Where("type = ? and status = ?", typeText, constants.StatusEnabled).First(&dictionaries).Error; err != nil {
 		r.Logger.Error("Error getting all dictionaries", zap.Error(err))
 		return nil, nil
 	}

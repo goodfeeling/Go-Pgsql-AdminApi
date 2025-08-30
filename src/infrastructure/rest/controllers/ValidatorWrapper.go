@@ -63,12 +63,12 @@ func (v *CommonValidator) registerCustomValidations() {
 		case float64:
 			// 转换为字符串并检查是否匹配枚举值
 			strValue := fmt.Sprintf("%.0f", v)
-			return strValue == constants.StatusEnable || strValue == constants.StatusDisable
+			return strValue == constants.StatusEnabled || strValue == constants.StatusDisabled
 		case int:
 			strValue := fmt.Sprintf("%d", v)
-			return strValue == constants.StatusEnable || strValue == constants.StatusDisable
+			return strValue == constants.StatusEnabled || strValue == constants.StatusDisabled
 		case string:
-			return v == constants.StatusEnable || v == constants.StatusDisable
+			return v == constants.StatusEnabled || v == constants.StatusDisabled
 		default:
 			return false
 		}

@@ -4,9 +4,9 @@ import "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers
 
 var customRules = map[string]string{
 	"status":           "required,status_enum",
-	"name":             "required,gt=3,lt=100",
-	"type":             "required,gt=3,lt=100",
-	"desc":             "omitempty,gt=3,lt=200",
+	"name":             "required,lt=100",
+	"type":             "required,lt=100",
+	"desc":             "omitempty,lt=200",
 	"is_generate_file": "omitempty",
 }
 

@@ -19,11 +19,11 @@ type SysBaseMenuParameter struct {
 	CreatedAt     time.Time      `gorm:"column:created_at" json:"createdAt,omitempty"`
 	UpdatedAt     time.Time      `gorm:"column:updated_at" json:"updatedAt,omitempty"`
 	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at" json:"-"`
-	SysBaseMenuID int64          `gorm:"column:sys_base_menu_id" json:"menuId"`    // 外键关联菜单表
-	Type          string         `gorm:"column:type" json:"type"`                  // 地址栏携带参数为params还是query
-	Key           string         `gorm:"column:key" json:"key"`                    // 地址栏携带参数的key
-	Value         string         `gorm:"column:value" json:"value"`                // 地址栏携带参数的值
-	ID            int            `ggorm:"primaryKey;column:id;type:numeric(20,0)"` // 使用现有序列
+	SysBaseMenuID int64          `gorm:"column:sys_base_menu_id" json:"menuId"`
+	Type          string         `gorm:"column:type" json:"type"`
+	Key           string         `gorm:"column:key" json:"key"`
+	Value         string         `gorm:"column:value" json:"value"`
+	ID            int            `ggorm:"primaryKey;column:id;type:numeric(20,0)"`
 }
 
 func (SysBaseMenuParameter) TableName() string {

@@ -9,11 +9,13 @@ import (
 	"github.com/gbrayhan/microservices-go/src/application/event/bus"
 	"github.com/gbrayhan/microservices-go/src/application/event/factory"
 	taskConstants "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task/constants"
-	"github.com/gbrayhan/microservices-go/src/infrastructure/executor"
+	lib "github.com/gbrayhan/microservices-go/src/infrastructure/lib"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/lib/executor"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
-	redisClient "github.com/gbrayhan/microservices-go/src/infrastructure/redis"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/scheduled_task"
 
+	"github.com/gbrayhan/microservices-go/src/infrastructure/lib/scheduler"
+	ws "github.com/gbrayhan/microservices-go/src/infrastructure/lib/websocket"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/jwt_blacklist"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
@@ -30,7 +32,6 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_menu"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/user_role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
-	"github.com/gbrayhan/microservices-go/src/infrastructure/scheduler"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/security"
 	sharedUtil "github.com/gbrayhan/microservices-go/src/shared/utils"
 	"github.com/redis/go-redis/v9"
@@ -56,6 +57,7 @@ type ApplicationContext struct {
 	RedisClient      *redis.Client // redis client
 	EventBus         bus.EventBus  // event bus
 	Logger           *logger.Logger
+	WsRouter         *ws.WebSocketRouter
 	Enforcer         *casbin.Enforcer
 	JWTService       security.IJWTService
 	Repositories     RepositoryContainer
@@ -108,28 +110,6 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		return nil, err
 	}
 
-	// create event bus
-	eventBus := factory.CreateEventBus(loggerInstance)
-
-	// Initialize Redis client
-	redisClientInstance, err := redisClient.InitRedisClient(loggerInstance)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Redis client: %w", err)
-	}
-
-	// Initialize Casbin
-	enforcer, err := sharedUtil.InitCasbinEnforcer(db, loggerInstance)
-	if err != nil {
-		return nil, err
-	}
-
-	// initialize task executor
-	taskExecutor := executor.NewTaskExecutorManager(loggerInstance)
-	functionExecutor := executor.NewFunctionExecutor(loggerInstance)
-	httpCallExecutor := executor.NewHTTPExecutor(loggerInstance)
-	taskExecutor.RegisterExecutor(taskConstants.TaskTypeFunction, functionExecutor)
-	taskExecutor.RegisterExecutor(taskConstants.TaskTypeHttpCall, httpCallExecutor)
-
 	// share repositories
 	repositories := RepositoryContainer{
 		RoleMenuRepository:      role_menu.NewSysRoleMenuRepository(db, loggerInstance),
@@ -147,6 +127,32 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		FileRepository:          files.NewSysFilesRepository(db, loggerInstance),
 		ScheduledTaskRepository: scheduled_task.NewScheduledTaskRepository(db, loggerInstance),
 	}
+
+	// create event bus
+	eventBus := factory.CreateEventBus(loggerInstance)
+
+	// Initialize Redis client
+	redisClientInstance, err := lib.InitRedisClient(loggerInstance)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Redis client: %w", err)
+	}
+
+	// Initialize Casbin
+	enforcer, err := sharedUtil.InitCasbinEnforcer(db, loggerInstance)
+	if err != nil {
+		return nil, err
+	}
+
+	// init websocket instance
+	wsRouter := ws.NewWebSocketRouter()
+
+	// initialize task executor
+	taskExecutor := executor.NewTaskExecutorManager(loggerInstance)
+	functionExecutor := executor.NewFunctionExecutor(loggerInstance)
+	httpCallExecutor := executor.NewHTTPExecutor(loggerInstance)
+	taskExecutor.RegisterExecutor(taskConstants.TaskTypeFunction, functionExecutor)
+	taskExecutor.RegisterExecutor(taskConstants.TaskTypeHttpCall, httpCallExecutor)
+
 	// initialize task scheduler
 	taskScheduler := scheduler.NewTaskScheduler(repositories.ScheduledTaskRepository, loggerInstance, taskExecutor)
 
@@ -159,6 +165,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		RedisClient:      redisClientInstance,
 		EventBus:         eventBus,
 		Logger:           loggerInstance,
+		WsRouter:         wsRouter,
 		Enforcer:         enforcer,
 		JWTService:       jwtService,
 		Repositories:     repositories,
@@ -184,8 +191,8 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		setupMenuParameterModule,
 		setupFileModule,
 		setupScheduledTaskModule,
-		setupTaskExecutionLogModule,
 		setupConfigModule,
+		setupTaskExecutionLogModule,
 	}
 
 	for _, setupFunc := range moduleSetupFuncs {

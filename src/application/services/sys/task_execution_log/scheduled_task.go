@@ -1,19 +1,20 @@
-package task_execution_log
+package scheduled_task
 
 import (
 	"fmt"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
-	taskExecutionLogkDomain "github.com/gbrayhan/microservices-go/src/domain/sys/task_execution_log"
+	taskExecutionLogDomain "github.com/gbrayhan/microservices-go/src/domain/sys/task_execution_log"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	taskExecutionLogRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/task_execution_log"
 	"go.uber.org/zap"
 )
 
 type ITaskExecutionLogService interface {
-	GetByID(id int) (*taskExecutionLogkDomain.TaskExecutionLog, error)
+	GetByID(id int) (*taskExecutionLogDomain.TaskExecutionLog, error)
 	Delete(ids []int) error
-	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[taskExecutionLogkDomain.TaskExecutionLog], error)
+	GetByTaskID(taskID uint, limit int) (*[]taskExecutionLogDomain.TaskExecutionLog, error)
+	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[taskExecutionLogDomain.TaskExecutionLog], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 }
 
@@ -22,16 +23,23 @@ type TaskExecutionLogUseCase struct {
 	Logger                     *logger.Logger
 }
 
+// GetByTaskID implements ITaskExecutionLogService.
+func (s *TaskExecutionLogUseCase) GetByTaskID(taskID uint, limit int) (*[]taskExecutionLogDomain.TaskExecutionLog, error) {
+	s.Logger.Info("Getting log by TaskID", zap.Uint("taskID", taskID))
+	return s.taskExecutionLogRepository.GetByTaskID(taskID, limit)
+}
+
 func NewTaskExecutionLogUseCase(
 	taskExecutionLogRepository taskExecutionLogRepo.ITaskExecutionLogRepository,
-	loggerInstance *logger.Logger) ITaskExecutionLogService {
+	loggerInstance *logger.Logger,
+) ITaskExecutionLogService {
 	return &TaskExecutionLogUseCase{
 		taskExecutionLogRepository: taskExecutionLogRepository,
 		Logger:                     loggerInstance,
 	}
 }
 
-func (s *TaskExecutionLogUseCase) GetByID(id int) (*taskExecutionLogkDomain.TaskExecutionLog, error) {
+func (s *TaskExecutionLogUseCase) GetByID(id int) (*taskExecutionLogDomain.TaskExecutionLog, error) {
 	s.Logger.Info("Getting task by ID", zap.Int("id", id))
 	return s.taskExecutionLogRepository.GetByID(id)
 }
@@ -41,7 +49,7 @@ func (s *TaskExecutionLogUseCase) Delete(ids []int) error {
 	return s.taskExecutionLogRepository.Delete(ids)
 }
 
-func (s *TaskExecutionLogUseCase) SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[taskExecutionLogkDomain.TaskExecutionLog], error) {
+func (s *TaskExecutionLogUseCase) SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[taskExecutionLogDomain.TaskExecutionLog], error) {
 	s.Logger.Info("Searching tasks with pagination",
 		zap.Int("page", filters.Page),
 		zap.Int("pageSize", filters.PageSize))

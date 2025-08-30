@@ -12,10 +12,6 @@ func TaskExecutionLogRouters(router *gin.RouterGroup, controller task_execution_
 	u.Use(middlewares.AuthJWTMiddleware())
 	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
-		u.GET("/:id", controller.GetTaskExecutionLogByID)
-		u.DELETE("/:id", controller.DeleteTaskExecutionLog)
 		u.GET("/search", controller.SearchPaginated)
-		u.GET("/search-property", controller.SearchByProperty)
-		u.POST("/delete-batch", controller.DeleteTaskExecutionLogs)
 	}
 }

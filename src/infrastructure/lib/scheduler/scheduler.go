@@ -13,7 +13,7 @@ import (
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainScheduledTask "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task"
-	"github.com/gbrayhan/microservices-go/src/infrastructure/executor"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/lib/executor"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/scheduled_task"
 	"github.com/go-co-op/gocron"

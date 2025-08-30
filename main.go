@@ -14,6 +14,7 @@ import (
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/routes"
+	wsRoutes "github.com/gbrayhan/microservices-go/src/infrastructure/ws/routes"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
@@ -104,25 +105,24 @@ func main() {
 	// setup scheduler
 	appContext.TaskScheduler.Start()
 
-	// Start server
-	// 在goroutine中启动服务器，以便可以捕获关闭信号
+	// Start the server in a goroutine to enable capturing the shutdown signal
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			loggerInstance.Fatal("Failed to start server", zap.Error(err))
 		}
 	}()
 
-	// 等待中断信号以优雅地关闭服务器
+	// Wait for the interrupt signal to shut down the server gracefully
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	loggerInstance.Info("Shutting down server...")
 
-	// 创建一个带超时的上下文用于关闭
+	// Create a context with a timeout for shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// 优雅关闭服务器
+	// Graceful Shutdown of the Server
 	if err := server.Shutdown(ctx); err != nil {
 		loggerInstance.Fatal("Server forced to shutdown", zap.Error(err))
 	}
@@ -158,6 +158,9 @@ func setupRouter(appContext *di.ApplicationContext, logger *logger.Logger) *gin.
 	router.Use(logger.GinZapLogger())
 	// Setup routes
 	routes.ApplicationRouter(router, appContext)
+
+	// WebSocket routes
+	wsRoutes.WebSocketRoute(router, appContext)
 
 	return router
 }

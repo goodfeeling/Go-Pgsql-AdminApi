@@ -114,7 +114,7 @@ func (r *Repository) Create(userDomain *domainUser.User) (*domainUser.User, erro
 func (r *Repository) GetByID(id int) (*domainUser.User, error) {
 	var user User
 	err := r.DB.Where("id = ?", id).Preload("Roles", func(db *gorm.DB) *gorm.DB {
-		return db.Where("status = ?", constants.StatusEnable).Order("id asc")
+		return db.Where("status = ?", constants.StatusEnabled).Order("id asc")
 	}).First(&user).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -150,7 +150,7 @@ func (r *Repository) GetByEmail(email string) (*domainUser.User, error) {
 func (r *Repository) GetByUsername(username string) (*domainUser.User, error) {
 	var user User
 	err := r.DB.Where("user_name = ?", username).Preload("Roles", func(db *gorm.DB) *gorm.DB {
-		return db.Where("status = ?", constants.StatusEnable).Order("id asc")
+		return db.Where("status = ?", constants.StatusEnabled).Order("id asc")
 	}).First(&user).Error
 
 	if err != nil {

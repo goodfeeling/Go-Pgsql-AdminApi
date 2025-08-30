@@ -10,11 +10,8 @@ import (
 )
 
 func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
-
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
 	v1 := router.Group("/v1")
-
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	v1.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "ok",
@@ -37,6 +34,7 @@ func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
 	FileRouters(v1, appContext.FileModule.Controller, appContext.Enforcer)
 
 	ScheduledTaskRouters(v1, appContext.ScheduledTaskModule.Controller, appContext.Enforcer)
-	TaskExecutionLogRouters(v1, appContext.TaskExecutionLogModule.Controller, appContext.Enforcer)
 	ConfigRouters(v1, appContext.ConfigModule.Controller, appContext.Enforcer)
+	TaskExecutionLogRouters(v1, appContext.TaskExecutionLogModule.Controller, appContext.Enforcer)
+
 }

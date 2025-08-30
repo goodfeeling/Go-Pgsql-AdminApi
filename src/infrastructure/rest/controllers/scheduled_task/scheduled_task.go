@@ -46,8 +46,8 @@ type ResponseScheduledTask struct {
 	ExecType        string            `json:"exec_type"`
 	CreatedAt       domain.CustomTime `json:"created_at,omitempty"`
 	UpdatedAt       domain.CustomTime `json:"updated_at,omitempty"`
-	LastExecuteTime *time.Time        `json:"last_execute_time"`
-	NextExecuteTime *time.Time        `json:"next_execute_time"`
+	LastExecuteTime domain.CustomTime `json:"last_execute_time"`
+	NextExecuteTime domain.CustomTime `json:"next_execute_time"`
 }
 type IScheduledTaskController interface {
 	NewScheduledTask(ctx *gin.Context)
@@ -443,8 +443,8 @@ func domainToResponseMapper(domainScheduledTask *domainScheduledTask.ScheduledTa
 		TaskDescription: domainScheduledTask.TaskDescription,
 		CronExpression:  domainScheduledTask.CronExpression,
 		Status:          domainScheduledTask.Status,
-		LastExecuteTime: domainScheduledTask.LastExecuteTime,
-		NextExecuteTime: domainScheduledTask.NextExecuteTime,
+		LastExecuteTime: domain.CustomTime{Time: domainScheduledTask.LastExecuteTime},
+		NextExecuteTime: domain.CustomTime{Time: domainScheduledTask.NextExecuteTime},
 		ExecType:        domainScheduledTask.ExecType,
 		CreatedAt:       domain.CustomTime{Time: domainScheduledTask.CreatedAt},
 		UpdatedAt:       domain.CustomTime{Time: domainScheduledTask.UpdatedAt},

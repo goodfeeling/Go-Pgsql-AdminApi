@@ -96,8 +96,8 @@ func fetchDictionaryData(db *gorm.DB) ([]DictConstant, error) {
 
 	// 预加载字典详情
 	err := db.Preload("Details", func(db *gorm.DB) *gorm.DB {
-		return db.Where("status = ?", constants.StatusEnable).Order("sort")
-	}).Where("status = ? and is_generate_file = ?", constants.StatusEnable, 1).
+		return db.Where("status = ?", constants.StatusEnabled).Order("sort")
+	}).Where("status = ? and is_generate_file = ?", constants.StatusEnabled, 1).
 		Find(&dictionaries).Error
 
 	if err != nil {

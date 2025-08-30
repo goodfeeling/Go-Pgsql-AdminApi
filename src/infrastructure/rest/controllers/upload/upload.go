@@ -21,7 +21,7 @@ import (
 	sts20150401 "github.com/alibabacloud-go/sts-20150401/v2/client"
 	util "github.com/alibabacloud-go/tea-utils/v2/service"
 	"github.com/alibabacloud-go/tea/tea"
-	cacheService "github.com/gbrayhan/microservices-go/src/infrastructure/cache"
+	cacheService "github.com/gbrayhan/microservices-go/src/infrastructure/lib/cache"
 	"github.com/redis/go-redis/v9"
 )
 

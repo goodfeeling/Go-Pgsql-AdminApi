@@ -26,7 +26,7 @@ type TaskExecutionLog struct {
 
 // TableName 指定表名
 func (TaskExecutionLog) TableName() string {
-	return "task_execution_logs"
+	return "sys_task_execution_logs"
 }
 
 type ITaskExecutionLogRepository interface {
@@ -37,17 +37,11 @@ type ITaskExecutionLogRepository interface {
 	Delete(ids []int) error
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainTaskExecution.TaskExecutionLog], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
+	GetByTaskID(taskID uint, limit int) (*[]domainTaskExecution.TaskExecutionLog, error)
 }
 
 var ColumnsTaskExecutionLogMapping = map[string]string{
-	"id":          "id",
-	"path":        "path",
-	"apiName":     "api_name",
-	"description": "description",
-	"apiGroup":    "api_group",
-	"method":      "method",
-	"createdAt":   "created_at",
-	"updatedAt":   "updated_at",
+	"taskId": "task_id",
 }
 
 type Repository struct {
@@ -266,9 +260,25 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 	return &coincidences, nil
 }
 
+// GetByTaskID implements ITaskExecutionLogRepository.
+func (r *Repository) GetByTaskID(taskID uint, limit int) (*[]domainTaskExecution.TaskExecutionLog, error) {
+	var tasks []TaskExecutionLog
+	if err := r.DB.Where("task_id = ?", taskID).Limit(limit).Find(&tasks).Error; err != nil {
+		r.Logger.Error("Error retrieving tasks by taskID", zap.Error(err), zap.Uint("taskID", taskID))
+		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
+	}
+	return arrayToDomainMapper(&tasks), nil
+}
+
 func (u *TaskExecutionLog) toDomainMapper() *domainTaskExecution.TaskExecutionLog {
 	return &domainTaskExecution.TaskExecutionLog{
-		ID:        u.ID,
+		ID:              u.ID,
+		TaskID:          u.TaskID,
+		ExecuteResult:   u.ExecuteResult,
+		ExecuteTime:     u.ExecuteTime,
+		ErrorMessage:    u.ErrorMessage,
+		ExecuteDuration: u.ExecuteDuration,
+
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}

@@ -13,16 +13,18 @@ type ScheduledTaskModule struct {
 }
 
 func setupScheduledTaskModule(appContext *ApplicationContext) error {
+
 	// Initialize use cases
 	apiUC := scheduledTaskUseCase.NewScheduledTaskUseCase(
 		appContext.Repositories.ScheduledTaskRepository,
 		appContext.Logger, appContext.TaskScheduler)
+
 	// Initialize controllers
-	scheduledTaskController := scheduledTaskController.NewScheduledTaskController(
+	scheduledTaskC := scheduledTaskController.NewScheduledTaskController(
 		apiUC, appContext.Logger)
 
 	appContext.ScheduledTaskModule = ScheduledTaskModule{
-		Controller: scheduledTaskController,
+		Controller: scheduledTaskC,
 		UseCase:    apiUC,
 		Repository: appContext.Repositories.ScheduledTaskRepository,
 	}

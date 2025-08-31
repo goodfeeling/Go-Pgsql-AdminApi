@@ -22,6 +22,7 @@ func AuthJWTMiddleware() gin.HandlerFunc {
 	}
 }
 
+// OptionalAuthMiddleware
 func OptionalAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := c.GetHeader("Authorization")
@@ -34,6 +35,21 @@ func OptionalAuthMiddleware() gin.HandlerFunc {
 	}
 }
 
+// UrlAuthMiddleware
+func UrlAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenString := c.Query("token")
+		if tokenString == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token not provided"})
+			c.Abort()
+			return
+		}
+		commonHandle(c, tokenString)
+		c.Next()
+	}
+}
+
+// commonHandle
 func commonHandle(c *gin.Context, tokenString string) {
 	accessSecret := os.Getenv("JWT_ACCESS_SECRET")
 	if accessSecret == "" {

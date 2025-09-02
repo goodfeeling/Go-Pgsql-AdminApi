@@ -9,7 +9,7 @@ import (
 
 func ConfigRouters(router *gin.RouterGroup, controller config.IConfigController, enforcer *casbin.Enforcer) {
 	u := router.Group("/config")
-	u.GET("/system", controller.GetConfigBySystem)
+	u.GET("/site", controller.GetConfigBySite)
 
 	u.Use(middlewares.AuthJWTMiddleware())
 	u.Use(middlewares.CasbinMiddleware(enforcer))

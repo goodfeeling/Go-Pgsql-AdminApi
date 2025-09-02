@@ -100,9 +100,9 @@ func (u *SysFiles) toDomainMapper() *filesDomain.SysFiles {
 func (u *SysFiles) getUrl() string {
 	switch u.StorageEngine {
 	case "local":
-		return fmt.Sprintf("%s/%s", os.Getenv("APP_URL"), u.FilePath)
+		return fmt.Sprintf("%s/%s", os.Getenv("NATIVE_STORAGE_BASE_URL"), u.FilePath)
 	case "aliyunoss":
-		return fmt.Sprintf("%s%s", os.Getenv("OSS_BASE_URL"), u.FilePath)
+		return fmt.Sprintf("%s%s", os.Getenv("ALIYUN_OSS_BASE_URL"), u.FilePath)
 	default:
 		return ""
 	}

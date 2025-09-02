@@ -15,22 +15,11 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/routes"
 	wsRoutes "github.com/gbrayhan/microservices-go/src/infrastructure/ws/routes"
+	"github.com/gbrayhan/microservices-go/src/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
-
-// ServerConfig holds server-related configuration
-type ServerConfig struct {
-	Port string
-}
-
-// loadServerConfig loads server configuration from environment variables
-func loadServerConfig() ServerConfig {
-	return ServerConfig{
-		Port: getEnvOrDefault("SERVER_PORT", "8080"),
-	}
-}
 
 //	@title			Swagger Example API
 //	@version		1.0
@@ -52,23 +41,26 @@ func loadServerConfig() ServerConfig {
 // @externalDocs.description	OpenAPI
 // @externalDocs.url			https://swagger.io/resources/open-api/
 func main() {
+	var err error
 	// swagger setting
 	setSwaggerConfiguration()
 	// load .env file
-	if err := godotenv.Load(); err != nil {
+	if err = godotenv.Load(); err != nil {
 		panic("Error loading .env file")
 	}
-	// Initialize logger first based on environment
-	env := getEnvOrDefault("GO_ENV", "development")
-	var loggerInstance *logger.Logger
-	var err error
+	// load config.yaml
+	if err = utils.LoadYAMLConfigToEnv(); err != nil {
+		panic(fmt.Errorf("error loading config.yaml: %w", err))
+	}
 
+	// Initialize logger first based on environment
+	var loggerInstance *logger.Logger
+	env := getEnvOrDefault("GO_ENV", "development")
 	if env == "development" {
 		loggerInstance, err = logger.NewDevelopmentLogger()
 	} else {
 		loggerInstance, err = logger.NewLogger()
 	}
-
 	if err != nil {
 		panic(fmt.Errorf("error initializing logger: %w", err))
 	}
@@ -79,9 +71,6 @@ func main() {
 	}()
 
 	loggerInstance.Info("Starting microservices application")
-
-	// Load server configuration
-	serverConfig := loadServerConfig()
 
 	// Initialize application context with dependencies and logger
 	appContext, err := di.SetupDependencies(loggerInstance)
@@ -100,7 +89,7 @@ func main() {
 	router := setupRouter(appContext, loggerInstance)
 
 	// Setup server
-	server := setupServer(router, serverConfig.Port)
+	server := setupServer(router, getEnvOrDefault("SERVER_PORT", "8080"))
 
 	// setup scheduler
 	appContext.TaskScheduler.Start()
@@ -144,7 +133,9 @@ func setupRouter(appContext *di.ApplicationContext, logger *logger.Logger) *gin.
 
 	// set file upload configuration
 	router.MaxMultipartMemory = 10 << 20 // 10 MB
-	router.Static("/public", "./public")
+	uploadDir := os.Getenv("NATIVE_STORAGE_UPLOAD_DIR")
+	accessDir := os.Getenv("NATIVE_STORAGE_ACCESS_DIR")
+	router.Static(fmt.Sprintf("/%s", accessDir), fmt.Sprintf("./%s", uploadDir))
 	router.RedirectTrailingSlash = false
 
 	// Agregar middlewares de recuperación y logger personalizados
@@ -158,7 +149,6 @@ func setupRouter(appContext *di.ApplicationContext, logger *logger.Logger) *gin.
 	router.Use(logger.GinZapLogger())
 	// Setup routes
 	routes.ApplicationRouter(router, appContext)
-
 	// WebSocket routes
 	wsRoutes.WebSocketRoute(router, appContext)
 

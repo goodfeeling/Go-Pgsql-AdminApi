@@ -75,9 +75,9 @@ func (u *UploadController) Multiple(ctx *gin.Context) {
 		filename := filepath.Base(file.Filename)
 		ext := filepath.Ext(filename)
 		newFilename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-		savePath := filepath.Join("public", newFilename)
+		savePath := filepath.Join(os.Getenv("NATIVE_STORAGE_UPLOAD_DIR"), newFilename)
 
-		if err := os.MkdirAll("public", os.ModePerm); err != nil {
+		if err := os.MkdirAll(os.Getenv("NATIVE_STORAGE_UPLOAD_DIR"), os.ModePerm); err != nil {
 			u.Logger.Error("Error creating dir", zap.Error(err))
 			appError := domainErrors.NewAppError(err, domainErrors.UploadError)
 			_ = ctx.Error(appError)
@@ -153,10 +153,10 @@ func (u *UploadController) Single(ctx *gin.Context) {
 	newFilename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
 
 	// join name
-	savePath := filepath.Join("public", newFilename)
+	savePath := filepath.Join(os.Getenv("NATIVE_STORAGE_UPLOAD_DIR"), newFilename)
 
 	// create save file dir
-	if err := os.MkdirAll("public", os.ModePerm); err != nil {
+	if err := os.MkdirAll(os.Getenv("NATIVE_STORAGE_UPLOAD_DIR"), os.ModePerm); err != nil {
 		u.Logger.Error("Error creating dir", zap.Error(err))
 		appError := domainErrors.NewAppError(err, domainErrors.UploadError)
 		_ = ctx.Error(appError)
@@ -291,9 +291,9 @@ func NewAuthController(sysFilesUseCase domainFiles.ISysFilesService, loggerInsta
 // generateSTSToken 生成新的STS Token
 func (u *UploadController) generateSTSToken(sessionName string, roleArn string) (*sts20150401.AssumeRoleResponseBodyCredentials, error) {
 	// 从环境变量中获取步骤1.1生成的RAM用户的访问密钥（AccessKey ID和AccessKey Secret）。
-	accessKeyId := os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_ID")
-	accessKeySecret := os.Getenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET")
-	serviceAddress := os.Getenv("SECURITY_SERVICE_ADDRESS")
+	accessKeyId := os.Getenv("ALIYUN_OSS_ACCESS_KEY_ID")
+	accessKeySecret := os.Getenv("ALIYUN_OSS_ACCESS_KEY_SECRET")
+	serviceAddress := os.Getenv("ALIYUN_OSS_SECURITY_SERVICE_ADDRESS")
 
 	// 创建权限策略客户端。
 	config := &openapi.Config{
@@ -330,7 +330,7 @@ func (u *UploadController) generateSTSToken(sessionName string, roleArn string) 
 
 // processSTSToken 处理STS Token的完整流程
 func (u *UploadController) processSTSToken(ctx *gin.Context, userID string, cacheKey string) {
-	roleArn := os.Getenv("RAM_ROLE_ARN")
+	roleArn := os.Getenv("ALIYUN_OSS_RAM_ROLE_ARN")
 	// 生成唯一的会话名称
 	sessionName := fmt.Sprintf("upload-session-%d", time.Now().Unix())
 	//  *gin.Context, userID生成STS Token
@@ -359,8 +359,8 @@ func (u *UploadController) processSTSToken(ctx *gin.Context, userID string, cach
 		AccessKeySecret: *credentials.AccessKeySecret,
 		SecurityToken:   *credentials.SecurityToken,
 		Expiration:      expirationTime,
-		BucketName:      os.Getenv("OSS_BUCKET_NAME"),
-		Region:          os.Getenv("SECURITY_REGION_ID"),
+		BucketName:      os.Getenv("ALIYUN_OSS_BUCKET_NAME"),
+		Region:          os.Getenv("ALIYUN_OSS_SECURITY_REGION_ID"),
 		CreatedAt:       time.Now(),
 	}
 
@@ -376,8 +376,8 @@ func (u *UploadController) processSTSToken(ctx *gin.Context, userID string, cach
 			AccessKeySecret: *credentials.AccessKeySecret,
 			SecurityToken:   *credentials.SecurityToken,
 			Expiration:      *credentials.Expiration,
-			BucketName:      os.Getenv("OSS_BUCKET_NAME"),
-			Region:          os.Getenv("SECURITY_REGION_ID"),
+			BucketName:      os.Getenv("ALIYUN_OSS_BUCKET_NAME"),
+			Region:          os.Getenv("ALIYUN_OSS_SECURITY_REGION_ID"),
 			RefreshToken:    refreshToken,
 		}).
 		Message("success").

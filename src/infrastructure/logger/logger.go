@@ -1,14 +1,18 @@
-package infrastructure
+package logger
 
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
+	"strconv"
 	"time"
 
+	"github.com/gbrayhan/microservices-go/src/domain/constants"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 	gormlogger "gorm.io/gorm/logger"
 )
 
@@ -16,26 +20,58 @@ type Logger struct {
 	Log *zap.Logger
 }
 
+var encodeLevelMap = map[string]zapcore.LevelEncoder{
+	constants.EncodeLevelCapitalcolorlevelencoder:   zapcore.CapitalColorLevelEncoder,
+	constants.EncodeLevelCapitallevelencoder:        zapcore.CapitalLevelEncoder,
+	constants.EncodeLevelLowercaselevelencoder:      zapcore.LowercaseLevelEncoder,
+	constants.EncodeLevelLowercasecolorlevelencoder: zapcore.LowercaseColorLevelEncoder,
+}
+
+var logLevelMap = map[string]zapcore.Level{
+	constants.LogLevelDebug:   zapcore.DebugLevel,
+	constants.LogLevelInfo:    zapcore.InfoLevel,
+	constants.LogLevelWarning: zapcore.WarnLevel,
+	constants.LogLevelError:   zapcore.ErrorLevel,
+	constants.LogLevelClose:   zapcore.PanicLevel,
+	constants.LogLevelFatal:   zapcore.FatalLevel,
+}
+
 func NewLogger() (*Logger, error) {
+
+	encodeLevel := zapcore.CapitalLevelEncoder
+	if v, ok := encodeLevelMap[getenv("ZAP_ENCODE_LEVEL", "LowercaseColorLevelEncoder")]; ok {
+		encodeLevel = v
+	}
+
+	logLevel := zapcore.InfoLevel
+	if v, ok := logLevelMap[getenv("ZAP_LOG_LEVEL", "info")]; ok {
+		logLevel = v
+	}
+
 	encoderConfig := zapcore.EncoderConfig{
 		TimeKey:        "timestamp",
 		LevelKey:       "level",
 		NameKey:        "logger",
 		CallerKey:      "caller",
 		MessageKey:     "msg",
-		StacktraceKey:  "stacktrace",
+		StacktraceKey:  getenv("ZAP_STACKTRACE_KEY", "stacktrace"),
 		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.CapitalLevelEncoder,
+		EncodeLevel:    encodeLevel,
 		EncodeTime:     zapcore.ISO8601TimeEncoder,
 		EncodeDuration: zapcore.StringDurationEncoder,
 		EncodeCaller:   zapcore.FullCallerEncoder,
 		EncodeName:     zapcore.FullNameEncoder,
 	}
-
+	// 构建 WriteSyncer 列表
+	var writeSyncers []zapcore.WriteSyncer
+	enableConsoleOutput := getenv("ZAP_LOG_IN_CONSOLE", "true") != "false"
+	if enableConsoleOutput {
+		writeSyncers = append(writeSyncers, zapcore.AddSync(os.Stdout))
+	}
 	core := zapcore.NewCore(
-		zapcore.NewJSONEncoder(encoderConfig),
-		zapcore.AddSync(os.Stdout),
-		zap.NewAtomicLevelAt(zap.InfoLevel),
+		getEncoder(encoderConfig),
+		zapcore.NewMultiWriteSyncer(writeSyncers...),
+		zap.NewAtomicLevelAt(logLevel),
 	)
 
 	logger := zap.New(core)
@@ -45,41 +81,73 @@ func NewLogger() (*Logger, error) {
 
 // NewDevelopmentLogger crea un logger para desarrollo con más información de debug
 func NewDevelopmentLogger() (*Logger, error) {
+
+	encodeLevel := zapcore.CapitalLevelEncoder
+	if v, ok := encodeLevelMap[getenv("ZAP_ENCODE_LEVEL", "LowercaseColorLevelEncoder")]; ok {
+		encodeLevel = v
+	}
+	logLevel := zapcore.InfoLevel
+	if v, ok := logLevelMap[getenv("ZAP_LOG_LEVEL", "info")]; ok {
+		logLevel = v
+	}
 	encoderConfig := zapcore.EncoderConfig{
 		TimeKey:        "timestamp",
 		LevelKey:       "level",
 		NameKey:        "logger",
 		CallerKey:      "caller",
 		MessageKey:     "msg",
-		StacktraceKey:  "stacktrace",
+		StacktraceKey:  getenv("ZAP_STACKTRACE_KEY", "stacktrace"),
 		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.CapitalLevelEncoder,
+		EncodeLevel:    encodeLevel,
 		EncodeTime:     zapcore.ISO8601TimeEncoder,
 		EncodeDuration: zapcore.StringDurationEncoder,
 		EncodeCaller:   zapcore.FullCallerEncoder,
 		EncodeName:     zapcore.FullNameEncoder,
 	}
 
-	// create file dir (if not exist)
-	logFilePath := "logs/app.log"
-	if err := os.MkdirAll("logs", os.ModePerm); err != nil {
-		return nil, err
-	}
-	// open log file
-	file, err := os.OpenFile(logFilePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	maxAge, err := strconv.Atoi(getenv("ZAP_ENCODE_LEVEL", "30"))
 	if err != nil {
-		return nil, err
+		maxAge = 30
+	}
+
+	// 使用 lumberjack 进行日志轮转
+	lumberJackLogger := &lumberjack.Logger{
+		Filename:   fmt.Sprintf("%s/app.log", getenv("ZAP_DIRNAME", "logs")),
+		MaxSize:    100,    // 每个文件最大100MB
+		MaxBackups: 5,      // 最多保留5个备份文件
+		MaxAge:     maxAge, // 保留30天
+		Compress:   true,   // 压缩旧文件
+	}
+
+	// 构建 WriteSyncer 列表
+	var writeSyncers []zapcore.WriteSyncer
+	writeSyncers = append(writeSyncers, zapcore.AddSync(lumberJackLogger))
+	enableConsoleOutput := getenv("ZAP_LOG_IN_CONSOLE", "true") != "false"
+	if enableConsoleOutput {
+		writeSyncers = append(writeSyncers, zapcore.AddSync(os.Stdout))
 	}
 
 	core := zapcore.NewCore(
-		zapcore.NewJSONEncoder(encoderConfig),
-		zapcore.NewMultiWriteSyncer(zapcore.AddSync(file), zapcore.AddSync(os.Stdout)),
-		zap.NewAtomicLevelAt(zap.DebugLevel),
+		getEncoder(encoderConfig),
+		zapcore.NewMultiWriteSyncer(writeSyncers...),
+		zap.NewAtomicLevelAt(logLevel),
 	)
 
 	logger := zap.New(core, zap.AddStacktrace(zap.ErrorLevel))
 
 	return &Logger{Log: logger}, nil
+}
+func getenv(key string, defaultVal string) string {
+	if val, ok := os.LookupEnv(key); ok {
+		return val
+	}
+	return defaultVal
+}
+func getEncoder(cfg zapcore.EncoderConfig) zapcore.Encoder {
+	if os.Getenv("ZAP_ENCODER") == "json" {
+		return zapcore.NewJSONEncoder(cfg)
+	}
+	return zapcore.NewConsoleEncoder(cfg)
 }
 
 func (l *Logger) Info(msg string, fields ...zap.Field) {

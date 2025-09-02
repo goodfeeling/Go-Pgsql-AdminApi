@@ -10,7 +10,7 @@ import (
 
 // CreateEventBus 根据环境创建事件总线
 func CreateEventBus(logger *logger.Logger) bus.EventBus {
-	eventBusType := os.Getenv("EVENT_BUS_TYPE")
+	eventBusType := os.Getenv("SERVER_EVENT_BUS")
 
 	switch eventBusType {
 	case "watermill":

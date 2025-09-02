@@ -25,14 +25,10 @@ func SecurityHeaders() gin.HandlerFunc {
 
 // cors header set
 func CorsHeader() gin.HandlerFunc {
-
-	// string to []string
-	origins := strings.Split(sharedUtil.GetEnv("ALLOWED_ORIGINS", ""), ",")
-
 	return cors.New(cors.Config{
-		AllowOrigins:     origins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "Cache-Control", "X-Requested-With", "User-Agent", " Content-Length", "Accept-Encoding", "X-CSRF-Token"},
+		AllowOrigins:     strings.Split(sharedUtil.GetEnv("CORS_ALLOWED_ORIGINS", ""), ","),
+		AllowMethods:     strings.Split(sharedUtil.GetEnv("CORS_ALLOWED_METHODS", ""), ","),
+		AllowHeaders:     strings.Split(sharedUtil.GetEnv("CORS_ALLOWED_HEADERS", ""), ","),
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,

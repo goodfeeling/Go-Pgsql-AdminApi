@@ -166,6 +166,8 @@ func getOutputDirForDictType(dictType string) string {
 		return "src/domain/sys/scheduled_task/constants"
 	case strings.HasPrefix(dictType, "file_"):
 		return "src/domain/sys/files/constants"
+	case strings.HasPrefix(dictType, "zap_"):
+		return "src/domain/sys/operation_records/constants"
 	default:
 		// 默认目录
 		return "src/domain/constants"

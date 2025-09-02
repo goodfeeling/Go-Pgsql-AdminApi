@@ -28,32 +28,32 @@ type DatabaseConfig struct {
 // loadDatabaseConfig loads database configuration from environment variables
 // Returns error if any required environment variable is missing
 func loadDatabaseConfig() (DatabaseConfig, error) {
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
-	sslMode := os.Getenv("DB_SSLMODE")
+	host := os.Getenv("POSTGRES_HOST")
+	port := os.Getenv("POSTGRES_PORT")
+	user := os.Getenv("POSTGRES_USER")
+	password := os.Getenv("POSTGRES_PASSWORD")
+	dbName := os.Getenv("POSTGRES_NAME")
+	sslMode := os.Getenv("POSTGRES_SSLMODE")
 
 	// Check for missing required environment variables
 	var missingVars []string
 	if host == "" {
-		missingVars = append(missingVars, "DB_HOST")
+		missingVars = append(missingVars, "POSTGRES_HOST")
 	}
 	if port == "" {
-		missingVars = append(missingVars, "DB_PORT")
+		missingVars = append(missingVars, "POSTGRES_PORT")
 	}
 	if user == "" {
-		missingVars = append(missingVars, "DB_USER")
+		missingVars = append(missingVars, "POSTGRES_USER")
 	}
 	if password == "" {
-		missingVars = append(missingVars, "DB_PASSWORD")
+		missingVars = append(missingVars, "POSTGRES_PASSWORD")
 	}
 	if dbName == "" {
-		missingVars = append(missingVars, "DB_NAME")
+		missingVars = append(missingVars, "POSTGRES_NAME")
 	}
 	if sslMode == "" {
-		missingVars = append(missingVars, "DB_SSLMODE")
+		missingVars = append(missingVars, "POSTGRES_SSLMODE")
 	}
 
 	if len(missingVars) > 0 {

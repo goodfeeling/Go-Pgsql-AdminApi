@@ -18,7 +18,6 @@ type ResponseConfig struct {
 	ConfigValue string            `json:"config_value"`
 	ConfigType  string            `json:"config_type"`
 	Module      string            `json:"module"`
-	EnvType     string            `json:"env_type"`
 	Sort        int               `json:"sort"`
 	CreatedAt   domain.CustomTime `json:"created_at,omitempty"`
 	UpdatedAt   domain.CustomTime `json:"updated_at,omitempty"`
@@ -27,7 +26,7 @@ type IConfigController interface {
 	GetAllConfigs(ctx *gin.Context)
 	UpdateConfig(ctx *gin.Context)
 	GetConfigByModule(ctx *gin.Context)
-	GetConfigBySystem(ctx *gin.Context)
+	GetConfigBySite(ctx *gin.Context)
 }
 type ConfigController struct {
 	configService domainConfig.IConfigService
@@ -48,15 +47,15 @@ func NewConfigController(configService domainConfig.IConfigService, loggerInstan
 // @Router /v1/api/config [get]
 func (c *ConfigController) GetAllConfigs(ctx *gin.Context) {
 	c.Logger.Info("Getting all configs")
-	configs, err := c.configService.GetConfigByGroup()
+	configs, err := c.configService.GetConfig()
 	if err != nil {
 		c.Logger.Error("Error getting all configs", zap.Error(err))
 		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 		_ = ctx.Error(appError)
 		return
 	}
-	c.Logger.Info("Successfully retrieved all configs", zap.Int("count", len(*configs)))
-	ctx.JSON(http.StatusOK, domain.CommonResponse[*[]domainConfig.GroupConfig]{
+	c.Logger.Info("Successfully retrieved all configs")
+	ctx.JSON(http.StatusOK, domain.CommonResponse[*domainConfig.ConfigResponse]{
 		Data: configs,
 	})
 }
@@ -120,12 +119,12 @@ func (c *ConfigController) GetConfigByModule(ctx *gin.Context) {
 		return
 	}
 	c.Logger.Info("Successfully retrieved all configs", zap.Int("count", len(*configs)))
-	ctx.JSON(http.StatusOK, domain.CommonResponse[*[]domainConfig.Config]{
+	ctx.JSON(http.StatusOK, domain.CommonResponse[*map[string]string]{
 		Data: configs,
 	})
 }
 
-// GetConfigBySystem implements IConfigController.
+// GetConfigBySiteConfig implements IConfigController.
 // @Summary config module
 // @Description config module
 // @Tags config
@@ -134,9 +133,9 @@ func (c *ConfigController) GetConfigByModule(ctx *gin.Context) {
 // @Param book body models.User  true  "JSON Data"
 // @Success 200 {array} models.User
 // @Router /v1/api/config/system [get]
-func (c *ConfigController) GetConfigBySystem(ctx *gin.Context) {
+func (c *ConfigController) GetConfigBySite(ctx *gin.Context) {
 	c.Logger.Info("Getting all configs")
-	configs, err := c.configService.GetConfigByModule("system")
+	configs, err := c.configService.GetConfigByModule("site")
 	if err != nil {
 		c.Logger.Error("Error getting all configs", zap.Error(err))
 		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
@@ -144,22 +143,7 @@ func (c *ConfigController) GetConfigBySystem(ctx *gin.Context) {
 		return
 	}
 	c.Logger.Info("Successfully retrieved all configs", zap.Int("count", len(*configs)))
-	ctx.JSON(http.StatusOK, domain.CommonResponse[*[]domainConfig.Config]{
+	ctx.JSON(http.StatusOK, domain.CommonResponse[*map[string]string]{
 		Data: configs,
 	})
-}
-
-// Mappers
-func domainToResponseMapper(domainConfig *domainConfig.Config) *ResponseConfig {
-	return &ResponseConfig{
-		ID:          domainConfig.ID,
-		ConfigKey:   domainConfig.ConfigKey,
-		ConfigType:  domainConfig.ConfigType,
-		ConfigValue: domainConfig.ConfigValue,
-		Sort:        domainConfig.Sort,
-		Module:      domainConfig.Module,
-		EnvType:     domainConfig.EnvType,
-		CreatedAt:   domainConfig.CreatedAt,
-		UpdatedAt:   domainConfig.UpdatedAt,
-	}
 }

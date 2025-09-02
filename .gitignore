@@ -20,3 +20,6 @@ coverage_filtered.out
 
 uploads
 logs
+config.yaml
+
+!config.example.yaml

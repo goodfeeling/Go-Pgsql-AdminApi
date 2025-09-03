@@ -7,9 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func UploadRoutes(router *gin.RouterGroup, controller upload.IUploadController, enforcer *casbin.Enforcer) {
+func UploadRoutes(
+	router *gin.RouterGroup,
+	controller upload.IUploadController,
+	enforcer *casbin.Enforcer,
+	middlewareProvider *middlewares.MiddlewareProvider) {
 	u := router.Group("/upload")
-	u.Use(middlewares.AuthJWTMiddleware())
+	u.Use(middlewareProvider.AuthJWTMiddleware())
 	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		u.POST("/single", controller.Single)

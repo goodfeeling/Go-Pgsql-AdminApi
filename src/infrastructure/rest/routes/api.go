@@ -7,14 +7,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ApiRouters(router *gin.RouterGroup, routerEngine *gin.Engine, controller api.IApiController, enforcer *casbin.Enforcer) {
+func ApiRouters(
+	router *gin.RouterGroup,
+	routerEngine *gin.Engine,
+	controller api.IApiController,
+	enforcer *casbin.Enforcer,
+	middlewareProvider *middlewares.MiddlewareProvider) {
 
 	// 用户获取接口列表
 	if routerSetter, ok := controller.(api.RouterSetter); ok {
 		routerSetter.SetRouter(routerEngine)
 	}
 	u := router.Group("/api")
-	u.Use(middlewares.AuthJWTMiddleware())
+	u.Use(middlewareProvider.AuthJWTMiddleware())
 	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		u.POST("", controller.NewApi)

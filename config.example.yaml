@@ -11,7 +11,7 @@ cors:
   allowed_headers: Content-Type,Authorization,Accept,Origin,User-Agent,Cache-Control,X-Requested-With,X-File-Name,X-CSRF-Token,Accept-Encoding
   allowed_methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
   allowed_origins: "*"
-POSTGRES:
+postgres:
   conn_max_lifetime: 300
   host: "localhost"
   max_idle_conns: 10
@@ -27,7 +27,7 @@ jwt:
   refresh_secret: "your_jwt_refresh_secret"
   refresh_time_hour: 168
 native_storage:
-  access_dir: public
+  access_path: public
   base_url: "http://localhost:8080"
   upload_dir: uploads
 rabbitmq:
@@ -45,6 +45,9 @@ server:
   event_bus: memory
   port: 8080
   storage_engine: local
+  limit_time: 1
+  limit_rate: 100
+  multi_login: false
 site:
   favicon: "http://localhost:8080/public/favicon.png"
   login_img: "http://localhost:8080/public/login.png"

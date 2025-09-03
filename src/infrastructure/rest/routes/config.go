@@ -7,11 +7,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ConfigRouters(router *gin.RouterGroup, controller config.IConfigController, enforcer *casbin.Enforcer) {
+func ConfigRouters(
+	router *gin.RouterGroup,
+	controller config.IConfigController,
+	enforcer *casbin.Enforcer,
+	middlewareProvider *middlewares.MiddlewareProvider) {
 	u := router.Group("/config")
 	u.GET("/site", controller.GetConfigBySite)
 
-	u.Use(middlewares.AuthJWTMiddleware())
+	u.Use(middlewareProvider.AuthJWTMiddleware())
 	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		u.GET("", controller.GetAllConfigs)

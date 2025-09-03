@@ -7,9 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RoleRoutes(router *gin.RouterGroup, controller role.IRoleController, enforcer *casbin.Enforcer) {
+func RoleRoutes(
+	router *gin.RouterGroup,
+	controller role.IRoleController,
+	enforcer *casbin.Enforcer,
+	middlewareProvider *middlewares.MiddlewareProvider) {
 	u := router.Group("/role")
-	u.Use(middlewares.AuthJWTMiddleware())
+	u.Use(middlewareProvider.AuthJWTMiddleware())
 	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		u.POST("", controller.NewRole)

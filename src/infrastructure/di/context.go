@@ -9,10 +9,11 @@ import (
 	"github.com/gbrayhan/microservices-go/src/application/event/bus"
 	"github.com/gbrayhan/microservices-go/src/application/event/factory"
 	taskConstants "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task/constants"
-	lib "github.com/gbrayhan/microservices-go/src/infrastructure/lib"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/lib/executor"
+	redisLib "github.com/gbrayhan/microservices-go/src/infrastructure/lib/redis"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/scheduled_task"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 
 	"github.com/gbrayhan/microservices-go/src/infrastructure/lib/scheduler"
 	ws "github.com/gbrayhan/microservices-go/src/infrastructure/lib/websocket"
@@ -53,18 +54,20 @@ func GetLogger() *logger.Logger {
 
 // ApplicationContext holds all application dependencies and services
 type ApplicationContext struct {
-	DB               *gorm.DB      // database connection
-	RedisClient      *redis.Client // redis client
-	EventBus         bus.EventBus  // event bus
-	Logger           *logger.Logger
-	WsRouter         *ws.WebSocketRouter
-	Enforcer         *casbin.Enforcer
-	JWTService       security.IJWTService
-	Repositories     RepositoryContainer
-	TaskExecutor     *executor.TaskExecutorManager
-	TaskScheduler    *scheduler.TaskScheduler
-	HttpExecutor     *executor.HTTPExecutor
-	FunctionExecutor *executor.FunctionExecutor
+	DB                 *gorm.DB      // database connection
+	RedisClient        *redis.Client // redis client
+	EventBus           bus.EventBus  // event bus
+	Logger             *logger.Logger
+	Limiter            *redisLib.RedisLuaRateLimiter
+	WsRouter           *ws.WebSocketRouter
+	Enforcer           *casbin.Enforcer
+	JWTService         security.IJWTService
+	Repositories       RepositoryContainer
+	TaskExecutor       *executor.TaskExecutorManager
+	TaskScheduler      *scheduler.TaskScheduler
+	HttpExecutor       *executor.HTTPExecutor
+	FunctionExecutor   *executor.FunctionExecutor
+	MiddlewareProvider *middlewares.MiddlewareProvider
 
 	UserModule             UserModule
 	AuthModule             AuthModule
@@ -132,10 +135,12 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	eventBus := factory.CreateEventBus(loggerInstance)
 
 	// Initialize Redis client
-	redisClientInstance, err := lib.InitRedisClient(loggerInstance)
+	redisClientInstance, err := redisLib.InitRedisClient(loggerInstance)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize Redis client: %w", err)
 	}
+	// Initialize limiter
+	limiter := redisLib.NewRedisLuaRateLimiter(redisClientInstance)
 
 	// Initialize Casbin
 	enforcer, err := sharedUtil.InitCasbinEnforcer(db, loggerInstance)
@@ -159,20 +164,25 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	// Initialize JWT service
 	jwtService := security.NewJWTService()
 
+	// Initialize MiddleWare
+	middlewareProvider := middlewares.NewMiddlewareProvider(redisClientInstance, db)
+
 	// create context
 	appContext := &ApplicationContext{
-		DB:               db,
-		RedisClient:      redisClientInstance,
-		EventBus:         eventBus,
-		Logger:           loggerInstance,
-		WsRouter:         wsRouter,
-		Enforcer:         enforcer,
-		JWTService:       jwtService,
-		Repositories:     repositories,
-		TaskExecutor:     taskExecutor,
-		TaskScheduler:    taskScheduler,
-		FunctionExecutor: functionExecutor,
-		HttpExecutor:     httpCallExecutor,
+		DB:                 db,
+		RedisClient:        redisClientInstance,
+		EventBus:           eventBus,
+		Logger:             loggerInstance,
+		Limiter:            limiter,
+		WsRouter:           wsRouter,
+		Enforcer:           enforcer,
+		JWTService:         jwtService,
+		Repositories:       repositories,
+		TaskExecutor:       taskExecutor,
+		TaskScheduler:      taskScheduler,
+		FunctionExecutor:   functionExecutor,
+		HttpExecutor:       httpCallExecutor,
+		MiddlewareProvider: middlewareProvider,
 	}
 
 	// module slice

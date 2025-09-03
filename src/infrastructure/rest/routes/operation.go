@@ -7,9 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func OperationRouters(router *gin.RouterGroup, controller operation.IOperationController, enforcer *casbin.Enforcer) {
+func OperationRouters(
+	router *gin.RouterGroup,
+	controller operation.IOperationController,
+	enforcer *casbin.Enforcer,
+	middlewareProvider *middlewares.MiddlewareProvider) {
 	u := router.Group("/operation")
-	u.Use(middlewares.AuthJWTMiddleware())
+	u.Use(middlewareProvider.AuthJWTMiddleware())
 	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		u.GET("", controller.GetAllOperations)

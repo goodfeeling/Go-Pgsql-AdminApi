@@ -134,8 +134,8 @@ func setupRouter(appContext *di.ApplicationContext, logger *logger.Logger) *gin.
 	// set file upload configuration
 	router.MaxMultipartMemory = 10 << 20 // 10 MB
 	uploadDir := os.Getenv("NATIVE_STORAGE_UPLOAD_DIR")
-	accessDir := os.Getenv("NATIVE_STORAGE_ACCESS_DIR")
-	router.Static(fmt.Sprintf("/%s", accessDir), fmt.Sprintf("./%s", uploadDir))
+	accessPath := os.Getenv("NATIVE_STORAGE_ACCESS_PATH")
+	router.Static(fmt.Sprintf("/%s", accessPath), fmt.Sprintf("./%s", uploadDir))
 	router.RedirectTrailingSlash = false
 
 	// Agregar middlewares de recuperación y logger personalizados
@@ -145,6 +145,7 @@ func setupRouter(appContext *di.ApplicationContext, logger *logger.Logger) *gin.
 	router.Use(middlewares.ErrorHandler())
 	router.Use(middlewares.GinBodyLogMiddleware(appContext.DB, appContext.Logger))
 	router.Use(middlewares.SecurityHeaders())
+	router.Use(appContext.Limiter.RateLimitMiddleware())
 	// Add logger middleware
 	router.Use(logger.GinZapLogger())
 	// Setup routes

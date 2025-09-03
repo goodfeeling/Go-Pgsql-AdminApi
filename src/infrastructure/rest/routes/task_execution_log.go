@@ -7,9 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func TaskExecutionLogRouters(router *gin.RouterGroup, controller task_execution_log.ITaskExecutionLogController, enforcer *casbin.Enforcer) {
+func TaskExecutionLogRouters(
+	router *gin.RouterGroup,
+	controller task_execution_log.ITaskExecutionLogController,
+	enforcer *casbin.Enforcer,
+	middlewareProvider *middlewares.MiddlewareProvider) {
 	u := router.Group("/task_execution_log")
-	u.Use(middlewares.AuthJWTMiddleware())
+	u.Use(middlewareProvider.AuthJWTMiddleware())
 	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		u.GET("/search", controller.SearchPaginated)

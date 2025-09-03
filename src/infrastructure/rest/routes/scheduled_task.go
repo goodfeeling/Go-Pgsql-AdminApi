@@ -7,9 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ScheduledTaskRouters(router *gin.RouterGroup, controller scheduled_task.IScheduledTaskController, enforcer *casbin.Enforcer) {
+func ScheduledTaskRouters(
+	router *gin.RouterGroup,
+	controller scheduled_task.IScheduledTaskController,
+	enforcer *casbin.Enforcer,
+	middlewareProvider *middlewares.MiddlewareProvider) {
 	u := router.Group("/scheduled_task")
-	u.Use(middlewares.AuthJWTMiddleware())
+	u.Use(middlewareProvider.AuthJWTMiddleware())
 	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		u.POST("", controller.NewScheduledTask)

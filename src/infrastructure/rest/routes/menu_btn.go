@@ -7,9 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func MenuBtnRouters(router *gin.RouterGroup, controller menuBtn.IMenuBtnController, enforcer *casbin.Enforcer) {
+func MenuBtnRouters(
+	router *gin.RouterGroup,
+	controller menuBtn.IMenuBtnController,
+	enforcer *casbin.Enforcer,
+	middlewareProvider *middlewares.MiddlewareProvider) {
 	u := router.Group("/menu_btn")
-	u.Use(middlewares.AuthJWTMiddleware())
+	u.Use(middlewareProvider.AuthJWTMiddleware())
 	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		u.POST("", controller.NewMenuBtn)

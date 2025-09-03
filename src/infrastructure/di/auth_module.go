@@ -24,7 +24,8 @@ func setupAuthModule(appContext *ApplicationContext) error {
 		appContext.Repositories.RoleRepository,
 		appContext.JWTService,
 		appContext.Logger,
-		appContext.Repositories.JwtBlacklistRepository)
+		appContext.Repositories.JwtBlacklistRepository,
+		appContext.RedisClient)
 
 	// Initialize controllers
 	authController := authController.NewAuthController(authUC, appContext.Logger)

@@ -28,6 +28,9 @@ type ServerConfig struct {
 	StorageEngine string `yaml:"storage" json:"storage_engine"`
 	EventBus      string `yaml:"event_bus" json:"event_bus"`
 	Database      string `yaml:"database" json:"database"`
+	LimitRate     int    `yaml:"limit_rate" json:"limit_rate"`
+	LimitTime     int    `yaml:"limit_time" json:"limit_time"`
+	MultiLogin    bool   `yaml:"multi_login" json:"multi_login"`
 }
 
 type PostgresConfig struct {
@@ -80,9 +83,9 @@ type RabbitMQConfig struct {
 }
 
 type NativeStorageConfig struct {
-	BaseURL   string `yaml:"base_url" json:"base_url"`
-	AccessDir string `yaml:"access_dir" json:"access_dir"`
-	UploadDir string `yaml:"upload_dir" json:"upload_dir"`
+	BaseURL    string `yaml:"base_url" json:"base_url"`
+	AccessPath string `yaml:"access_dir" json:"access_path"`
+	UploadDir  string `yaml:"upload_dir" json:"upload_dir"`
 }
 
 type ZapConfig struct {

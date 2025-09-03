@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"context"
 	"errors"
+	"os"
 	"time"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
@@ -15,6 +17,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/security"
 	sharedUtil "github.com/gbrayhan/microservices-go/src/shared/utils"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -32,6 +35,7 @@ type AuthUseCase struct {
 	JWTService             security.IJWTService
 	Logger                 *logger.Logger
 	jwtBlacklistRepository jwtBlacklistDomain.IJwtBlacklistService
+	RedisClient            *redis.Client
 }
 
 func NewAuthUseCase(
@@ -40,6 +44,7 @@ func NewAuthUseCase(
 	jwtService security.IJWTService,
 	loggerInstance *logger.Logger,
 	jwtBlacklistRepository jwtBlacklistDomain.IJwtBlacklistService,
+	RedisClient *redis.Client,
 ) IAuthUseCase {
 	return &AuthUseCase{
 		UserRepository:         userRepository,
@@ -47,6 +52,7 @@ func NewAuthUseCase(
 		JWTService:             jwtService,
 		Logger:                 loggerInstance,
 		jwtBlacklistRepository: jwtBlacklistRepository,
+		RedisClient:            RedisClient,
 	}
 }
 
@@ -136,24 +142,58 @@ func (s *AuthUseCase) Login(username, password string) (*domainUser.User, *AuthT
 		ExpirationRefreshDateTime: refreshTokenClaims.ExpirationTime,
 	}
 
+	ctx := context.Background()
+	s.RedisClient.Set(ctx, GetUserTokenKey(user.ID), accessTokenClaims.Token, UserTokenExpireDuration)
+	s.RedisClient.Set(ctx, GetUserRefreshTokenKey(user.ID), refreshTokenClaims.Token, RefreshTokenExpireDuration)
+
 	s.Logger.Info("User login successful", zap.String("username", username), zap.Int64("userID", user.ID))
 	return user, authTokens, &role, nil
 }
-
 func (s *AuthUseCase) AccessTokenByRefreshToken(refreshToken string) (*domainUser.User, *AuthTokens, error) {
 	s.Logger.Info("Refreshing access token")
+
+	// 首先验证刷新令牌本身的有效性
 	claimsMap, err := s.JWTService.GetClaimsAndVerifyToken(refreshToken, "refresh")
 	if err != nil {
 		s.Logger.Error("Error verifying refresh token", zap.Error(err))
 		return nil, nil, err
 	}
+
 	userID := int(claimsMap["id"].(float64))
+	roleId := int64(claimsMap["role_id"].(float64))
+
+	// 检查刷新令牌是否在黑名单中
+	exists, err := s.jwtBlacklistRepository.IsJwtInBlacklist(refreshToken)
+	if err != nil {
+		s.Logger.Error("Error checking refresh token in blacklist", zap.Error(err))
+		return nil, nil, domainErrors.NewAppError(err, domainErrors.TokenError)
+	}
+
+	if exists {
+		s.Logger.Warn("Refresh token is in blacklist", zap.Int("userID", userID))
+		return nil, nil, domainErrors.NewAppError(errors.New("refresh token has been revoked"), domainErrors.TokenError)
+	}
+
+	// 检查是否启用了单点登录，并验证是否为当前活跃会话
+	if os.Getenv("SERVER_MULTI_LOGIN") != "true" {
+		// 获取用户当前的活跃刷新令牌
+		currentRefreshToken, err := s.RedisClient.Get(context.Background(), GetUserRefreshTokenKey(int64(userID))).Result()
+		if err == nil && currentRefreshToken != refreshToken {
+			s.Logger.Warn("Refresh token has been replaced", zap.Int("userID", userID))
+			// 将旧的刷新令牌加入黑名单
+			_ = s.jwtBlacklistRepository.AddToBlacklist(refreshToken)
+			return nil, nil, domainErrors.NewAppError(errors.New("refresh token has been replaced"), domainErrors.TokenError)
+		}
+	}
+
+	// 获取用户信息
 	user, err := s.UserRepository.GetByID(userID)
 	if err != nil {
 		s.Logger.Error("Error getting user for token refresh", zap.Error(err), zap.Int("userID", userID))
 		return nil, nil, err
 	}
-	roleId := int64(claimsMap["role_id"].(float64))
+
+	// 生成新的访问令牌
 	accessTokenClaims, err := s.JWTService.GenerateJWTToken(user.ID, roleId, "access")
 	if err != nil {
 		s.Logger.Error("Error generating new access token", zap.Error(err), zap.Int64("userID", user.ID))
@@ -203,6 +243,9 @@ func (s *AuthUseCase) Register(user RegisterUser) (*domain.CommonResponse[Securi
 	userRepo.Status = 1
 
 	res, err := s.UserRepository.Create(&userRepo)
+	if err != nil {
+		return &domain.CommonResponse[SecurityRegisterUser]{}, err
+	}
 
 	return &domain.CommonResponse[SecurityRegisterUser]{
 		Data: SecurityRegisterUser{
@@ -222,8 +265,19 @@ func (s *AuthUseCase) Register(user RegisterUser) (*domain.CommonResponse[Securi
 }
 
 func (s *AuthUseCase) Logout(jwtToken string) (*domain.CommonResponse[string], error) {
-	var err error
-	// check exist
+	// 解析token获取用户ID
+	claimsMap, err := s.JWTService.GetClaimsAndVerifyToken(jwtToken, "access")
+	if err != nil {
+		// 如果是访问令牌解析失败，尝试解析刷新令牌
+		claimsMap, err = s.JWTService.GetClaimsAndVerifyToken(jwtToken, "refresh")
+		if err != nil {
+			return nil, domainErrors.NewAppError(err, domainErrors.TokenError)
+		}
+	}
+
+	userID := int64(claimsMap["id"].(float64))
+
+	// 检查token是否已经在黑名单中
 	exist, err := s.jwtBlacklistRepository.IsJwtInBlacklist(jwtToken)
 	if err != nil {
 		return nil, domainErrors.NewAppError(err, domainErrors.TokenError)
@@ -232,10 +286,18 @@ func (s *AuthUseCase) Logout(jwtToken string) (*domain.CommonResponse[string], e
 		return nil, domainErrors.NewAppError(errors.New("the user logout already"), domainErrors.TokenError)
 	}
 
-	// add token to black list
+	// 将当前访问令牌和刷新令牌都加入黑名单
 	err = s.jwtBlacklistRepository.AddToBlacklist(jwtToken)
 	if err != nil {
 		return nil, domainErrors.NewAppError(err, domainErrors.TokenError)
 	}
+
+	// 如果启用了单点登录，清除Redis中的活跃令牌记录
+	if os.Getenv("SERVER_MULTI_LOGIN") != "true" {
+		ctx := context.Background()
+		s.RedisClient.Del(ctx, GetUserTokenKey(userID))
+		s.RedisClient.Del(ctx, GetUserRefreshTokenKey(userID))
+	}
+
 	return &domain.CommonResponse[string]{Data: "true", Status: 0, Message: "success"}, nil
 }

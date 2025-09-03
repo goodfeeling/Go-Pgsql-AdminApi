@@ -7,9 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func DictionaryDetailRouters(router *gin.RouterGroup, controller dictionary_detail.IIDictionaryDetailController, enforcer *casbin.Enforcer) {
+func DictionaryDetailRouters(
+	router *gin.RouterGroup,
+	controller dictionary_detail.IIDictionaryDetailController,
+	enforcer *casbin.Enforcer,
+	middlewareProvider *middlewares.MiddlewareProvider) {
 	u := router.Group("/dictionary_detail")
-	u.Use(middlewares.AuthJWTMiddleware())
+	u.Use(middlewareProvider.AuthJWTMiddleware())
 	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		u.POST("", controller.NewDictionary)

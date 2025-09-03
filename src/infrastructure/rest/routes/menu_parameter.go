@@ -7,9 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func MenuParameterRouters(router *gin.RouterGroup, controller menuParameter.IMenuParameterController, enforcer *casbin.Enforcer) {
+func MenuParameterRouters(
+	router *gin.RouterGroup,
+	controller menuParameter.IMenuParameterController,
+	enforcer *casbin.Enforcer,
+	middlewareProvider *middlewares.MiddlewareProvider) {
 	u := router.Group("/menu_parameter")
-	u.Use(middlewares.AuthJWTMiddleware())
+	u.Use(middlewareProvider.AuthJWTMiddleware())
 	u.Use(middlewares.CasbinMiddleware(enforcer))
 	{
 		u.POST("", controller.NewMenuParameter)

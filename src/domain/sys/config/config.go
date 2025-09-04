@@ -30,7 +30,7 @@ type ServerConfig struct {
 	Database      string `yaml:"database" json:"database"`
 	LimitRate     int    `yaml:"limit_rate" json:"limit_rate"`
 	LimitTime     int    `yaml:"limit_time" json:"limit_time"`
-	MultiLogin    bool   `yaml:"multi_login" json:"multi_login"`
+	SingleSignOn  bool   `yaml:"single_sign_on" json:"single_sign_on"`
 }
 
 type PostgresConfig struct {

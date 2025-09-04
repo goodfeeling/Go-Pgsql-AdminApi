@@ -3,7 +3,7 @@ package api
 import "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 
 var customRules = map[string]string{
-	"path":        "required,gt=100,lt=255",
+	"path":        "required,gt=2,lt=255",
 	"method":      "required",
 	"api_group":   "required",
 	"description": "omitempty",

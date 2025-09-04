@@ -11,18 +11,20 @@ import (
 	jwtBlacklistDomain "github.com/gbrayhan/microservices-go/src/domain/jwt_blacklist"
 	domainRole "github.com/gbrayhan/microservices-go/src/domain/sys/role"
 	domainUser "github.com/gbrayhan/microservices-go/src/domain/user"
+	ws "github.com/gbrayhan/microservices-go/src/infrastructure/lib/websocket"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/security"
 	sharedUtil "github.com/gbrayhan/microservices-go/src/shared/utils"
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
 type IAuthUseCase interface {
-	Login(username, password string) (*domainUser.User, *AuthTokens, *domainRole.Role, error)
+	Login(username, password string, ctx *gin.Context) (*domainUser.User, *AuthTokens, *domainRole.Role, error)
 	Logout(jwtToken string) (*domain.CommonResponse[string], error)
 	Register(user RegisterUser) (*domain.CommonResponse[SecurityRegisterUser], error)
 	AccessTokenByRefreshToken(refreshToken string) (*domainUser.User, *AuthTokens, error)
@@ -36,6 +38,7 @@ type AuthUseCase struct {
 	Logger                 *logger.Logger
 	jwtBlacklistRepository jwtBlacklistDomain.IJwtBlacklistService
 	RedisClient            *redis.Client
+	sessionManager         *ws.SessionManager
 }
 
 func NewAuthUseCase(
@@ -45,6 +48,7 @@ func NewAuthUseCase(
 	loggerInstance *logger.Logger,
 	jwtBlacklistRepository jwtBlacklistDomain.IJwtBlacklistService,
 	RedisClient *redis.Client,
+	sessionManager *ws.SessionManager,
 ) IAuthUseCase {
 	return &AuthUseCase{
 		UserRepository:         userRepository,
@@ -53,6 +57,7 @@ func NewAuthUseCase(
 		Logger:                 loggerInstance,
 		jwtBlacklistRepository: jwtBlacklistRepository,
 		RedisClient:            RedisClient,
+		sessionManager:         sessionManager,
 	}
 }
 
@@ -101,8 +106,8 @@ func (s *AuthUseCase) SwitchRole(userId int, roleId int64) (*domainUser.User, *A
 	return user, authTokens, role, nil
 }
 
-func (s *AuthUseCase) Login(username, password string) (*domainUser.User, *AuthTokens, *domainRole.Role, error) {
-	s.Logger.Info("User login attempt", zap.String("username", username))
+func (s *AuthUseCase) Login(username, password string, ginCtx *gin.Context) (*domainUser.User, *AuthTokens, *domainRole.Role, error) {
+
 	user, err := s.UserRepository.GetByUsername(username)
 	if err != nil {
 		s.Logger.Error("Error getting user for login", zap.Error(err), zap.String("username", username))
@@ -112,12 +117,19 @@ func (s *AuthUseCase) Login(username, password string) (*domainUser.User, *AuthT
 		s.Logger.Warn("Login failed: user not found", zap.String("username", username))
 		return nil, nil, nil, domainErrors.NewAppError(errors.New("username or password does not match"), domainErrors.NotAuthorized)
 	}
+	s.Logger.Info("User login attempt", zap.String("username", username))
+
+	// Single Sign On offline user
+	if os.Getenv("SERVER_SINGLE_SIGN_ON") == "true" {
+		s.sessionManager.NotifyOtherDevicesOffline(user.ID, ginCtx.Query("deviceId"))
+	}
 
 	isAuthenticated := sharedUtil.CheckPasswordHash(password, user.HashPassword)
 	if !isAuthenticated {
 		s.Logger.Warn("Login failed: invalid password", zap.String("username", username))
 		return nil, nil, nil, domainErrors.NewAppError(errors.New("username or password does not match"), domainErrors.NotAuthorized)
 	}
+
 	var role domainRole.Role
 	var roleId int64
 	if len(user.Roles) > 0 {
@@ -141,7 +153,6 @@ func (s *AuthUseCase) Login(username, password string) (*domainUser.User, *AuthT
 		ExpirationAccessDateTime:  accessTokenClaims.ExpirationTime,
 		ExpirationRefreshDateTime: refreshTokenClaims.ExpirationTime,
 	}
-
 	ctx := context.Background()
 	s.RedisClient.Set(ctx, GetUserTokenKey(user.ID), accessTokenClaims.Token, UserTokenExpireDuration)
 	s.RedisClient.Set(ctx, GetUserRefreshTokenKey(user.ID), refreshTokenClaims.Token, RefreshTokenExpireDuration)
@@ -175,7 +186,7 @@ func (s *AuthUseCase) AccessTokenByRefreshToken(refreshToken string) (*domainUse
 	}
 
 	// 检查是否启用了单点登录，并验证是否为当前活跃会话
-	if os.Getenv("SERVER_MULTI_LOGIN") != "true" {
+	if os.Getenv("SERVER_SINGLE_SIGN_ON") == "true" {
 		// 获取用户当前的活跃刷新令牌
 		currentRefreshToken, err := s.RedisClient.Get(context.Background(), GetUserRefreshTokenKey(int64(userID))).Result()
 		if err == nil && currentRefreshToken != refreshToken {
@@ -208,6 +219,8 @@ func (s *AuthUseCase) AccessTokenByRefreshToken(refreshToken string) (*domainUse
 		RefreshToken:              refreshToken,
 		ExpirationRefreshDateTime: time.Unix(expTime, 0),
 	}
+	ctx := context.Background()
+	s.RedisClient.Set(ctx, GetUserTokenKey(user.ID), accessTokenClaims.Token, UserTokenExpireDuration)
 
 	s.Logger.Info("Access token refreshed successfully", zap.Int64("userID", user.ID))
 	return user, authTokens, nil
@@ -285,15 +298,23 @@ func (s *AuthUseCase) Logout(jwtToken string) (*domain.CommonResponse[string], e
 	if exist {
 		return nil, domainErrors.NewAppError(errors.New("the user logout already"), domainErrors.TokenError)
 	}
-
-	// 将当前访问令牌和刷新令牌都加入黑名单
+	// 将对应的访问令牌和刷新令牌都加入黑名单
+	ctx := context.Background()
+	// 将当前令牌加入黑名单
 	err = s.jwtBlacklistRepository.AddToBlacklist(jwtToken)
 	if err != nil {
 		return nil, domainErrors.NewAppError(err, domainErrors.TokenError)
 	}
 
+	// 获取并加入刷新令牌到黑名单
+	if refreshToken, err := s.RedisClient.Get(ctx, GetUserRefreshTokenKey(userID)).Result(); err == nil {
+		if refreshToken != "" && refreshToken != jwtToken {
+			_ = s.jwtBlacklistRepository.AddToBlacklist(refreshToken)
+		}
+	}
+
 	// 如果启用了单点登录，清除Redis中的活跃令牌记录
-	if os.Getenv("SERVER_MULTI_LOGIN") != "true" {
+	if os.Getenv("SERVER_SINGLE_SIGN_ON") == "true" {
 		ctx := context.Background()
 		s.RedisClient.Del(ctx, GetUserTokenKey(userID))
 		s.RedisClient.Del(ctx, GetUserRefreshTokenKey(userID))

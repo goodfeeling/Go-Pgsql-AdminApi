@@ -47,7 +47,7 @@ server:
   storage_engine: local
   limit_time: 1
   limit_rate: 100
-  multi_login: false
+  single_sign_on: false
 site:
   favicon: "http://localhost:8080/public/favicon.png"
   login_img: "http://localhost:8080/public/login.png"

@@ -68,6 +68,7 @@ type ApplicationContext struct {
 	HttpExecutor       *executor.HTTPExecutor
 	FunctionExecutor   *executor.FunctionExecutor
 	MiddlewareProvider *middlewares.MiddlewareProvider
+	SessionManager     *ws.SessionManager
 
 	UserModule             UserModule
 	AuthModule             AuthModule
@@ -151,6 +152,9 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	// init websocket instance
 	wsRouter := ws.NewWebSocketRouter()
 
+	// init session manager
+	sessionManager := ws.NewSessionManager()
+
 	// initialize task executor
 	taskExecutor := executor.NewTaskExecutorManager(loggerInstance)
 	functionExecutor := executor.NewFunctionExecutor(loggerInstance)
@@ -183,6 +187,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		FunctionExecutor:   functionExecutor,
 		HttpExecutor:       httpCallExecutor,
 		MiddlewareProvider: middlewareProvider,
+		SessionManager:     sessionManager,
 	}
 
 	// module slice

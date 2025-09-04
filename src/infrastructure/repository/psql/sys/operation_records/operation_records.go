@@ -38,14 +38,10 @@ func (*SysOperationRecord) TableName() string {
 }
 
 var ColumnsOperationMapping = map[string]string{
-	"id":          "id",
-	"path":        "path",
-	"apiName":     "api_name",
-	"description": "description",
-	"apiGroup":    "api_group",
-	"method":      "method",
-	"createdAt":   "created_at",
-	"updatedAt":   "updated_at",
+	"id":     "id",
+	"status": "status",
+	"path":   "path",
+	"method": "method",
 }
 
 // OperationRepositoryInterface defines the interface for api repository operations

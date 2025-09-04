@@ -31,6 +31,7 @@ type WebSocketContext struct {
 type ExtendedWebSocketHandler interface {
 	WebSocketHandler
 	OnConnectWithContext(conn *websocket.Conn, ctx *WebSocketContext)
+	OnDisconnectWithContext(conn *websocket.Conn, ctx *WebSocketContext)
 }
 
 // NewWebSocketRouter 创建新的WebSocket路由管理器
@@ -108,6 +109,12 @@ func (wsr *WebSocketRouter) HandleConnectionWithRoute(c *gin.Context, route stri
 
 	// 调用所有处理器的断开连接回调
 	for _, handler := range handlers {
-		handler.OnDisconnect(conn)
+		// 如果处理器实现了扩展接口，则传递上下文
+		if extendedHandler, ok := handler.(ExtendedWebSocketHandler); ok {
+			extendedHandler.OnDisconnectWithContext(conn, extendedContext)
+		} else {
+			// 保持向后兼容
+			handler.OnDisconnect(conn)
+		}
 	}
 }

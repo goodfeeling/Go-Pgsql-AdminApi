@@ -106,6 +106,11 @@ func (ch *LogHandler) NotifyBatchDataChange(action string, dataList []interface{
 func (ch *LogHandler) OnDisconnect(conn *websocket.Conn) {
 	log.Println("Chat handler: Client disconnected")
 }
+func (ch *LogHandler) OnDisconnectWithContext(conn *websocket.Conn, ctx *ws.WebSocketContext) {
+	ch.Logger.Info("Log handler: Client disconnected")
+	// 连接断开时清理会话
+
+}
 
 // 辅助方法
 func (ch *LogHandler) sendData(conn *websocket.Conn, msgType string, data interface{}) {

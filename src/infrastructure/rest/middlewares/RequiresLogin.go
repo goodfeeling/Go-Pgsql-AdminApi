@@ -101,7 +101,7 @@ func CommonVerifyWithRedis(c *gin.Context, tokenString string, redisClient *redi
 	}
 
 	// 检查用户当前有效token（实现单点登录）
-	if userID, ok := claims["id"].(float64); ok && os.Getenv("SERVER_MULTI_LOGIN") != "true" {
+	if userID, ok := claims["id"].(float64); ok && os.Getenv("SERVER_SINGLE_SIGN_ON") == "true" {
 		currentToken, err := redisClient.Get(context.Background(), authUseCase.GetUserTokenKey(int64(userID))).Result()
 		if err == nil && currentToken != tokenString {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token has been replaced"})

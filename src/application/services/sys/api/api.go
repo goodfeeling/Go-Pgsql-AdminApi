@@ -103,7 +103,7 @@ func (s *SysApiUseCase) GetApisGroup() (*[]apiDomain.GroupApiItem, error) {
 	for i, item := range *dictionary.Details {
 		groupApis := make([]*apiDomain.GroupApiItem, 0)
 		for _, api := range *apis {
-			if api.ApiGroup == item.Label {
+			if api.ApiGroup == item.Value {
 				groupApis = append(groupApis, &apiDomain.GroupApiItem{
 					GroupKey:  fmt.Sprintf("%v---%v", api.Path, api.Method),
 					GroupName: api.Description,
@@ -129,7 +129,7 @@ func (c *SysApiUseCase) SynchronizeRouterToApi(routes gin.RoutesInfo) (*int, err
 				Path:        route.Path,
 				Method:      route.Method,
 				Description: c.generateDescription(route.Path, route.Method),
-				ApiGroup:    "Other",
+				ApiGroup:    "other",
 			}
 
 			ok, err := c.sysApiRepository.Upsert(apiModel)

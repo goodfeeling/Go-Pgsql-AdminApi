@@ -86,6 +86,7 @@ type ApplicationContext struct {
 	ScheduledTaskModule    ScheduledTaskModule
 	TaskExecutionLogModule TaskExecutionLogModule
 	ConfigModule           ConfigModule
+	EmailModule            EmailModule
 }
 type RepositoryContainer struct {
 	RoleMenuRepository         role_menu.ISysRoleMenuRepository
@@ -208,6 +209,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		setupScheduledTaskModule,
 		setupConfigModule,
 		setupTaskExecutionLogModule,
+		setupEmailModule,
 	}
 
 	for _, setupFunc := range moduleSetupFuncs {

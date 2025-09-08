@@ -40,6 +40,7 @@ func CasbinMiddleware(enforcer *casbin.Enforcer) gin.HandlerFunc {
 		role := fmt.Sprintf("%d", roleId) // v0字段存储的是角色ID
 		path := c.Request.URL.Path        // v1字段存储的是API路径
 		method := c.Request.Method        // v3字段存储的是请求方法
+
 		// 使用Casbin进行权限检查
 		ok, err := enforcer.Enforce(role, path, method)
 		if err != nil {

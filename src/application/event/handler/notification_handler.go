@@ -19,10 +19,7 @@ func NewNotificationEventHandler() *NotificationEventHandler {
 // Handle 处理事件
 func (h *NotificationEventHandler) Handle(event model.ApplicationEvent) error {
 	switch event.EventType() {
-	case model.UserRegisteredEventType:
-		return h.handleUserRegistered(event)
-	case model.OrderCreatedEventType:
-		return h.handleOrderCreated(event)
+
 	default:
 		return nil
 	}

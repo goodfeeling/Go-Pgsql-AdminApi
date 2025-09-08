@@ -14,6 +14,7 @@ type Config struct {
 	RabbitMQ      RabbitMQConfig      `yaml:"rabbitmq" json:"rabbitmq"`
 	Zap           ZapConfig           `yaml:"zap" json:"zap"`
 	NativeStorage NativeStorageConfig `yaml:"native_storage" json:"native_storage"`
+	Email         EmailConfig         `yaml:"email" json:"email"`
 }
 
 type SiteConfig struct {
@@ -24,6 +25,7 @@ type SiteConfig struct {
 }
 
 type ServerConfig struct {
+	FrontendUrl   string `yaml:"frontend_url" json:"frontend_url"`
 	Port          int    `yaml:"port" json:"port"`
 	StorageEngine string `yaml:"storage" json:"storage_engine"`
 	EventBus      string `yaml:"event_bus" json:"event_bus"`
@@ -50,6 +52,7 @@ type JWTConfig struct {
 	AccessTimeMinute int    `yaml:"access_time_minute" json:"access_time_minute"`
 	RefreshSecret    string `yaml:"refresh_secret" json:"refresh_secret"`
 	RefreshTimeHour  int    `yaml:"refresh_time_hour" json:"refresh_time_hour"`
+	ResetSecret      string `yaml:"reset_secret" json:"reset_secret"`
 }
 
 type RedisConfig struct {
@@ -97,7 +100,14 @@ type ZapConfig struct {
 	LogInConsole  bool   `yaml:"log_in_console" json:"log_in_console"`
 	Encoding      string `yaml:"encoding" json:"encoding"`
 }
-
+type EmailConfig struct {
+	From     string `yaml:"from"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	SSL      bool   `yaml:"ssl"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
 type IConfigService interface {
 	GetConfig() (*ConfigResponse, error)
 	Update(module string, dataMap map[string]interface{}) error

@@ -66,7 +66,7 @@ func (eb *InMemoryEventBus) Unsubscribe(eventType string, handler model.EventHan
 	return nil
 }
 
-// Publish 发布事件
+// Publish 发布事件 - 完全异步版本
 func (eb *InMemoryEventBus) Publish(ctx context.Context, event model.ApplicationEvent) error {
 	eb.logger.Info("Publishing event",
 		zap.String("eventType", event.EventType()),
@@ -81,19 +81,13 @@ func (eb *InMemoryEventBus) Publish(ctx context.Context, event model.Application
 		return nil
 	}
 
-	eb.logger.Debug("Found handlers for event",
+	eb.logger.Info("Found handlers for event",
 		zap.String("eventType", event.EventType()),
 		zap.Int("handlerCount", len(handlers)))
 
-	// 异步处理所有事件处理器
-	var wg sync.WaitGroup
-	errChan := make(chan error, len(handlers))
-
+	// 完全异步处理，不等待结果
 	for _, handler := range handlers {
-		wg.Add(1)
 		go func(h model.EventHandler) {
-			defer wg.Done()
-
 			eb.logger.Debug("Handling event",
 				zap.String("eventType", event.EventType()),
 				zap.String("eventID", event.EventID()))
@@ -103,7 +97,6 @@ func (eb *InMemoryEventBus) Publish(ctx context.Context, event model.Application
 					zap.String("eventType", event.EventType()),
 					zap.String("eventID", event.EventID()),
 					zap.Error(err))
-				errChan <- err
 			} else {
 				eb.logger.Debug("Event handled successfully",
 					zap.String("eventType", event.EventType()),
@@ -112,17 +105,7 @@ func (eb *InMemoryEventBus) Publish(ctx context.Context, event model.Application
 		}(handler)
 	}
 
-	wg.Wait()
-	close(errChan)
-
-	// 处理错误
-	for err := range errChan {
-		eb.logger.Error("Error in event handling",
-			zap.String("eventType", event.EventType()),
-			zap.Error(err))
-	}
-
-	eb.logger.Info("Event publishing completed",
+	eb.logger.Info("Event publishing initiated",
 		zap.String("eventType", event.EventType()),
 		zap.String("eventID", event.EventID()))
 

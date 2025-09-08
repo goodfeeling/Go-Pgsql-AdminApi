@@ -26,6 +26,7 @@ jwt:
   access_time_minute: 15
   refresh_secret: "your_jwt_refresh_secret"
   refresh_time_hour: 168
+  reset_secret: "your_jwt_set_secret"
 native_storage:
   access_path: public
   base_url: "http://localhost:8080"
@@ -41,6 +42,7 @@ redis:
   pool_size: 10
   port: 6379
 server:
+  frontend_url: http://localhost:3001
   database: postgres
   event_bus: memory
   port: 8080
@@ -61,3 +63,10 @@ zap:
   log_in_console: true
   max_age: 30
   stacktrace_key: stacktrace
+email:
+  host: smtp.163.com
+  port: 587
+  username: your_email@163.com
+  password: your_authorization_code
+  from: your_email@163.com
+  ssl: false

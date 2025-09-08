@@ -1,20 +1,16 @@
 package routes
 
 import (
-	"github.com/casbin/casbin/v2"
-	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/upload"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/di"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
-func UploadRoutes(
-	router *gin.RouterGroup,
-	controller upload.IUploadController,
-	enforcer *casbin.Enforcer,
-	middlewareProvider *middlewares.MiddlewareProvider) {
+func UploadRoutes(router *gin.RouterGroup, appContext *di.ApplicationContext) {
+	controller := appContext.UploadModule.Controller
 	u := router.Group("/upload")
-	u.Use(middlewareProvider.AuthJWTMiddleware())
-	u.Use(middlewares.CasbinMiddleware(enforcer))
+	u.Use(appContext.MiddlewareProvider.AuthJWTMiddleware())
+	u.Use(middlewares.CasbinMiddleware(appContext.Enforcer))
 	{
 		u.POST("/single", controller.Single)
 		u.POST("/multiple", controller.Multiple)

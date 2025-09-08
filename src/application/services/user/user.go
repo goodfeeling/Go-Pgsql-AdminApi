@@ -31,6 +31,7 @@ type IUserUseCase interface {
 	UserBindRoles(userId int64, updateMap map[string]interface{}) error
 	ResetPassword(userId int64) (*userDomain.User, error)
 	EditPassword(userId int64, data userDomain.PasswordEditRequest) (*userDomain.User, error)
+	ChangePasswordByEmail(data userDomain.ChangePasswordRequest) (*userDomain.User, error)
 }
 
 type UserUseCase struct {
@@ -154,4 +155,21 @@ func (s *UserUseCase) EditPassword(userId int64, data userDomain.PasswordEditReq
 	updateMap := make(map[string]interface{})
 	updateMap["hash_password"] = hash
 	return s.userRepository.Update(userId, updateMap)
+}
+
+// ChangePasswordByEmail implements IUserUseCase.
+func (s *UserUseCase) ChangePasswordByEmail(data userDomain.ChangePasswordRequest) (*userDomain.User, error) {
+	userInfo, err := s.userRepository.GetByEmail(data.Email)
+	if err != nil {
+		s.Logger.Error("Error getting user info", zap.Error(err))
+		return nil, err
+	}
+	updateMap := make(map[string]interface{})
+	hash, err := bcrypt.GenerateFromPassword([]byte(data.NewPasswd), bcrypt.DefaultCost)
+	if err != nil {
+		s.Logger.Error("Error hashing password", zap.Error(err))
+		return nil, err
+	}
+	updateMap["hash_password"] = hash
+	return s.userRepository.Update(userInfo.ID, updateMap)
 }

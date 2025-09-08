@@ -14,6 +14,7 @@ import (
 const (
 	Access  = "access"
 	Refresh = "refresh"
+	Reset   = "reset"
 )
 
 type AppToken struct {
@@ -33,6 +34,7 @@ type Claims struct {
 type JWTConfig struct {
 	AccessSecret  string
 	RefreshSecret string
+	ResetSecret   string
 	AccessTime    int64
 	RefreshTime   int64
 }
@@ -68,6 +70,7 @@ func loadJWTConfig() JWTConfig {
 	return JWTConfig{
 		AccessSecret:  getEnvOrDefault("JWT_ACCESS_SECRET", "default_access_secret"),
 		RefreshSecret: getEnvOrDefault("JWT_REFRESH_SECRET", "default_refresh_secret"),
+		ResetSecret:   getEnvOrDefault("JWT_RESET_SECRET", "default_access_secret"),
 		AccessTime:    getEnvAsInt64OrDefault("JWT_ACCESS_TIME_MINUTE", 60),
 		RefreshTime:   getEnvAsInt64OrDefault("JWT_REFRESH_TIME_HOUR", 24),
 	}
@@ -85,6 +88,9 @@ func (s *JWTService) GenerateJWTToken(userID int64, roleID int64, tokenType stri
 	case Refresh:
 		secretKey = s.config.RefreshSecret
 		duration = time.Duration(s.config.RefreshTime) * time.Hour
+	case Reset:
+		secretKey = s.config.ResetSecret
+		duration = time.Duration(s.config.RefreshTime) * time.Hour
 	default:
 		return nil, errors.New("invalid token type")
 	}
@@ -93,13 +99,18 @@ func (s *JWTService) GenerateJWTToken(userID int64, roleID int64, tokenType stri
 	expirationTokenTime := nowTime.Add(duration)
 
 	tokenClaims := &Claims{
-		ID:     userID,
-		RoleID: roleID,
-		Type:   tokenType,
+		Type: tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTokenTime),
 		},
 	}
+	if userID != 0 {
+		tokenClaims.ID = userID
+	}
+	if roleID != 0 {
+		tokenClaims.RoleID = roleID
+	}
+
 	tokenWithClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, tokenClaims)
 
 	tokenStr, err := tokenWithClaims.SignedString([]byte(secretKey))
@@ -118,10 +129,15 @@ func (s *JWTService) GenerateJWTToken(userID int64, roleID int64, tokenType stri
 func (s *JWTService) GetClaimsAndVerifyToken(tokenString string, tokenType string) (jwt.MapClaims, error) {
 	var secretKey string
 
-	if tokenType == Refresh {
-		secretKey = s.config.RefreshSecret
-	} else {
+	switch tokenType {
+	case Access:
 		secretKey = s.config.AccessSecret
+	case Refresh:
+		secretKey = s.config.RefreshSecret
+	case Reset:
+		secretKey = s.config.ResetSecret
+	default:
+		return nil, errors.New("invalid token type")
 	}
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {

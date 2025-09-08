@@ -29,3 +29,7 @@ func (mp *MiddlewareProvider) OptionalAuthMiddleware() gin.HandlerFunc {
 func (mp *MiddlewareProvider) UrlAuthMiddleware() gin.HandlerFunc {
 	return UrlAuthMiddlewareWithRedis(mp.RedisClient, mp.DB)
 }
+
+func (mp *MiddlewareProvider) AuthResetPasswordMiddleware() gin.HandlerFunc {
+	return AuthResetPassword()
+}

@@ -1,20 +1,17 @@
 package routes
 
 import (
-	"github.com/casbin/casbin/v2"
-	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/operation"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/di"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
 func OperationRouters(
-	router *gin.RouterGroup,
-	controller operation.IOperationController,
-	enforcer *casbin.Enforcer,
-	middlewareProvider *middlewares.MiddlewareProvider) {
+	router *gin.RouterGroup, appContext *di.ApplicationContext) {
+	controller := appContext.OperationModule.Controller
 	u := router.Group("/operation")
-	u.Use(middlewareProvider.AuthJWTMiddleware())
-	u.Use(middlewares.CasbinMiddleware(enforcer))
+	u.Use(appContext.MiddlewareProvider.AuthJWTMiddleware())
+	u.Use(middlewares.CasbinMiddleware(appContext.Enforcer))
 	{
 		u.GET("", controller.GetAllOperations)
 		u.GET("/:id", controller.GetOperationsByID)

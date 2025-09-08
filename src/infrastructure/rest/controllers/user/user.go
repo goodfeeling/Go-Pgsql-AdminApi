@@ -53,6 +53,7 @@ type IUserController interface {
 	UserBindRoles(ctx *gin.Context)
 	ResetPassword(ctx *gin.Context)
 	EditPassword(ctx *gin.Context)
+	ChangePassword(ctx *gin.Context)
 }
 
 type UserController struct {
@@ -494,6 +495,38 @@ func (c *UserController) EditPassword(ctx *gin.Context) {
 		Status(0).
 		Build()
 	c.Logger.Info("Role updated successfully", zap.Int("id", userId))
+	ctx.JSON(http.StatusOK, response)
+}
+
+// ChangePassword implements IUserController.
+// @Summary change password
+// @Description change password by email
+// @Tags password email
+// @Accept json
+// @Produce json
+// @Success 200 {object} domain.CommonResponse
+// @Router /v1/user/change-password [POST]
+func (c *UserController) ChangePassword(ctx *gin.Context) {
+	c.Logger.Info("change user password")
+	var request domainUser.ChangePasswordRequest
+	if err := controllers.BindJSON(ctx, &request); err != nil {
+		c.Logger.Error("Error binding JSON for password data", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	userModal, err := c.userService.ChangePasswordByEmail(request)
+	if err != nil {
+		c.Logger.Error("Error updating  user bind role ", zap.Error(err), zap.String("string", request.Email))
+		_ = ctx.Error(err)
+		return
+	}
+	response := controllers.NewCommonResponseBuilder[*domainUser.User]().
+		Data(userModal).
+		Message("success").
+		Status(0).
+		Build()
+	c.Logger.Info("Role updated successfully", zap.String("string", request.Email))
 	ctx.JSON(http.StatusOK, response)
 }
 

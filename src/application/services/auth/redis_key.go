@@ -24,6 +24,7 @@ func GetUserTokenKey(userID int64) string {
 func GetUserRefreshTokenKey(userID int64) string {
 	return fmt.Sprintf(UserRefreshTokenKeyPrefix, userID)
 }
+
 func getEnvAsInt64OrDefault(key string, defaultValue int64) time.Duration {
 	if value := os.Getenv(key); value != "" {
 		if intValue, err := strconv.ParseInt(value, 10, 64); err == nil {

@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"github.com/casbin/casbin/v2"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/di"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/api"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gin-gonic/gin"
@@ -9,18 +9,15 @@ import (
 
 func ApiRouters(
 	router *gin.RouterGroup,
-	routerEngine *gin.Engine,
-	controller api.IApiController,
-	enforcer *casbin.Enforcer,
-	middlewareProvider *middlewares.MiddlewareProvider) {
-
+	routerEngine *gin.Engine, appContext *di.ApplicationContext) {
+	controller := appContext.ApiModule.Controller
 	// 用户获取接口列表
 	if routerSetter, ok := controller.(api.RouterSetter); ok {
 		routerSetter.SetRouter(routerEngine)
 	}
 	u := router.Group("/api")
-	u.Use(middlewareProvider.AuthJWTMiddleware())
-	u.Use(middlewares.CasbinMiddleware(enforcer))
+	u.Use(appContext.MiddlewareProvider.AuthJWTMiddleware())
+	u.Use(middlewares.CasbinMiddleware(appContext.Enforcer))
 	{
 		u.POST("", controller.NewApi)
 		u.GET("", controller.GetAllApis)

@@ -56,7 +56,6 @@ func UrlAuthMiddlewareWithRedis(redisClient *redis.Client, db *gorm.DB) gin.Hand
 			c.Abort()
 			return
 		}
-
 		if !CommonVerifyWithRedis(c, tokenString, redisClient, db) {
 			return
 		}
@@ -147,9 +146,7 @@ func CommonVerifyWithRedis(c *gin.Context, tokenString string, redisClient *redi
 	if roleIdFloat64, ok := claims["role_id"].(float64); ok {
 		id := int64(roleIdFloat64)
 		if id == 0 {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Missing or invalid role id"})
-			c.Abort()
-			return false
+			id = -1
 		}
 		c.Set("role_id", id)
 	}

@@ -4,13 +4,6 @@ import (
 	"time"
 )
 
-// RegisterUserCommand 注册用户命令
-type RegisterUserCommand struct {
-	Username string
-	Email    string
-	Password string
-}
-
 // UserRegisteredEvent 用户注册事件
 type UserRegisteredEvent struct {
 	ID           string

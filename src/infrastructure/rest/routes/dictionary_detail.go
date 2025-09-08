@@ -1,20 +1,17 @@
 package routes
 
 import (
-	"github.com/casbin/casbin/v2"
-	dictionary_detail "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/dictionary_detail"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/di"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
 func DictionaryDetailRouters(
-	router *gin.RouterGroup,
-	controller dictionary_detail.IIDictionaryDetailController,
-	enforcer *casbin.Enforcer,
-	middlewareProvider *middlewares.MiddlewareProvider) {
+	router *gin.RouterGroup, appContext *di.ApplicationContext) {
+	controller := appContext.DictionaryDetailModule.Controller
 	u := router.Group("/dictionary_detail")
-	u.Use(middlewareProvider.AuthJWTMiddleware())
-	u.Use(middlewares.CasbinMiddleware(enforcer))
+	u.Use(appContext.MiddlewareProvider.AuthJWTMiddleware())
+	u.Use(middlewares.CasbinMiddleware(appContext.Enforcer))
 	{
 		u.POST("", controller.NewDictionary)
 		u.GET("", controller.GetAllDictionaries)

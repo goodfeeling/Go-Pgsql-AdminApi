@@ -35,6 +35,11 @@ type PasswordEditRequest struct {
 	OldPassword string `json:"oldPassword"`
 	NewPasswd   string `json:"newPassword"`
 }
+
+type ChangePasswordRequest struct {
+	Email     string `json:"email"`
+	NewPasswd string `json:"new_password"`
+}
 type IUserService interface {
 	GetAll() (*[]User, error)
 	GetByID(id int) (*User, error)
@@ -47,4 +52,5 @@ type IUserService interface {
 	UserBindRoles(userId int64, updateMap map[string]interface{}) error
 	ResetPassword(userId int64) (*User, error)
 	EditPassword(userId int64, data PasswordEditRequest) (*User, error)
+	ChangePasswordByEmail(data ChangePasswordRequest) (*User, error)
 }

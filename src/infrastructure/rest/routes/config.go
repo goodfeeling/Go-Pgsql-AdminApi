@@ -1,22 +1,19 @@
 package routes
 
 import (
-	"github.com/casbin/casbin/v2"
-	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/config"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/di"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
 func ConfigRouters(
-	router *gin.RouterGroup,
-	controller config.IConfigController,
-	enforcer *casbin.Enforcer,
-	middlewareProvider *middlewares.MiddlewareProvider) {
+	router *gin.RouterGroup, appContext *di.ApplicationContext) {
+	controller := appContext.ConfigModule.Controller
 	u := router.Group("/config")
 	u.GET("/site", controller.GetConfigBySite)
 
-	u.Use(middlewareProvider.AuthJWTMiddleware())
-	u.Use(middlewares.CasbinMiddleware(enforcer))
+	u.Use(appContext.MiddlewareProvider.AuthJWTMiddleware())
+	u.Use(middlewares.CasbinMiddleware(appContext.Enforcer))
 	{
 		u.GET("", controller.GetAllConfigs)
 		u.PUT("/:module", controller.UpdateConfig)

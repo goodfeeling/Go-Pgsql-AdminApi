@@ -1,20 +1,17 @@
 package routes
 
 import (
-	"github.com/casbin/casbin/v2"
-	menuParameter "github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers/menu_parameter"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/di"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
 func MenuParameterRouters(
-	router *gin.RouterGroup,
-	controller menuParameter.IMenuParameterController,
-	enforcer *casbin.Enforcer,
-	middlewareProvider *middlewares.MiddlewareProvider) {
+	router *gin.RouterGroup, appContext *di.ApplicationContext) {
+	controller := appContext.MenuParameterModule.Controller
 	u := router.Group("/menu_parameter")
-	u.Use(middlewareProvider.AuthJWTMiddleware())
-	u.Use(middlewares.CasbinMiddleware(enforcer))
+	u.Use(appContext.MiddlewareProvider.AuthJWTMiddleware())
+	u.Use(middlewares.CasbinMiddleware(appContext.Enforcer))
 	{
 		u.POST("", controller.NewMenuParameter)
 		u.GET("", controller.GetAllMenuParameters)

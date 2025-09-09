@@ -10,16 +10,18 @@ func MenuRouters(
 	router *gin.RouterGroup, appContext *di.ApplicationContext) {
 	controller := appContext.MenuModule.Controller
 	middlewareProvider := appContext.MiddlewareProvider
-	router.Use(middlewareProvider.OptionalAuthMiddleware()).GET("/menu/user", controller.GetUserMenus)
-
 	u := router.Group("/menu")
-	u.Use(middlewareProvider.AuthJWTMiddleware())
-	u.Use(middlewares.CasbinMiddleware(appContext.Enforcer))
+	u.GET("/user", middlewareProvider.OptionalAuthMiddleware(), controller.GetUserMenus)
+
+	protected := u.Group("")
+	protected.Use(middlewareProvider.AuthJWTMiddleware())
+	protected.Use(middlewares.CasbinMiddleware(appContext.Enforcer))
 	{
-		u.POST("", controller.NewMenu)
-		u.GET("", controller.GetAllMenus)
-		u.GET("/:id", controller.GetMenusByID)
-		u.PUT("/:id", controller.UpdateMenu)
-		u.DELETE("/:id", controller.DeleteMenu)
+		protected.POST("", controller.NewMenu)
+		protected.GET("", controller.GetAllMenus)
+		protected.GET("/:id", controller.GetMenusByID)
+		protected.PUT("/:id", controller.UpdateMenu)
+		protected.DELETE("/:id", controller.DeleteMenu)
 	}
+
 }

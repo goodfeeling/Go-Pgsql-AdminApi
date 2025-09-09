@@ -44,6 +44,9 @@ const (
 
 	UploadError        ErrorType    = "UploadError"
 	UploadErrorMessage ErrorMessage = "upload has error"
+
+	CaptchaError        ErrorType    = "CaptchaError"
+	CaptchaErrorMessage ErrorMessage = "captcha error"
 )
 
 type AppError struct {
@@ -82,6 +85,8 @@ func NewAppErrorWithType(errType ErrorType) *AppError {
 		err = errors.New(string(TokenExpiredMessage))
 	case UploadError:
 		err = errors.New(string(UploadErrorMessage))
+	case CaptchaError:
+		err = errors.New(string(CaptchaErrorMessage))
 	default:
 		err = errors.New(string(unknownErrorMessage))
 	}
@@ -114,6 +119,8 @@ func AppErrorToHTTP(appErr *AppError) (int, string) {
 	case TokenExpired:
 		return http.StatusUnauthorized, appErr.Error()
 	case UploadError:
+		return http.StatusBadRequest, appErr.Error()
+	case CaptchaError:
 		return http.StatusBadRequest, appErr.Error()
 	default:
 		return http.StatusInternalServerError, "Internal Server Error"

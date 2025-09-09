@@ -9,23 +9,25 @@ import (
 func UserRoutes(router *gin.RouterGroup, appContext *di.ApplicationContext) {
 	controller := appContext.UserModule.Controller
 	middlewareProvider := appContext.MiddlewareProvider
+
 	u := router.Group("/user")
 
-	u.Use(middlewareProvider.AuthJWTMiddleware())
-	u.Use(middlewares.CasbinMiddleware(appContext.Enforcer))
+	u.POST("/change-password", middlewareProvider.AuthResetPasswordMiddleware(), controller.ChangePassword)
+
+	protected := u.Group("")
+	protected.Use(middlewareProvider.AuthJWTMiddleware())
+	protected.Use(middlewares.CasbinMiddleware(appContext.Enforcer))
 	{
-		u.POST("", controller.NewUser)
-		u.GET("", controller.GetAllUsers)
-		u.GET("/:id", controller.GetUsersByID)
-		u.PUT("/:id", controller.UpdateUser)
-		u.DELETE("/:id", controller.DeleteUser)
-		u.GET("/search", controller.SearchPaginated)
-		u.GET("/search-property", controller.SearchByProperty)
-		u.POST(":id/role", controller.UserBindRoles)
-		u.POST("/:id/reset-password", controller.ResetPassword)
-		u.POST("/:id/edit-password", controller.EditPassword)
+		protected.POST("", controller.NewUser)
+		protected.GET("", controller.GetAllUsers)
+		protected.GET("/:id", controller.GetUsersByID)
+		protected.PUT("/:id", controller.UpdateUser)
+		protected.DELETE("/:id", controller.DeleteUser)
+		protected.GET("/search", controller.SearchPaginated)
+		protected.GET("/search-property", controller.SearchByProperty)
+		protected.POST("/:id/role", controller.UserBindRoles)
+		protected.POST("/:id/reset-password", controller.ResetPassword)
+		protected.POST("/:id/edit-password", controller.EditPassword)
 	}
-	// from reset password
-	u.Use(middlewareProvider.AuthResetPasswordMiddleware()).POST("/change-password", controller.ChangePassword)
 
 }

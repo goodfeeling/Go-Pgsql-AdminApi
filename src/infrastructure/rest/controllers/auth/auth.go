@@ -113,7 +113,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
-	domainUser, authTokens, role, err := c.authUseCase.Login(request.Username, request.Password, ctx)
+	domainUser, authTokens, role, err := c.authUseCase.Login(request.Username, request.Password, request.CaptchaId, request.CaptchaAnswer, ctx)
 	if err != nil {
 		c.Logger.Error("Login failed", zap.Error(err), zap.String("email", request.Username))
 		_ = ctx.Error(err)

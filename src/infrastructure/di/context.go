@@ -15,6 +15,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/scheduled_task"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 
+	captchaLib "github.com/gbrayhan/microservices-go/src/infrastructure/lib/captcha"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/lib/scheduler"
 	ws "github.com/gbrayhan/microservices-go/src/infrastructure/lib/websocket"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql"
@@ -69,6 +70,7 @@ type ApplicationContext struct {
 	FunctionExecutor   *executor.FunctionExecutor
 	MiddlewareProvider *middlewares.MiddlewareProvider
 	SessionManager     *ws.SessionManager
+	CaptchaHandler     *captchaLib.Captcha
 
 	UserModule             UserModule
 	AuthModule             AuthModule
@@ -87,6 +89,7 @@ type ApplicationContext struct {
 	TaskExecutionLogModule TaskExecutionLogModule
 	ConfigModule           ConfigModule
 	EmailModule            EmailModule
+	CaptchaModule          CaptchaModule
 }
 type RepositoryContainer struct {
 	RoleMenuRepository         role_menu.ISysRoleMenuRepository
@@ -172,6 +175,9 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	// Initialize MiddleWare
 	middlewareProvider := middlewares.NewMiddlewareProvider(redisClientInstance, db)
 
+	// Initialize CaptchaHandler
+	captchaHandler := captchaLib.New(captchaLib.DefaultConfig(loggerInstance))
+
 	// create context
 	appContext := &ApplicationContext{
 		DB:                 db,
@@ -189,6 +195,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		HttpExecutor:       httpCallExecutor,
 		MiddlewareProvider: middlewareProvider,
 		SessionManager:     sessionManager,
+		CaptchaHandler:     captchaHandler,
 	}
 
 	// module slice
@@ -210,6 +217,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 		setupConfigModule,
 		setupTaskExecutionLogModule,
 		setupEmailModule,
+		setupCaptchaModule,
 	}
 
 	for _, setupFunc := range moduleSetupFuncs {

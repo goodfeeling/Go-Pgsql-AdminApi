@@ -8,15 +8,15 @@ import (
 )
 
 const (
-	EmailTokenKeyPrefix = "email_token:%s"
+	UserIdTokenKeyPrefix = "reset_passwd__token:%s"
 )
 
 var (
 	UserTokenExpireDuration = time.Hour * 1
 )
 
-func GetEmailTokenKey(email string) string {
-	return fmt.Sprintf(EmailTokenKeyPrefix, email)
+func GetUserIdTokenKey(userId int64) string {
+	return fmt.Sprintf(UserIdTokenKeyPrefix, userId)
 }
 func GetEnvAsInt64OrDefault(key string, defaultValue int64) time.Duration {
 	if value := os.Getenv(key); value != "" {

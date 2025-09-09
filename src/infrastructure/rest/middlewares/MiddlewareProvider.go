@@ -1,6 +1,9 @@
 package middlewares
 
 import (
+	"errors"
+
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/jwt_blacklist"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -31,5 +34,18 @@ func (mp *MiddlewareProvider) UrlAuthMiddleware() gin.HandlerFunc {
 }
 
 func (mp *MiddlewareProvider) AuthResetPasswordMiddleware() gin.HandlerFunc {
-	return AuthResetPassword()
+	return AuthResetPassword(mp.RedisClient, mp.DB)
+}
+
+// IsTokenInBlacklist 检查token是否在黑名单中
+func IsTokenInBlacklist(db *gorm.DB, tokenString string) (bool, error) {
+	var blacklist jwt_blacklist.JwtBlacklist
+	err := db.Where("jwt = ? AND deleted_at IS NULL", tokenString).First(&blacklist).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }

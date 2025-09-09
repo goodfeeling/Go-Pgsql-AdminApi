@@ -515,9 +515,16 @@ func (c *UserController) ChangePassword(ctx *gin.Context) {
 		_ = ctx.Error(appError)
 		return
 	}
-	userModal, err := c.userService.ChangePasswordByEmail(request)
+	userID, _ := controllers.NewAppUtils(ctx).GetUserID()
+	if userID == 0 {
+		c.Logger.Error("Error getting user ID")
+		appError := domainErrors.NewAppError(errors.New("user id is invalid"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+	userModal, err := c.userService.ChangePasswordById(int64(userID), request.NewPasswd, ctx.Query("token"))
 	if err != nil {
-		c.Logger.Error("Error updating  user bind role ", zap.Error(err), zap.String("string", request.Email))
+		c.Logger.Error("Error updating  user bind role ", zap.Error(err), zap.Int("id", userID))
 		_ = ctx.Error(err)
 		return
 	}
@@ -526,7 +533,7 @@ func (c *UserController) ChangePassword(ctx *gin.Context) {
 		Message("success").
 		Status(0).
 		Build()
-	c.Logger.Info("Role updated successfully", zap.String("string", request.Email))
+	c.Logger.Info("Role updated successfully", zap.Int("id", userID))
 	ctx.JSON(http.StatusOK, response)
 }
 

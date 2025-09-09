@@ -3,8 +3,10 @@ package auth
 import "time"
 
 type LoginRequest struct {
-	Username string `json:"user_name" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Username      string `json:"user_name" binding:"required"`
+	Password      string `json:"password" binding:"required"`
+	CaptchaId     string `json:"captcha_id" binding:"required"`
+	CaptchaAnswer string `json:"captcha_answer" binding:"required"`
 }
 
 type AccessTokenRequest struct {

@@ -26,9 +26,11 @@ func setupUserModule(appContext *ApplicationContext) error {
 
 	// Initialize use cases
 	userUC := userUseCase.NewUserUseCase(
+
 		appContext.Repositories.UserRepository,
 		appContext.Repositories.UserRoleRepository,
 		appContext.EventBus,
+		appContext.Repositories.JwtBlacklistRepository,
 		appContext.Logger)
 
 	// Initialize controllers

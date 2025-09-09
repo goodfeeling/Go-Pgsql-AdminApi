@@ -70,3 +70,9 @@ email:
   password: your_authorization_code
   from: your_email@163.com
   ssl: false
+captcha:
+  width: 120
+  height: 40
+  length: 4
+  timeout_minute: 5
+  complexity: 1

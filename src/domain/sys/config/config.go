@@ -15,6 +15,7 @@ type Config struct {
 	Zap           ZapConfig           `yaml:"zap" json:"zap"`
 	NativeStorage NativeStorageConfig `yaml:"native_storage" json:"native_storage"`
 	Email         EmailConfig         `yaml:"email" json:"email"`
+	Captcha       CaptchaConfig       `yaml:"captcha" json:"captcha"`
 }
 
 type SiteConfig struct {
@@ -85,6 +86,13 @@ type RabbitMQConfig struct {
 	Queue    string `yaml:"queue" json:"queue"`
 }
 
+type CaptchaConfig struct {
+	Complexity    int `yaml:"complexity" json:"complexity"`
+	Width         int `yaml:"width" json:"width"`
+	Height        int `yaml:"height" json:"height"`
+	Length        int `yaml:"length" json:"length"`
+	TimeoutMinute int `yaml:"timeout_minute" json:"timeout_minute"`
+}
 type NativeStorageConfig struct {
 	BaseURL    string `yaml:"base_url" json:"base_url"`
 	AccessPath string `yaml:"access_dir" json:"access_path"`

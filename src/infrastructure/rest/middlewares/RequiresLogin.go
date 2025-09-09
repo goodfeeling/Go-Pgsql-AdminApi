@@ -2,13 +2,12 @@ package middlewares
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"os"
 	"strings"
 
 	authUseCase "github.com/gbrayhan/microservices-go/src/application/services/auth"
-	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/jwt_blacklist"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/redis/go-redis/v9"
@@ -52,7 +51,7 @@ func UrlAuthMiddlewareWithRedis(redisClient *redis.Client, db *gorm.DB) gin.Hand
 	return func(c *gin.Context) {
 		tokenString := c.Query("token")
 		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token not provided"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token not provided1"})
 			c.Abort()
 			return
 		}
@@ -86,7 +85,7 @@ func CommonVerifyWithRedis(c *gin.Context, tokenString string, redisClient *redi
 	}
 
 	// check token if in blacklist
-	exists, err := isTokenInBlacklist(db, tokenString)
+	exists, err := IsTokenInBlacklist(db, tokenString)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		c.Abort()
@@ -152,17 +151,4 @@ func CommonVerifyWithRedis(c *gin.Context, tokenString string, redisClient *redi
 	}
 
 	return true
-}
-
-// isTokenInBlacklist 检查token是否在黑名单中
-func isTokenInBlacklist(db *gorm.DB, tokenString string) (bool, error) {
-	var blacklist jwt_blacklist.JwtBlacklist
-	err := db.Where("jwt = ? AND deleted_at IS NULL", tokenString).First(&blacklist).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
 }

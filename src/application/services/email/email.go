@@ -45,18 +45,14 @@ func NewEmailUseCase(
 
 // SendEmail implements IEmailService.
 func (e *EmailUseCase) SendForgetPasswordEmail(email string) error {
-
 	user, err := e.userRepository.GetByEmail(email)
 	if err != nil || user == nil {
 		return errors.New("place enter a valid email")
 	}
-
-	return nil
-	resetLink, err := e.generateResetLink(email)
+	resetLink, err := e.generateResetLink(user.ID)
 	if err != nil {
 		return err
 	}
-
 	event := &model.ForgetPasswordEvent{
 		ID:           uuid.New().String(),
 		To:           email,
@@ -64,24 +60,23 @@ func (e *EmailUseCase) SendForgetPasswordEmail(email string) error {
 		Body:         "Please click the link to reset your password: " + resetLink,
 		RegisteredAt: time.Now(),
 	}
-
 	return e.eventBus.Publish(context.Background(), event)
 }
 
-func (e *EmailUseCase) generateResetLink(email string) (string, error) {
-	token, err := e.generateSecureToken()
+func (e *EmailUseCase) generateResetLink(userId int64) (string, error) {
+	token, err := e.generateSecureToken(userId)
 	if err != nil {
 		return "", err
 	}
 	//  将token存储到数据库或缓存中
-	e.RedisClient.Set(context.Background(), GetEmailTokenKey(email), token, UserTokenExpireDuration)
+	e.RedisClient.Set(context.Background(), GetUserIdTokenKey(userId), token, UserTokenExpireDuration)
 
 	// 返回包含token的链接
 	return fmt.Sprintf("%s/#/auth/reset-password?token=%s", os.Getenv("SERVER_FRONTEND_URL"), token), nil
 }
 
-func (e *EmailUseCase) generateSecureToken() (string, error) {
-	token, err := e.jwtService.GenerateJWTToken(0, 0, "reset")
+func (e *EmailUseCase) generateSecureToken(userId int64) (string, error) {
+	token, err := e.jwtService.GenerateJWTToken(userId, 0, "reset")
 	if err != nil {
 		return "", err
 	}

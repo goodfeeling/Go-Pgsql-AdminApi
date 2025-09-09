@@ -39,5 +39,5 @@ func ApplicationRouter(router *gin.Engine, appContext *di.ApplicationContext) {
 	ConfigRouters(v1, appContext)
 	TaskExecutionLogRouters(v1, appContext)
 	EmailRouters(v1, appContext)
-
+	CaptchaRoutes(v1, appContext)
 }

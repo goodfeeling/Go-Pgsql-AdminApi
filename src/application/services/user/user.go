@@ -8,6 +8,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/application/event/bus"
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
+	jwtBlacklistDomain "github.com/gbrayhan/microservices-go/src/domain/jwt_blacklist"
 	userDomain "github.com/gbrayhan/microservices-go/src/domain/user"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	userRoleRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/user_role"
@@ -31,39 +32,33 @@ type IUserUseCase interface {
 	UserBindRoles(userId int64, updateMap map[string]interface{}) error
 	ResetPassword(userId int64) (*userDomain.User, error)
 	EditPassword(userId int64, data userDomain.PasswordEditRequest) (*userDomain.User, error)
-	ChangePasswordByEmail(data userDomain.ChangePasswordRequest) (*userDomain.User, error)
+	ChangePasswordById(userId int64, password string, jwtToken string) (*userDomain.User, error)
 }
 
 type UserUseCase struct {
-	userRepository     user.UserRepositoryInterface
-	userRoleRepository userRoleRepo.ISysUserRoleRepository
-	Logger             *logger.Logger
-	eventBus           bus.EventBus
+	userRepository         user.UserRepositoryInterface
+	userRoleRepository     userRoleRepo.ISysUserRoleRepository
+	Logger                 *logger.Logger
+	eventBus               bus.EventBus
+	jwtBlacklistRepository jwtBlacklistDomain.IJwtBlacklistService
 }
 
 func NewUserUseCase(
 	userRepository user.UserRepositoryInterface,
 	userRoleRepository userRoleRepo.ISysUserRoleRepository,
 	eventBus bus.EventBus,
+	jwtBlacklistRepository jwtBlacklistDomain.IJwtBlacklistService,
 	logger *logger.Logger) IUserUseCase {
 	return &UserUseCase{
-		userRepository:     userRepository,
-		userRoleRepository: userRoleRepository,
-		eventBus:           eventBus,
-		Logger:             logger,
+		userRepository:         userRepository,
+		userRoleRepository:     userRoleRepository,
+		eventBus:               eventBus,
+		Logger:                 logger,
+		jwtBlacklistRepository: jwtBlacklistRepository,
 	}
 }
 
 func (s *UserUseCase) GetAll() (*[]userDomain.User, error) {
-	// fmt.Println("s.eventBus", s.eventBus)
-	// context := context.Background()
-	// s.eventBus.Publish(context, &model.UserRegisteredEvent{
-	// 	ID:           uuid.New().String(),
-	// 	UserID:       uuid.New().String(),
-	// 	Username:     "test",
-	// 	Email:        "test",
-	// 	RegisteredAt: time.Now(),
-	// })
 	s.Logger.Info("Getting all users")
 	return s.userRepository.GetAll()
 }
@@ -99,6 +94,7 @@ func (s *UserUseCase) Delete(id int) error {
 
 func (s *UserUseCase) Update(id int64, userMap map[string]interface{}) (*userDomain.User, error) {
 	s.Logger.Info("Updating user", zap.Int64("id", id))
+
 	return s.userRepository.Update(id, userMap)
 }
 
@@ -157,19 +153,27 @@ func (s *UserUseCase) EditPassword(userId int64, data userDomain.PasswordEditReq
 	return s.userRepository.Update(userId, updateMap)
 }
 
-// ChangePasswordByEmail implements IUserUseCase.
-func (s *UserUseCase) ChangePasswordByEmail(data userDomain.ChangePasswordRequest) (*userDomain.User, error) {
-	userInfo, err := s.userRepository.GetByEmail(data.Email)
+// ChangePasswordById implements IUserUseCase.
+func (s *UserUseCase) ChangePasswordById(userId int64, password string, jwtToken string) (*userDomain.User, error) {
+	s.Logger.Info("Change password by id", zap.Int64("id", userId))
+	userInfo, err := s.userRepository.GetByID(int(userId))
 	if err != nil {
 		s.Logger.Error("Error getting user info", zap.Error(err))
 		return nil, err
 	}
 	updateMap := make(map[string]interface{})
-	hash, err := bcrypt.GenerateFromPassword([]byte(data.NewPasswd), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		s.Logger.Error("Error hashing password", zap.Error(err))
 		return nil, err
 	}
 	updateMap["hash_password"] = hash
-	return s.userRepository.Update(userInfo.ID, updateMap)
+	res, err := s.userRepository.Update(userInfo.ID, updateMap)
+	if err != nil {
+		s.Logger.Error("Error updating user info", zap.Error(err))
+		return nil, err
+	}
+	// invalidate jwt
+	s.jwtBlacklistRepository.AddToBlacklist(jwtToken)
+	return res, nil
 }

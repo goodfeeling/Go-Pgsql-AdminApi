@@ -31,7 +31,9 @@ func setupAuthModule(appContext *ApplicationContext) error {
 		appContext.JWTService,
 		appContext.Logger,
 		appContext.Repositories.JwtBlacklistRepository,
-		appContext.RedisClient, appContext.SessionManager)
+		appContext.RedisClient,
+		appContext.SessionManager,
+		appContext.CaptchaHandler)
 
 	// Initialize controllers
 	authController := authController.NewAuthController(authUC, appContext.Logger)

@@ -118,8 +118,8 @@ func (s *SysMenuUseCase) GetUserMenus(roleId int64) ([]*menuDomain.MenuGroup, er
 		if err != nil {
 			return nil, err
 		}
-
 	}
+
 	s.Logger.Info("getting role btns ", zap.Int("roleBtnsCount", len(roleBtns)))
 	roleBtnMap := make(map[int64][]int64)
 	for _, roleBtn := range roleBtns {
@@ -134,9 +134,9 @@ func (s *SysMenuUseCase) GetUserMenus(roleId int64) ([]*menuDomain.MenuGroup, er
 	if err != nil {
 		return nil, err
 	}
+
 	menuGroup := make([]*menuDomain.MenuGroup, 0)
 	for _, group := range *groups {
-		// 过滤菜单项中的按钮
 		filteredMenuItems := make([]menuDomain.Menu, 0)
 		for _, menuItem := range *group.MenuItems {
 			filteredMenuItem := menuItem
@@ -169,6 +169,7 @@ func (s *SysMenuUseCase) GetUserMenus(roleId int64) ([]*menuDomain.MenuGroup, er
 			Items: treeData,
 		})
 	}
+
 	return menuGroup, nil
 }
 

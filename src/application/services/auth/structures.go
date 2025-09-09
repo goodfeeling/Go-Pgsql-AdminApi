@@ -6,11 +6,6 @@ import (
 	roleDomain "github.com/gbrayhan/microservices-go/src/domain/sys/role"
 )
 
-type LoginUser struct {
-	UserName string
-	Password string
-}
-
 type DataUserAuthenticated struct {
 	UserName    string                 `json:"user_name"`
 	NickName    string                 `json:"nick_name"`

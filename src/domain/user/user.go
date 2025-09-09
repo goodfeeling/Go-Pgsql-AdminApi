@@ -37,7 +37,6 @@ type PasswordEditRequest struct {
 }
 
 type ChangePasswordRequest struct {
-	Email     string `json:"email"`
 	NewPasswd string `json:"new_password"`
 }
 type IUserService interface {
@@ -52,5 +51,5 @@ type IUserService interface {
 	UserBindRoles(userId int64, updateMap map[string]interface{}) error
 	ResetPassword(userId int64) (*User, error)
 	EditPassword(userId int64, data PasswordEditRequest) (*User, error)
-	ChangePasswordByEmail(data ChangePasswordRequest) (*User, error)
+	ChangePasswordById(userId int64, password string, jwtToken string) (*User, error)
 }

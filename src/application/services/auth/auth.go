@@ -11,6 +11,7 @@ import (
 	jwtBlacklistDomain "github.com/gbrayhan/microservices-go/src/domain/jwt_blacklist"
 	domainRole "github.com/gbrayhan/microservices-go/src/domain/sys/role"
 	domainUser "github.com/gbrayhan/microservices-go/src/domain/user"
+	captchaLib "github.com/gbrayhan/microservices-go/src/infrastructure/lib/captcha"
 	ws "github.com/gbrayhan/microservices-go/src/infrastructure/lib/websocket"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
@@ -24,7 +25,7 @@ import (
 )
 
 type IAuthUseCase interface {
-	Login(username, password string, ctx *gin.Context) (*domainUser.User, *AuthTokens, *domainRole.Role, error)
+	Login(username, password, captchaId, CaptchaAnswer string, ctx *gin.Context) (*domainUser.User, *AuthTokens, *domainRole.Role, error)
 	Logout(jwtToken string) (*domain.CommonResponse[string], error)
 	Register(user RegisterUser) (*domain.CommonResponse[SecurityRegisterUser], error)
 	AccessTokenByRefreshToken(refreshToken string) (*domainUser.User, *AuthTokens, error)
@@ -39,6 +40,7 @@ type AuthUseCase struct {
 	jwtBlacklistRepository jwtBlacklistDomain.IJwtBlacklistService
 	RedisClient            *redis.Client
 	sessionManager         *ws.SessionManager
+	captchaHandler         *captchaLib.Captcha
 }
 
 func NewAuthUseCase(
@@ -49,6 +51,7 @@ func NewAuthUseCase(
 	jwtBlacklistRepository jwtBlacklistDomain.IJwtBlacklistService,
 	RedisClient *redis.Client,
 	sessionManager *ws.SessionManager,
+	captchaHandler *captchaLib.Captcha,
 ) IAuthUseCase {
 	return &AuthUseCase{
 		UserRepository:         userRepository,
@@ -58,6 +61,7 @@ func NewAuthUseCase(
 		jwtBlacklistRepository: jwtBlacklistRepository,
 		RedisClient:            RedisClient,
 		sessionManager:         sessionManager,
+		captchaHandler:         captchaHandler,
 	}
 }
 
@@ -106,8 +110,11 @@ func (s *AuthUseCase) SwitchRole(userId int, roleId int64) (*domainUser.User, *A
 	return user, authTokens, role, nil
 }
 
-func (s *AuthUseCase) Login(username, password string, ginCtx *gin.Context) (*domainUser.User, *AuthTokens, *domainRole.Role, error) {
-
+func (s *AuthUseCase) Login(username, password, captchaId, CaptchaAnswer string, ginCtx *gin.Context) (*domainUser.User, *AuthTokens, *domainRole.Role, error) {
+	isValid := s.captchaHandler.Verify(captchaId, CaptchaAnswer)
+	if !isValid {
+		return nil, nil, nil, domainErrors.NewAppError(errors.New("invalid captcha"), domainErrors.CaptchaError)
+	}
 	user, err := s.UserRepository.GetByUsername(username)
 	if err != nil {
 		s.Logger.Error("Error getting user for login", zap.Error(err), zap.String("username", username))

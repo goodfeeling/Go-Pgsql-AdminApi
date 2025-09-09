@@ -7,10 +7,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 // AuthResetPassword 使用重置密码认证中间件
-func AuthResetPassword() gin.HandlerFunc {
+func AuthResetPassword(redisClient *redis.Client, db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := c.Query("token")
 		if tokenString == "" {
@@ -38,6 +40,20 @@ func AuthResetPassword() gin.HandlerFunc {
 			return
 		}
 
+		// check token if in blacklist
+		exists, err := IsTokenInBlacklist(db, tokenString)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			c.Abort()
+			return
+		}
+
+		if exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token has been revoked"})
+			c.Abort()
+			return
+		}
+
 		if exp, ok := claims["exp"].(float64); ok {
 			if int64(exp) < jwt.TimeFunc().Unix() {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
@@ -60,6 +76,16 @@ func AuthResetPassword() gin.HandlerFunc {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Missing token type"})
 			c.Abort()
 			return
+		}
+
+		if idFloat, ok := claims["id"].(float64); ok {
+			id := int(idFloat)
+			if id == 0 {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Missing or invalid user id"})
+				c.Abort()
+				return
+			}
+			c.Set("user_id", id)
 		}
 
 		c.Next()

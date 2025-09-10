@@ -14,8 +14,7 @@ type EmailModule struct {
 
 func setupEmailModule(appContext *ApplicationContext) error {
 	// Initialize event
-	appContext.EventBus.Subscribe(
-		eventModel.ForgetPasswordEventType, eventHandler.NewEmailEventHandler())
+	appContext.EventBus.Subscribe(eventModel.ForgetPasswordEventType, eventHandler.NewEmailEventHandler())
 
 	// Initialize use cases
 	service := emailUseCase.NewEmailUseCase(

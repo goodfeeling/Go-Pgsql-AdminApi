@@ -144,6 +144,7 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize Redis client: %w", err)
 	}
+
 	// Initialize limiter
 	limiter := redisLib.NewRedisLuaRateLimiter(redisClientInstance)
 

@@ -26,7 +26,7 @@ type IApiService interface {
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[Api], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*Api, error)
-	GetApisGroup() (*[]GroupApiItem, error)
+	GetApisGroup(path string) (*[]GroupApiItem, error)
 	SynchronizeRouterToApi(router gin.RoutesInfo) (*int, error)
 }
 

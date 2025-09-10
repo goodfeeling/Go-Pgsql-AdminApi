@@ -70,7 +70,6 @@ func (c *ConfigController) GetAllConfigs(ctx *gin.Context) {
 // @Success 200 {array} controllers.CommonResponseBuilder[ResponseConfig]
 // @Router /v1/api/config/{module} [put]
 func (c *ConfigController) UpdateConfig(ctx *gin.Context) {
-
 	var requestMap map[string]any
 	err := controllers.BindJSONMap(ctx, &requestMap)
 	if err != nil {

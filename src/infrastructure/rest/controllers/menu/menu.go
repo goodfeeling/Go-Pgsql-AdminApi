@@ -244,6 +244,8 @@ func (c *MenuController) GetUserMenus(ctx *gin.Context) {
 	c.Logger.Info("Getting user menus")
 	isGetAll := ctx.Query("all") == "true"
 	var roleID int64
+
+	// get user menu available login after
 	if !isGetAll {
 		var ok bool
 		appUtils := controllers.NewAppUtils(ctx)
@@ -259,6 +261,7 @@ func (c *MenuController) GetUserMenus(ctx *gin.Context) {
 			return
 		}
 	}
+
 	menus, err := c.menuService.GetUserMenus(roleID)
 	if err != nil {
 		c.Logger.Error("Error getting all menu user", zap.Error(err))

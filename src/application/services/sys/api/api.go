@@ -22,7 +22,7 @@ type ISysApiService interface {
 	SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[apiDomain.Api], error)
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(userMap map[string]interface{}) (*apiDomain.Api, error)
-	GetApisGroup() (*[]apiDomain.GroupApiItem, error)
+	GetApisGroup(path string) (*[]apiDomain.GroupApiItem, error)
 	SynchronizeRouterToApi(router gin.RoutesInfo) (*int, error)
 }
 
@@ -45,7 +45,7 @@ func NewSysApiUseCase(
 
 func (s *SysApiUseCase) GetAll() (*[]apiDomain.Api, error) {
 	s.Logger.Info("Getting all roles")
-	return s.sysApiRepository.GetAll()
+	return s.sysApiRepository.GetAll("")
 }
 
 func (s *SysApiUseCase) GetByID(id int) (*apiDomain.Api, error) {
@@ -88,8 +88,8 @@ func (s *SysApiUseCase) GetOneByMap(userMap map[string]interface{}) (*apiDomain.
 }
 
 // GetApisGroup
-func (s *SysApiUseCase) GetApisGroup() (*[]apiDomain.GroupApiItem, error) {
-	apis, err := s.sysApiRepository.GetAll()
+func (s *SysApiUseCase) GetApisGroup(path string) (*[]apiDomain.GroupApiItem, error) {
+	apis, err := s.sysApiRepository.GetAll(path)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (s *SysApiUseCase) GetApisGroup() (*[]apiDomain.GroupApiItem, error) {
 		return nil, err
 	}
 
-	groups := make([]apiDomain.GroupApiItem, len(*dictionary.Details))
+	var groups []apiDomain.GroupApiItem
 	for i, item := range *dictionary.Details {
 		groupApis := make([]*apiDomain.GroupApiItem, 0)
 		for _, api := range *apis {
@@ -111,12 +111,16 @@ func (s *SysApiUseCase) GetApisGroup() (*[]apiDomain.GroupApiItem, error) {
 				})
 			}
 		}
-		groups[i] = apiDomain.GroupApiItem{
-			GroupName:       item.Label,
-			GroupKey:        fmt.Sprintf("0---%v", i),
-			DisableCheckbox: len(groupApis) == 0,
-			Children:        groupApis,
+		if len(groupApis) > 0 {
+			group := apiDomain.GroupApiItem{
+				GroupName:       item.Label,
+				GroupKey:        fmt.Sprintf("0---%v", i), // root node pattern is 0---index
+				DisableCheckbox: len(groupApis) == 0,
+				Children:        groupApis,
+			}
+			groups = append(groups, group)
 		}
+
 	}
 	return &groups, nil
 }

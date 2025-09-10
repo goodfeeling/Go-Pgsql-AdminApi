@@ -82,7 +82,9 @@ func (r *Repository) GetAll() (*[]domainMenuGroup.MenuGroup, error) {
 
 func (r *Repository) GetByRoleId(menuIds []int, roleId int64) (*[]domainMenuGroup.MenuGroup, error) {
 	var apis []SysBaseMenuGroups
+
 	db := r.DB.Where("status = ?", constants.StatusEnabled)
+
 	if roleId != 0 {
 		db = db.Preload("MenuItems", "id in (?)", menuIds)
 	} else {

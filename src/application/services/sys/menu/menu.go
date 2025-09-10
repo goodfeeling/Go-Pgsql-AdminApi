@@ -107,9 +107,9 @@ func (s *SysMenuUseCase) GetUserMenus(roleId int64) ([]*menuDomain.MenuGroup, er
 	// role bind menu list
 	var roleBtns []*roleBtnRepo.SysRoleBtn
 	var err error
-	if roleId == 0 {
+	if roleId == 0 { // role setting list
 		roleMenuIds = []int{}
-	} else {
+	} else { // get user menu
 		roleMenuIds, err = s.sysRoleMenuRepository.GetByRoleId(roleId)
 		if err != nil {
 			return nil, err
@@ -119,7 +119,6 @@ func (s *SysMenuUseCase) GetUserMenus(roleId int64) ([]*menuDomain.MenuGroup, er
 			return nil, err
 		}
 	}
-
 	s.Logger.Info("getting role btns ", zap.Int("roleBtnsCount", len(roleBtns)))
 	roleBtnMap := make(map[int64][]int64)
 	for _, roleBtn := range roleBtns {

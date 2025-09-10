@@ -45,7 +45,7 @@ var ColumnsApiMapping = map[string]string{
 
 // ApiRepositoryInterface defines the interface for api repository operations
 type ApiRepositoryInterface interface {
-	GetAll() (*[]domainApi.Api, error)
+	GetAll(path string) (*[]domainApi.Api, error)
 	Create(apiDomain *domainApi.Api) (*domainApi.Api, error)
 	GetByID(id int) (*domainApi.Api, error)
 	Update(id int, apiMap map[string]interface{}) (*domainApi.Api, error)
@@ -65,9 +65,13 @@ func NewApiRepository(db *gorm.DB, loggerInstance *logger.Logger) ApiRepositoryI
 	return &Repository{DB: db, Logger: loggerInstance}
 }
 
-func (r *Repository) GetAll() (*[]domainApi.Api, error) {
+func (r *Repository) GetAll(path string) (*[]domainApi.Api, error) {
 	var apis []SysApi
-	if err := r.DB.Find(&apis).Error; err != nil {
+	handle := r.DB
+	if path != "" {
+		handle = handle.Where("path LIKE ?", fmt.Sprintf("%%%s%%", path))
+	}
+	if err := handle.Find(&apis).Error; err != nil {
 		r.Logger.Error("Error getting all apis", zap.Error(err))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}

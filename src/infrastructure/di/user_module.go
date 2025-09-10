@@ -1,8 +1,6 @@
 package di
 
 import (
-	eventHandler "github.com/gbrayhan/microservices-go/src/application/event/handler"
-	eventModel "github.com/gbrayhan/microservices-go/src/application/event/model"
 	userUseCase "github.com/gbrayhan/microservices-go/src/application/services/user"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/job"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
@@ -17,11 +15,7 @@ type UserModule struct {
 
 func setupUserModule(appContext *ApplicationContext) error {
 
-	// Initialize event
-	appContext.EventBus.Subscribe(
-		eventModel.UserRegisteredEventType, eventHandler.NewNotificationEventHandler())
-
-	// initialize executor
+	// register executor
 	appContext.FunctionExecutor.RegisterFunction("clean_up_old_data", job.CleanOldData)
 
 	// Initialize use cases

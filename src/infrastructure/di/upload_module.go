@@ -14,15 +14,13 @@ type UploadModule struct {
 
 func setupUploadModule(appContext *ApplicationContext) error {
 	// Initialize use cases
-	filesUC := filesUseCase.NewSysFilesUseCase(
-		appContext.Repositories.FileRepository,
-		appContext.Logger)
+	service := filesUseCase.NewSysFilesUseCase(appContext.Repositories.FileRepository, appContext.Logger)
 
 	// Initialize controllers
-	uploadController := uploadController.NewAuthController(filesUC, appContext.Logger, appContext.RedisClient)
+	controller := uploadController.NewAuthController(service, appContext.Logger, appContext.RedisClient)
 	appContext.UploadModule = UploadModule{
-		Controller: uploadController,
-		UseCase:    filesUC,
+		Controller: controller,
+		UseCase:    service,
 		Repository: appContext.Repositories.FileRepository,
 	}
 	return nil

@@ -436,7 +436,8 @@ func (c *ApiController) DeleteApis(ctx *gin.Context) {
 // @Router /v1/api/group-list [get]
 func (c *ApiController) GetApisGroup(ctx *gin.Context) {
 	c.Logger.Info("Getting all apis")
-	apis, err := c.apiService.GetApisGroup()
+	path := ctx.Query("path")
+	apis, err := c.apiService.GetApisGroup(path)
 	if err != nil {
 		c.Logger.Error("Error getting all apis", zap.Error(err))
 		appError := domainErrors.NewAppErrorWithType(domainErrors.UnknownError)

@@ -4,7 +4,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 	menuDomain "github.com/gbrayhan/microservices-go/src/domain/sys/menu"
 	menuBtnDomain "github.com/gbrayhan/microservices-go/src/domain/sys/menu_btn"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 
 	menuRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu"
 	menuGroupRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_group"

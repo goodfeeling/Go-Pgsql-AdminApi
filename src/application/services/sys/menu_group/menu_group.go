@@ -5,7 +5,7 @@ import (
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	menuGroupDomain "github.com/gbrayhan/microservices-go/src/domain/sys/menu_group"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	menuGroupRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_group"
 	"go.uber.org/zap"
 )

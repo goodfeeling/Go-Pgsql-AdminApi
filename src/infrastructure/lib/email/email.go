@@ -38,7 +38,6 @@ func NewSMTPEmailService() EmailService {
 		From:     os.Getenv("EMAIL_FROM"),
 		IsSSL:    os.Getenv("EMAIL_SSL") == "true",
 	}
-	fmt.Println("config ", config)
 	return &SMTPEmailService{config: config}
 }
 
@@ -71,7 +70,6 @@ func (s *SMTPEmailService) sendEmail(to, subject, body, contentType string) erro
 
 	// 设置认证信息
 	auth := smtp.PlainAuth("", s.config.Username, s.config.Password, s.config.Host)
-	fmt.Println("auth", s.config)
 	// 发送邮件
 	if s.config.IsSSL {
 		return s.sendEmailSSL(auth, to, message)

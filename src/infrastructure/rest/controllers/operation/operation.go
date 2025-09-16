@@ -10,7 +10,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainOperation "github.com/gbrayhan/microservices-go/src/domain/sys/operation_records"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	operationRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/operation_records"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 	"github.com/gin-gonic/gin"
@@ -210,7 +210,6 @@ func (c *OperationController) SearchPaginated(ctx *gin.Context) {
 			matches[field] = values
 		}
 	}
-	fmt.Println(matches)
 	filters.Matches = matches
 
 	// Parse date range filters
@@ -251,7 +250,6 @@ func (c *OperationController) SearchPaginated(ctx *gin.Context) {
 	if sortDirection.IsValid() {
 		filters.SortDirection = sortDirection
 	}
-	fmt.Println(sortBy, sortDirection)
 
 	result, err := c.operationService.SearchPaginated(filters)
 	if err != nil {

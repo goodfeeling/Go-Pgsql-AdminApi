@@ -10,7 +10,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainScheduledTask "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	ScheduledTaskRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/scheduled_task"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 	"github.com/gin-gonic/gin"
@@ -283,7 +283,6 @@ func (c *ScheduledTasController) SearchPaginated(ctx *gin.Context) {
 			matches[field] = values
 		}
 	}
-	fmt.Println(matches)
 	filters.Matches = matches
 
 	// Parse date range filters

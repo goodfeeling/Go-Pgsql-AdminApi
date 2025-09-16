@@ -8,7 +8,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainTaskExecution "github.com/gbrayhan/microservices-go/src/domain/sys/task_execution_log"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -19,9 +19,8 @@ type TaskExecutionLog struct {
 	ExecuteTime     time.Time `gorm:"not null;index" json:"execute_time"`
 	ExecuteResult   int       `gorm:"not null" json:"execute_result"` // 1-成功, 0-失败
 	ExecuteDuration *int      `json:"execute_duration"`               // 执行耗时(毫秒)
-	ErrorMessage    *string   `json:"error_message"`
+	ErrorMessage    string    `json:"error_message"`
 	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 // TableName 指定表名
@@ -263,7 +262,7 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 // GetByTaskID implements ITaskExecutionLogRepository.
 func (r *Repository) GetByTaskID(taskID uint, limit int) (*[]domainTaskExecution.TaskExecutionLog, error) {
 	var tasks []TaskExecutionLog
-	if err := r.DB.Where("task_id = ?", taskID).Limit(limit).Find(&tasks).Error; err != nil {
+	if err := r.DB.Where("task_id = ?", taskID).Order("ID desc").Limit(limit).Find(&tasks).Error; err != nil {
 		r.Logger.Error("Error retrieving tasks by taskID", zap.Error(err), zap.Uint("taskID", taskID))
 		return nil, domainErrors.NewAppErrorWithType(domainErrors.UnknownError)
 	}
@@ -278,17 +277,19 @@ func (u *TaskExecutionLog) toDomainMapper() *domainTaskExecution.TaskExecutionLo
 		ExecuteTime:     u.ExecuteTime,
 		ErrorMessage:    u.ErrorMessage,
 		ExecuteDuration: u.ExecuteDuration,
-
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		CreatedAt:       u.CreatedAt,
 	}
 }
 
 func fromDomainMapper(u *domainTaskExecution.TaskExecutionLog) *TaskExecutionLog {
 	return &TaskExecutionLog{
-		ID:        u.ID,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		ID:              u.ID,
+		TaskID:          u.TaskID,
+		ExecuteResult:   u.ExecuteResult,
+		ExecuteTime:     u.ExecuteTime,
+		ErrorMessage:    u.ErrorMessage,
+		ExecuteDuration: u.ExecuteDuration,
+		CreatedAt:       u.CreatedAt,
 	}
 }
 

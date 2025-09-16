@@ -5,7 +5,7 @@ import (
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	filesDomain "github.com/gbrayhan/microservices-go/src/domain/sys/files"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/files"
 	"go.uber.org/zap"
 )

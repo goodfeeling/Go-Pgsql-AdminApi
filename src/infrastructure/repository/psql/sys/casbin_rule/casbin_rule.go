@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )

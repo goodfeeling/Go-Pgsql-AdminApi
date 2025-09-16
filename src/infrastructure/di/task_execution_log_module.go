@@ -16,14 +16,13 @@ type TaskExecutionLogModule struct {
 
 func setupTaskExecutionLogModule(appContext *ApplicationContext) error {
 
-	taskExecutionLogRepository := task_execution_log.NewTaskExecutionLogRepository(appContext.DB, appContext.Logger)
 	// Initialize use cases
 	services := taskExecutionLogUseCase.NewTaskExecutionLogUseCase(
-		taskExecutionLogRepository,
+		appContext.Repositories.TaskExecutionLogRepository,
 		appContext.Logger)
 
 	// Initialize websocket handler
-	wsHandler := wsHandler.NewLogHandler(services, appContext.Logger, appContext.WsRouter)
+	wsHandler := wsHandler.NewLogHandler(services, appContext.Logger)
 
 	// Initialize controllers
 	ctrl := taskExecutionLogController.NewTaskExecutionLogController(services, appContext.Logger)
@@ -31,7 +30,7 @@ func setupTaskExecutionLogModule(appContext *ApplicationContext) error {
 	appContext.TaskExecutionLogModule = TaskExecutionLogModule{
 		Controller: ctrl,
 		UseCase:    services,
-		Repository: taskExecutionLogRepository,
+		Repository: appContext.Repositories.TaskExecutionLogRepository,
 		WsHandler:  wsHandler,
 	}
 	return nil

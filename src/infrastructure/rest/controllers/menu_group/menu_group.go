@@ -2,7 +2,6 @@ package menu_group
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -10,7 +9,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainMenuGroup "github.com/gbrayhan/microservices-go/src/domain/sys/menu_group"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	menuGroupRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_group"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 	"github.com/gin-gonic/gin"
@@ -257,7 +256,6 @@ func (c *MenuGroupController) SearchPaginated(ctx *gin.Context) {
 			matches[field] = values
 		}
 	}
-	fmt.Println(matches)
 	filters.Matches = matches
 
 	// Parse date range filters

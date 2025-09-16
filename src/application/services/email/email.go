@@ -9,7 +9,7 @@ import (
 
 	"github.com/gbrayhan/microservices-go/src/application/event/bus"
 	"github.com/gbrayhan/microservices-go/src/application/event/model"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/security"
 	"github.com/google/uuid"

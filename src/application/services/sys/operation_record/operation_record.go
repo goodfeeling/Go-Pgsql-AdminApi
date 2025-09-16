@@ -3,7 +3,7 @@ package operation_record
 import (
 	"fmt"
 
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	operationRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/operation_records"
 
 	"github.com/gbrayhan/microservices-go/src/domain"

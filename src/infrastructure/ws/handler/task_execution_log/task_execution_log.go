@@ -2,53 +2,63 @@ package task_execution_log
 
 import (
 	"encoding/json"
-	"log"
+	"sync"
 
 	domainTaskExecutionLog "github.com/gbrayhan/microservices-go/src/domain/sys/task_execution_log"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	ws "github.com/gbrayhan/microservices-go/src/infrastructure/lib/websocket"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 )
+
+// 扩展 WebSocketContext 来存储订阅信息
+type ClientSubscription struct {
+	Conn    *websocket.Conn
+	TaskIDs map[int]bool
+}
 
 // LogHandler 日志处理器
 type LogHandler struct {
 	Logger                  *logger.Logger
 	taskExecutionLogService domainTaskExecutionLog.ITaskExecutionLogService
-	wsRouter                *ws.WebSocketRouter
-	context                 *ws.WebSocketContext
+	subscriptions           map[*websocket.Conn]*ClientSubscription
+	subscriptionMutex       sync.RWMutex
 }
 
 func NewLogHandler(
 	taskExecutionLogService domainTaskExecutionLog.ITaskExecutionLogService,
 	loggerInstance *logger.Logger,
-	wsRouter *ws.WebSocketRouter,
 ) *LogHandler {
 	return &LogHandler{
 		Logger:                  loggerInstance,
 		taskExecutionLogService: taskExecutionLogService,
+		subscriptions:           make(map[*websocket.Conn]*ClientSubscription),
+		subscriptionMutex:       sync.RWMutex{},
 	}
 }
 
 // 实现扩展接口
 func (ch *LogHandler) OnConnectWithContext(conn *websocket.Conn, ctx *ws.WebSocketContext) {
 	ch.Logger.Info("Log handler: Client connected")
+	ch.subscriptionMutex.Lock()
+	defer ch.subscriptionMutex.Unlock()
+	// 初始化客户端的订阅信息
+	ch.subscriptions[conn] = &ClientSubscription{
+		Conn:    conn,
+		TaskIDs: make(map[int]bool),
+	}
+	ch.Logger.Info("Added new subscription", zap.Int("total_subscriptions", len(ch.subscriptions)))
+
 }
 
 func (ch *LogHandler) OnConnect(conn *websocket.Conn) {
 	ch.Logger.Info("Log handler: Client connected")
 
-	result, err := ch.taskExecutionLogService.GetByTaskID(0, 100)
-	if err != nil {
-		ch.sendError(conn, "Failed to fetch initial logs: "+err.Error())
-		return
-	}
-	// 发送分页结果
-	ch.sendData(conn, "initial_logs", result)
 }
 
 func (ch *LogHandler) OnMessage(conn *websocket.Conn, message []byte) {
 	ch.Logger.Info("Log handler: Received message: %s", zap.String("Message", string(message)))
+
 	// 解析传入的 JSON 字符串
 	var request struct {
 		TaskID int `json:"taskId"`
@@ -58,14 +68,18 @@ func (ch *LogHandler) OnMessage(conn *websocket.Conn, message []byte) {
 		ch.sendError(conn, "Invalid JSON format: "+err.Error())
 		return
 	}
+	// 添加订阅
+	ch.subscriptionMutex.Lock()
+	if subscription, exists := ch.subscriptions[conn]; exists {
+		subscription.TaskIDs[request.TaskID] = true
+	}
 
-	ch.Logger.Info("Log handler: Fetching logs for task ID:", zap.Int("TaskID", request.TaskID))
-
+	ch.subscriptionMutex.Unlock()
+	ch.Logger.Info("Client subscribed to task", zap.Int("TaskID", request.TaskID))
 	// 设置默认值
 	if request.Limit <= 0 {
 		request.Limit = 100
 	}
-
 	// 调用 GetByTaskID 获取日志数据
 	result, err := ch.taskExecutionLogService.GetByTaskID(uint(request.TaskID), request.Limit)
 	if err != nil {
@@ -78,33 +92,41 @@ func (ch *LogHandler) OnMessage(conn *websocket.Conn, message []byte) {
 	ch.sendData(conn, "logs", result)
 }
 
-// 当单条数据发生变化时调用此方法
-func (ch *LogHandler) NotifySingleDataChange(action string, data interface{}) {
-	// action 可以是 "create", "update", "delete"
+// 向特定 taskID 的订阅者推送日志
+func (ch *LogHandler) NotifyLogToTaskSubscribers(taskID int, logData interface{}) {
+	ch.Logger.Info("Log handler: Notifying subscribers for task ID: ", zap.Int("TaskID", taskID))
+	ch.subscriptionMutex.RLock()
+	defer ch.subscriptionMutex.RUnlock()
+
 	response := map[string]interface{}{
-		"type":   "data_changed",
-		"action": action,
-		"data":   data,
+		"type":   "log_update",
+		"taskId": taskID,
+		"data":   logData,
 	}
 
-	jsonData, _ := json.Marshal(response)
-	ch.wsRouter.WebSocketManager.BroadcastMessage(jsonData)
-}
-
-// 当多条数据发生变化时调用此方法
-func (ch *LogHandler) NotifyBatchDataChange(action string, dataList []interface{}) {
-	response := map[string]interface{}{
-		"type":   "batch_data_changed",
-		"action": action,
-		"data":   dataList,
+	jsonData, err := json.Marshal(response)
+	if err != nil {
+		ch.Logger.Error("Failed to marshal log notification", zap.Error(err))
+		return
 	}
-
-	jsonData, _ := json.Marshal(response)
-	ch.wsRouter.WebSocketManager.BroadcastMessage(jsonData)
+	// 遍历所有订阅者，向订阅了该 taskID 的客户端发送消息
+	for _, subscription := range ch.subscriptions {
+		if subscription.TaskIDs[taskID] {
+			err := subscription.Conn.WriteMessage(websocket.TextMessage, jsonData)
+			if err != nil {
+				ch.Logger.Error("Failed to send log notification", zap.Error(err))
+			}
+		}
+	}
 }
 
 func (ch *LogHandler) OnDisconnect(conn *websocket.Conn) {
-	log.Println("Chat handler: Client disconnected")
+	ch.Logger.Info("Log handler: Client disconnected")
+
+	// 清理订阅信息
+	ch.subscriptionMutex.Lock()
+	delete(ch.subscriptions, conn)
+	ch.subscriptionMutex.Unlock()
 }
 func (ch *LogHandler) OnDisconnectWithContext(conn *websocket.Conn, ctx *ws.WebSocketContext) {
 	ch.Logger.Info("Log handler: Client disconnected")

@@ -9,7 +9,7 @@ import (
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	operationRecordsDomain "github.com/gbrayhan/microservices-go/src/domain/sys/operation_records"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	operationRecordsRepository "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/operation_records"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 	"github.com/gin-gonic/gin"
@@ -30,9 +30,7 @@ func GinBodyLogMiddleware(db *gorm.DB, logger *logger.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var reqBody string
 		var resp string
-		appCtx := controllers.NewAppUtils(c)
-
-		// jump upload api
+		// skip over upload api
 		if strings.HasPrefix(c.Request.RequestURI, "/v1/upload") {
 			reqBody = ""
 			resp = ""
@@ -50,13 +48,13 @@ func GinBodyLogMiddleware(db *gorm.DB, logger *logger.Logger) gin.HandlerFunc {
 			c.Request.Body = io.NopCloser(bytes.NewBuffer([]byte(reqBody)))
 		}
 
-		loc, _ := time.LoadLocation("America/Mexico_City")
-
 		start := time.Now()
+
 		c.Next()
-		latency := time.Since(start).Milliseconds()
+
+		userId, _ := controllers.NewAppUtils(c).GetUserID()
+
 		operationRecordsRepository := operationRecordsRepository.NewOperationRepository(db, logger)
-		userId, _ := appCtx.GetUserID()
 		operationRecordsRepository.Create(&operationRecordsDomain.SysOperationRecord{
 			IP:           c.ClientIP(),
 			Method:       c.Request.Method,
@@ -67,19 +65,18 @@ func GinBodyLogMiddleware(db *gorm.DB, logger *logger.Logger) gin.HandlerFunc {
 			Resp:         resp,
 			ErrorMessage: c.Errors.String(),
 			UserID:       int64(userId),
-			Latency:      latency,
-			CreatedAt:    domain.CustomTime{Time: time.Now().In(loc)},
+			Latency:      time.Since(start).Milliseconds(),
+			CreatedAt:    domain.CustomTime{Time: time.Now()},
 		})
-		allDataIO := map[string]any{
+
+		_ = fmt.Sprintf("%v", map[string]any{
 			"ruta":          c.FullPath(),
 			"request_uri":   c.Request.RequestURI,
 			"raw_request":   reqBody,
 			"status_code":   c.Writer.Status(),
 			"body_response": resp,
 			"errors":        c.Errors.Errors(),
-			"created_at":    time.Now().In(loc).Format("2006-01-02T15:04:05"),
-		}
-
-		_ = fmt.Sprintf("%v", allDataIO)
+			"created_at":    time.Now().Format("2006-01-02T15:04:05"),
+		})
 	}
 }

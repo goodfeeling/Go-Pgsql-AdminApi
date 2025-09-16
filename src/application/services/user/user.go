@@ -2,7 +2,6 @@ package user
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/gbrayhan/microservices-go/src/application/event/bus"
@@ -10,7 +9,7 @@ import (
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	jwtBlacklistDomain "github.com/gbrayhan/microservices-go/src/domain/jwt_blacklist"
 	userDomain "github.com/gbrayhan/microservices-go/src/domain/user"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	userRoleRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/user_role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
 	sharedUtil "github.com/gbrayhan/microservices-go/src/shared/utils"
@@ -83,7 +82,6 @@ func (s *UserUseCase) Create(newUser *userDomain.User) (*userDomain.User, error)
 	newUser.HashPassword = string(hash)
 	newUser.UUID = uuid.New().String()
 	newUser.Status = 1
-	fmt.Println("UUID", newUser.UUID)
 	return s.userRepository.Create(newUser)
 }
 

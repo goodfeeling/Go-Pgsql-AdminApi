@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"github.com/gbrayhan/microservices-go/src/shared/utils"
 	"github.com/mojocn/base64Captcha"
 )

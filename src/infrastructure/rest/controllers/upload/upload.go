@@ -11,7 +11,7 @@ import (
 	domain "github.com/gbrayhan/microservices-go/src/domain"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainFiles "github.com/gbrayhan/microservices-go/src/domain/sys/files"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 	shareUtils "github.com/gbrayhan/microservices-go/src/shared/utils"
 	"github.com/gin-gonic/gin"

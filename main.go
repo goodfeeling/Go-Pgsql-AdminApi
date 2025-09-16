@@ -11,7 +11,7 @@ import (
 
 	"github.com/gbrayhan/microservices-go/docs"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/di"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/routes"
 	wsRoutes "github.com/gbrayhan/microservices-go/src/infrastructure/ws/routes"

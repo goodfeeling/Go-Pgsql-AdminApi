@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
 	"go.uber.org/zap"

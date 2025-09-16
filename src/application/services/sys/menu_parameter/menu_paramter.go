@@ -1,7 +1,7 @@
 package menu_parameter
 
 import (
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	menuParameterRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_parameter"
 
 	"github.com/gbrayhan/microservices-go/src/domain"

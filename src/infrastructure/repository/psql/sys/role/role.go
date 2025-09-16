@@ -8,7 +8,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainRole "github.com/gbrayhan/microservices-go/src/domain/sys/role"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/utils"
 	"go.uber.org/zap"
 	"gorm.io/gorm"

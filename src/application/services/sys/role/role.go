@@ -7,7 +7,7 @@ import (
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	roleDomain "github.com/gbrayhan/microservices-go/src/domain/sys/role"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	casbinRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/casbin_rule"
 	roleRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
 	roleBtnRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_btn"

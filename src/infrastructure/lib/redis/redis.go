@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )

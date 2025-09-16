@@ -6,7 +6,7 @@ import (
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 )
 
 type UserStatusHandler struct {

@@ -9,43 +9,53 @@ import (
 
 	"sync"
 
-	scheduleTaskConstants "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task/constants"
-
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainScheduledTask "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task"
+	scheduleTaskConstants "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task/constants"
+	domainTaskExecutionLog "github.com/gbrayhan/microservices-go/src/domain/sys/task_execution_log"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/lib/executor"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/scheduled_task"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/task_execution_log"
+	wsHandler "github.com/gbrayhan/microservices-go/src/infrastructure/ws/handler/task_execution_log"
 	"github.com/go-co-op/gocron"
 	"go.uber.org/zap"
 )
 
 type TaskScheduler struct {
-	scheduler *gocron.Scheduler
-	repo      scheduled_task.IScheduledTaskRepository
-	logger    *logger.Logger
-	tasks     map[int]*gocron.Job
-	executor  *executor.TaskExecutorManager
-	mutex     sync.RWMutex
-	taskWg    map[int]*sync.WaitGroup
+	scheduler            *gocron.Scheduler
+	repo                 scheduled_task.IScheduledTaskRepository
+	logger               *logger.Logger
+	tasks                map[int]*gocron.Job
+	executor             *executor.TaskExecutorManager
+	mutex                sync.RWMutex
+	taskWg               map[int]*sync.WaitGroup
+	taskExecutionLogRepo task_execution_log.ITaskExecutionLogRepository
+	wsHandler            *wsHandler.LogHandler
 }
 
 func NewTaskScheduler(
 	repo scheduled_task.IScheduledTaskRepository,
 	logger *logger.Logger,
 	executor *executor.TaskExecutorManager,
+	taskExecutionLogRepo task_execution_log.ITaskExecutionLogRepository,
 ) *TaskScheduler {
 	// 创建支持秒级的调度器
 	scheduler := gocron.NewScheduler(time.UTC)
 	scheduler.SetMaxConcurrentJobs(10, gocron.RescheduleMode)
 
 	return &TaskScheduler{
-		scheduler: scheduler,
-		repo:      repo,
-		logger:    logger,
-		tasks:     make(map[int]*gocron.Job),
-		executor:  executor,
+		scheduler:            scheduler,
+		repo:                 repo,
+		logger:               logger,
+		tasks:                make(map[int]*gocron.Job),
+		executor:             executor,
+		taskExecutionLogRepo: taskExecutionLogRepo,
 	}
+}
+
+func (s *TaskScheduler) SetWsHandler(handler *wsHandler.LogHandler) {
+	s.wsHandler = handler
 }
 
 func (s *TaskScheduler) Start() {
@@ -148,6 +158,7 @@ func (s *TaskScheduler) executeTask(task *domainScheduledTask.ScheduledTask) {
 		}
 		s.mutex.Unlock()
 	}()
+
 	s.logger.Info("Executing task",
 		zap.Int("task_id", task.ID),
 		zap.String("task_name", task.TaskName))
@@ -165,7 +176,6 @@ func (s *TaskScheduler) executeTask(task *domainScheduledTask.ScheduledTask) {
 			zap.Int("task_id", task.ID),
 			zap.Error(err))
 	}
-
 	// 执行任务
 	err = s.executor.Execute(task)
 
@@ -182,6 +192,8 @@ func (s *TaskScheduler) executeTask(task *domainScheduledTask.ScheduledTask) {
 		finalStatus = scheduleTaskConstants.TaskStatusCompleted // "5" 表示已完成
 	}
 
+	var taskLogData *domainTaskExecutionLog.TaskExecutionLog
+	duration := int(time.Since(now).Seconds())
 	if err != nil {
 		s.logger.Error("Task execution failed",
 			zap.Int("task_id", task.ID),
@@ -190,13 +202,40 @@ func (s *TaskScheduler) executeTask(task *domainScheduledTask.ScheduledTask) {
 
 		// 执行失败，更新状态为"错误"
 		finalStatus = scheduleTaskConstants.TaskStatusError // "4" 表示错误
+
+		taskLogData, err = s.taskExecutionLogRepo.Create(&domainTaskExecutionLog.TaskExecutionLog{
+			TaskID:          uint(task.ID),
+			ExecuteTime:     now,
+			ExecuteDuration: &duration,
+			ErrorMessage:    err.Error(),
+			ExecuteResult:   0,
+		})
+		if err != nil {
+			s.logger.Error("Error creating task execution log",
+				zap.Int("task_id", task.ID),
+				zap.Error(err))
+		}
 	} else {
 		s.logger.Info("Task executed successfully",
 			zap.Int("task_id", task.ID),
 			zap.String("task_name", task.TaskName))
+
+		taskLogData, err = s.taskExecutionLogRepo.Create(&domainTaskExecutionLog.TaskExecutionLog{
+			TaskID:          uint(task.ID),
+			ExecuteTime:     now,
+			ExecuteDuration: &duration,
+			ErrorMessage:    "",
+			ExecuteResult:   1,
+		})
+		if err != nil {
+			s.logger.Error("Failed to create task execution log",
+				zap.Int("task_id", task.ID),
+				zap.String("task_name", task.TaskName),
+				zap.Error(err))
+		}
 	}
 
-	// 更新执行结果状态
+	// update result
 	updateData = map[string]interface{}{
 		"status": finalStatus,
 	}
@@ -208,7 +247,7 @@ func (s *TaskScheduler) executeTask(task *domainScheduledTask.ScheduledTask) {
 			zap.Error(err))
 	}
 
-	// 如果是一次性任务，执行完成后从调度器中移除
+	// If it is a one-time task, remove it from the scheduler after execution is completed.
 	if isOneTimeTask {
 		s.mutex.Lock()
 		if job, exists := s.tasks[task.ID]; exists {
@@ -220,6 +259,8 @@ func (s *TaskScheduler) executeTask(task *domainScheduledTask.ScheduledTask) {
 		}
 		s.mutex.Unlock()
 	}
+	// Notify subscribers about the task execution log
+	s.wsHandler.NotifyLogToTaskSubscribers(task.ID, taskLogData)
 }
 
 // ReloadTasks 重新加载所有任务（用于运行时刷新）

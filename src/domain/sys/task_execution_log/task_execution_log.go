@@ -12,7 +12,7 @@ type TaskExecutionLog struct {
 	ExecuteTime     time.Time `json:"execute_time"`
 	ExecuteResult   int       `json:"execute_result"`
 	ExecuteDuration *int      `json:"execute_duration"`
-	ErrorMessage    *string   `json:"error_message"`
+	ErrorMessage    string    `json:"error_message"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }

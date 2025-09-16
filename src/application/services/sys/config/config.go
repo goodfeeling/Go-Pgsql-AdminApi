@@ -3,13 +3,12 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 
 	configDomain "github.com/gbrayhan/microservices-go/src/domain/sys/config"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
@@ -100,7 +99,6 @@ func (s *SysConfigUseCase) GetConfigByModule(module string) (*map[string]string,
 	s.Logger.Info("get config by module", zap.String("module", module))
 
 	moduleData, exists := s.configData[module]
-	fmt.Println(moduleData)
 	if !exists {
 		// 模块不存在，返回空map而不是错误
 		emptyMap := make(map[string]string)

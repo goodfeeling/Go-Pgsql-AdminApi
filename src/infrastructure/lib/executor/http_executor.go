@@ -10,7 +10,7 @@ import (
 	"time"
 
 	domainScheduledTask "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"go.uber.org/zap"
 )
 

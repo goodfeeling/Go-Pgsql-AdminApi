@@ -10,7 +10,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainFile "github.com/gbrayhan/microservices-go/src/domain/sys/files"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	apiRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/files"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 	"github.com/gin-gonic/gin"
@@ -278,7 +278,6 @@ func (c *FileController) SearchPaginated(ctx *gin.Context) {
 		}
 	}
 
-	fmt.Println(matches)
 	filters.Matches = matches
 
 	// Parse date range filters

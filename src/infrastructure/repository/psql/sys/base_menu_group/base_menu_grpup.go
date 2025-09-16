@@ -10,7 +10,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain/constants"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainMenuGroup "github.com/gbrayhan/microservices-go/src/domain/sys/menu_group"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	menuRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/utils"
 	"go.uber.org/zap"

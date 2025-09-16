@@ -7,8 +7,8 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 	scheduledTaskDomain "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task"
 	scheduleTaskConstants "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task/constants"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/lib/scheduler"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
 	scheduledTaskRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/scheduled_task"
 	"go.uber.org/zap"
 )

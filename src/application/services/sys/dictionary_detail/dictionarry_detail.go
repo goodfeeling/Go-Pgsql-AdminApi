@@ -3,7 +3,7 @@ package dictionary_detail
 import (
 	"fmt"
 
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	dictionaryRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary_detail"
 
 	"github.com/gbrayhan/microservices-go/src/domain"

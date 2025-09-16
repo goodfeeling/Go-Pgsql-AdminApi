@@ -9,7 +9,7 @@ import (
 
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainMenuParameter "github.com/gbrayhan/microservices-go/src/domain/sys/menu_parameter"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/utils"
 	"go.uber.org/zap"
 	"gorm.io/gorm"

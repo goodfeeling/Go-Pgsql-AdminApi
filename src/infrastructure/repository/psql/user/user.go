@@ -9,7 +9,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain/constants"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainUser "github.com/gbrayhan/microservices-go/src/domain/user"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	roleRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/utils"
 	"go.uber.org/zap"

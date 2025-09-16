@@ -9,7 +9,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain/constants"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainDictionary "github.com/gbrayhan/microservices-go/src/domain/sys/dictionary"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	dictionaryDetailRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary_detail"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/utils"
 	"go.uber.org/zap"

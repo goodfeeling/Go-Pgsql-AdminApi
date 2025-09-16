@@ -5,7 +5,7 @@ import (
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	taskExecutionLogDomain "github.com/gbrayhan/microservices-go/src/domain/sys/task_execution_log"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	taskExecutionLogRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/task_execution_log"
 	"go.uber.org/zap"
 )

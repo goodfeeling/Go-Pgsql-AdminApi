@@ -9,13 +9,10 @@ import (
 	"github.com/gbrayhan/microservices-go/src/application/event/bus"
 	"github.com/gbrayhan/microservices-go/src/application/event/factory"
 	taskConstants "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task/constants"
-	"github.com/gbrayhan/microservices-go/src/infrastructure/lib/executor"
-	redisLib "github.com/gbrayhan/microservices-go/src/infrastructure/lib/redis"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
-	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/scheduled_task"
-	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
-
 	captchaLib "github.com/gbrayhan/microservices-go/src/infrastructure/lib/captcha"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/lib/executor"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
+	redisLib "github.com/gbrayhan/microservices-go/src/infrastructure/lib/redis"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/lib/scheduler"
 	ws "github.com/gbrayhan/microservices-go/src/infrastructure/lib/websocket"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql"
@@ -32,8 +29,11 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_btn"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/role_menu"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/scheduled_task"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/task_execution_log"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/user_role"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/middlewares"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/security"
 	sharedUtil "github.com/gbrayhan/microservices-go/src/shared/utils"
 	"github.com/redis/go-redis/v9"
@@ -108,6 +108,7 @@ type RepositoryContainer struct {
 	UserRepository             user.UserRepositoryInterface
 	FileRepository             files.ISysFilesRepository
 	ScheduledTaskRepository    scheduled_task.IScheduledTaskRepository
+	TaskExecutionLogRepository task_execution_log.ITaskExecutionLogRepository
 }
 
 // SetupDependencies creates a new application context with all dependencies
@@ -120,20 +121,21 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 
 	// share repositories
 	repositories := RepositoryContainer{
-		RoleMenuRepository:      role_menu.NewSysRoleMenuRepository(db, loggerInstance),
-		CasBinRepository:        casbin_rule.NewCasbinRuleRepository(db, loggerInstance),
-		MenuRepository:          base_menu.NewMenuRepository(db, loggerInstance),
-		RoleBtnRepository:       role_btn.NewRoleBtnRepository(db, loggerInstance),
-		UserRoleRepository:      user_role.NewSysUserRoleRepository(db, loggerInstance),
-		JwtBlacklistRepository:  jwt_blacklist.NewUJwtBlacklistRepository(db),
-		DictionaryRepository:    dictionary.NewDictionaryRepository(db, loggerInstance),
-		MenuBtnRepository:       base_menu_btn.NewMenuBtnRepository(db, loggerInstance),
-		MenuGroupRepository:     base_menu_group.NewMenuGroupRepository(db, loggerInstance),
-		MenuParameterRepository: base_menu_parameter.NewMenuParameterRepository(db, loggerInstance),
-		RoleRepository:          role.NewSysRolesRepository(db, loggerInstance),
-		UserRepository:          user.NewUserRepository(db, loggerInstance),
-		FileRepository:          files.NewSysFilesRepository(db, loggerInstance),
-		ScheduledTaskRepository: scheduled_task.NewScheduledTaskRepository(db, loggerInstance),
+		RoleMenuRepository:         role_menu.NewSysRoleMenuRepository(db, loggerInstance),
+		CasBinRepository:           casbin_rule.NewCasbinRuleRepository(db, loggerInstance),
+		MenuRepository:             base_menu.NewMenuRepository(db, loggerInstance),
+		RoleBtnRepository:          role_btn.NewRoleBtnRepository(db, loggerInstance),
+		UserRoleRepository:         user_role.NewSysUserRoleRepository(db, loggerInstance),
+		JwtBlacklistRepository:     jwt_blacklist.NewUJwtBlacklistRepository(db),
+		DictionaryRepository:       dictionary.NewDictionaryRepository(db, loggerInstance),
+		MenuBtnRepository:          base_menu_btn.NewMenuBtnRepository(db, loggerInstance),
+		MenuGroupRepository:        base_menu_group.NewMenuGroupRepository(db, loggerInstance),
+		MenuParameterRepository:    base_menu_parameter.NewMenuParameterRepository(db, loggerInstance),
+		RoleRepository:             role.NewSysRolesRepository(db, loggerInstance),
+		UserRepository:             user.NewUserRepository(db, loggerInstance),
+		FileRepository:             files.NewSysFilesRepository(db, loggerInstance),
+		ScheduledTaskRepository:    scheduled_task.NewScheduledTaskRepository(db, loggerInstance),
+		TaskExecutionLogRepository: task_execution_log.NewTaskExecutionLogRepository(db, loggerInstance),
 	}
 
 	// create event bus
@@ -167,9 +169,6 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 	taskExecutor.RegisterExecutor(taskConstants.TaskTypeFunction, functionExecutor)
 	taskExecutor.RegisterExecutor(taskConstants.TaskTypeHttpCall, httpCallExecutor)
 
-	// initialize task scheduler
-	taskScheduler := scheduler.NewTaskScheduler(repositories.ScheduledTaskRepository, loggerInstance, taskExecutor)
-
 	// Initialize JWT service
 	jwtService := security.NewJWTService()
 
@@ -178,20 +177,24 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 
 	// Initialize CaptchaHandler
 	captchaHandler := captchaLib.New(captchaLib.DefaultConfig(loggerInstance))
+	// initialize task scheduler
+	taskScheduler := scheduler.NewTaskScheduler(
+		repositories.ScheduledTaskRepository, loggerInstance, taskExecutor, repositories.TaskExecutionLogRepository)
 
 	// create context
 	appContext := &ApplicationContext{
-		DB:                 db,
-		RedisClient:        redisClientInstance,
-		EventBus:           eventBus,
-		Logger:             loggerInstance,
-		Limiter:            limiter,
-		WsRouter:           wsRouter,
-		Enforcer:           enforcer,
-		JWTService:         jwtService,
-		Repositories:       repositories,
-		TaskExecutor:       taskExecutor,
-		TaskScheduler:      taskScheduler,
+		DB:            db,
+		RedisClient:   redisClientInstance,
+		EventBus:      eventBus,
+		Logger:        loggerInstance,
+		Limiter:       limiter,
+		WsRouter:      wsRouter,
+		Enforcer:      enforcer,
+		JWTService:    jwtService,
+		Repositories:  repositories,
+		TaskExecutor:  taskExecutor,
+		TaskScheduler: taskScheduler,
+
 		FunctionExecutor:   functionExecutor,
 		HttpExecutor:       httpCallExecutor,
 		MiddlewareProvider: middlewareProvider,
@@ -226,6 +229,8 @@ func SetupDependencies(loggerInstance *logger.Logger) (*ApplicationContext, erro
 			return nil, fmt.Errorf("failed to setup module: %w", err)
 		}
 	}
+
+	taskScheduler.SetWsHandler(appContext.TaskExecutionLogModule.WsHandler)
 
 	return appContext, nil
 }

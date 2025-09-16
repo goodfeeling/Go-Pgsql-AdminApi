@@ -10,7 +10,7 @@ import (
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainRole "github.com/gbrayhan/microservices-go/src/domain/sys/role"
 	domainUser "github.com/gbrayhan/microservices-go/src/domain/user"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/user"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 	"github.com/gin-gonic/gin"

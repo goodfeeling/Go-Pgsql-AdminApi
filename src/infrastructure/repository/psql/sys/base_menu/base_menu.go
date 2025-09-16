@@ -9,7 +9,7 @@ import (
 
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainMenu "github.com/gbrayhan/microservices-go/src/domain/sys/menu"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	menuBtnRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_btn"
 	menuParamRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_parameter"
 

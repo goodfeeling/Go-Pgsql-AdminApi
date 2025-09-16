@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	captchaLib "github.com/gbrayhan/microservices-go/src/infrastructure/lib/captcha"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 )
 
 type ICaptchaService interface {

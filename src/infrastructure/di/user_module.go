@@ -16,11 +16,10 @@ type UserModule struct {
 func setupUserModule(appContext *ApplicationContext) error {
 
 	// register executor
-	appContext.FunctionExecutor.RegisterFunction("clean_up_old_data", job.CleanOldData)
+	appContext.FunctionExecutor.RegisterFunction(job.FUNCTION_TYPE_CLEAN_UP_OLD_DATA, job.CleanOldData)
 
 	// Initialize use cases
 	userUC := userUseCase.NewUserUseCase(
-
 		appContext.Repositories.UserRepository,
 		appContext.Repositories.UserRoleRepository,
 		appContext.EventBus,

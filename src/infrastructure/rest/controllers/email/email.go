@@ -5,7 +5,7 @@ import (
 
 	domainEmail "github.com/gbrayhan/microservices-go/src/domain/email"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

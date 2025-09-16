@@ -6,7 +6,7 @@ import (
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	apiDomain "github.com/gbrayhan/microservices-go/src/domain/sys/api"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	apiRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
 	dictionaryRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary"
 	"github.com/gin-gonic/gin"

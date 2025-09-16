@@ -1,7 +1,7 @@
 package dictionary
 
 import (
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	dictionaryRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary"
 
 	"github.com/gbrayhan/microservices-go/src/domain"

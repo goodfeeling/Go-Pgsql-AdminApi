@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/gbrayhan/microservices-go/src/application/event/bus"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"go.uber.org/zap"
 )
 

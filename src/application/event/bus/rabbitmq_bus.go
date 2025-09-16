@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/gbrayhan/microservices-go/src/application/event/model"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	"github.com/streadway/amqp"
 )
 

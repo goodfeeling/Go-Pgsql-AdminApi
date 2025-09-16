@@ -10,7 +10,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainApi "github.com/gbrayhan/microservices-go/src/domain/sys/api"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	apiRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 	"github.com/gin-gonic/gin"
@@ -473,7 +473,6 @@ func (c *ApiController) SynchronizeRouterToApi(ctx *gin.Context) {
 	}
 	// 获取所有路由信息
 	routes := c.Router.Routes()
-	fmt.Println("Synchronizing router to api", routes)
 	apis, err := c.apiService.SynchronizeRouterToApi(routes)
 	if err != nil {
 		c.Logger.Error("Error synchronizing router to api", zap.Error(err))

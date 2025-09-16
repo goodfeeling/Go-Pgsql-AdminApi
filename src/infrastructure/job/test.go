@@ -8,9 +8,12 @@ import (
 	domainScheduledTask "github.com/gbrayhan/microservices-go/src/domain/sys/scheduled_task"
 )
 
-func CleanOldData(*domainScheduledTask.ScheduledTask) error {
-	fmt.Println("开始执行任务...")
+const (
+	FUNCTION_TYPE_CLEAN_UP_OLD_DATA = "clean_up_old_data"
+)
 
+func CleanOldData(scheduledTask *domainScheduledTask.ScheduledTask) error {
+	fmt.Println("开始执行任务...")
 	// 创建一个带超时的上下文
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

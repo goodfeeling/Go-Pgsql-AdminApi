@@ -1,14 +1,13 @@
 package task_execution_log
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainTaskExecutionLog "github.com/gbrayhan/microservices-go/src/domain/sys/task_execution_log"
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	TaskExecutionLogRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/task_execution_log"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
 	"github.com/gin-gonic/gin"
@@ -21,7 +20,7 @@ type ResponseTaskExecutionLog struct {
 	ExecuteTime     time.Time         `json:"execute_time"`
 	ExecuteResult   int               `json:"execute_result"`
 	ExecuteDuration *int              `json:"execute_duration"`
-	ErrorMessage    *string           `json:"error_message"`
+	ErrorMessage    string            `json:"error_message"`
 	CreatedAt       domain.CustomTime `json:"created_at,omitempty"`
 	UpdatedAt       domain.CustomTime `json:"updated_at,omitempty"`
 }
@@ -88,7 +87,6 @@ func (c *TaskExecutionLogController) SearchPaginated(ctx *gin.Context) {
 			matches[field] = values
 		}
 	}
-	fmt.Println(matches)
 	filters.Matches = matches
 
 	// Parse date range filters

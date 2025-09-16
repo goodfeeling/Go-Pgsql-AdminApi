@@ -1,7 +1,7 @@
 package menu_btn
 
 import (
-	logger "github.com/gbrayhan/microservices-go/src/infrastructure/logger"
+	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	menuBtnRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/base_menu_btn"
 
 	"github.com/gbrayhan/microservices-go/src/domain"

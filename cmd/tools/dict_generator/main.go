@@ -13,6 +13,7 @@ import (
 
 	"github.com/gbrayhan/microservices-go/src/domain/constants"
 	dictionaryRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary"
+	"github.com/gbrayhan/microservices-go/src/shared/utils"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -33,6 +34,11 @@ type DictConstantItem struct {
 }
 
 func main() {
+	// load config.yaml
+	if err := utils.LoadYAMLConfigToEnv(); err != nil {
+		log.Fatal(fmt.Errorf("error loading config.yaml: %w", err))
+	}
+
 	// 数据库连接
 	dsn := os.Getenv("DICT_DB_DSN")
 	if dsn == "" {

@@ -39,7 +39,7 @@ func (SysDictionaryDetail) TableName() string {
 var ColumnsDictionaryMapping = map[string]string{
 	"id":             "id",
 	"selectedDictId": "sys_dictionary_id",
-	"createdAt":      "created_at",
+	"sort":           "sort",
 	"updatedAt":      "updated_at",
 }
 

@@ -71,6 +71,7 @@ email:
   from: your_email@163.com
   ssl: false
 captcha:
+  enable: true
   width: 120
   height: 40
   length: 4

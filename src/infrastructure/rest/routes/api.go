@@ -29,5 +29,8 @@ func ApiRouters(
 		u.POST("/delete-batch", controller.DeleteApis)
 		u.GET("/group-list", controller.GetApisGroup)
 		u.POST("/synchronize", controller.SynchronizeRouterToApi)
+		u.GET("/excel/template", controller.DownloadTemplate)
+		u.POST("/excel/import", controller.Import)
+		u.POST("/excel/export", controller.Export)
 	}
 }

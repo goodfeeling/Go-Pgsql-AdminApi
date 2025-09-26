@@ -10,6 +10,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/domain"
 	domainErrors "github.com/gbrayhan/microservices-go/src/domain/errors"
 	domainApi "github.com/gbrayhan/microservices-go/src/domain/sys/api"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/lib/excel"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	apiRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
 	"github.com/gbrayhan/microservices-go/src/infrastructure/rest/controllers"
@@ -55,12 +56,17 @@ type IApiController interface {
 	DeleteApis(ctx *gin.Context)
 	GetApisGroup(ctx *gin.Context)
 	SynchronizeRouterToApi(ctx *gin.Context)
+	DownloadTemplate(ctx *gin.Context)
+	Import(ctx *gin.Context)
+	Export(ctx *gin.Context)
 }
 type ApiController struct {
-	apiService domainApi.IApiService
-	Logger     *logger.Logger
-	Router     *gin.Engine
+	apiService   domainApi.IApiService
+	Logger       *logger.Logger
+	Router       *gin.Engine
+	ExcelHandler *excel.ExcelHandler
 }
+
 type RouterSetter interface {
 	SetRouter(router *gin.Engine)
 }
@@ -70,7 +76,11 @@ func (c *ApiController) SetRouter(router *gin.Engine) {
 }
 
 func NewApiController(apiService domainApi.IApiService, loggerInstance *logger.Logger) IApiController {
-	return &ApiController{apiService: apiService, Logger: loggerInstance}
+	return &ApiController{
+		apiService:   apiService,
+		Logger:       loggerInstance,
+		ExcelHandler: excel.NewExcelHandler(),
+	}
 }
 
 // CreateApi
@@ -489,9 +499,224 @@ func (c *ApiController) SynchronizeRouterToApi(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, apiResponse)
 }
 
+// DownloadTemplate implements IApiController.
+// @Summary download export excel
+// @Description download import excel
+// @Tags excel download
+// @Accept json
+// @Produce json
+// @Success 200 {array} models.User
+// @Router /v1/api/excel/download [get]
+func (c *ApiController) DownloadTemplate(ctx *gin.Context) {
+	c.Logger.Info("Downloading API template")
+
+	// 创建模板
+	buffer, err := c.ExcelHandler.CreateApiTemplate()
+	if err != nil {
+		c.Logger.Error("Error creating API template", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.UnknownError)
+		_ = ctx.Error(appError)
+		return
+	}
+
+	// 设置响应头
+	ctx.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	ctx.Header("Content-Disposition", "attachment; filename=api_template.xlsx")
+	ctx.Header("Content-Length", fmt.Sprintf("%d", buffer.Len()))
+
+	// 发送文件
+	ctx.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer.Bytes())
+
+	c.Logger.Info("API template downloaded successfully")
+}
+
+// Export implements IApiController.
+// @Summary export excel
+// @Description export excel
+// @Tags export excel
+// @Accept json
+// @Produce json
+// @Param book body models.User  true  "JSON Data"
+// @Success 200 {array} models.User
+// @Router /v1/api/excel/export [post]
+func (c *ApiController) Export(ctx *gin.Context) {
+	c.Logger.Info("Exporting APIs to Excel")
+
+	// 获取所有API数据
+	apis, err := c.apiService.GetAll()
+	if err != nil {
+		c.Logger.Error("Error getting APIs for export", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.UnknownError)
+		_ = ctx.Error(appError)
+		return
+	}
+
+	// 转换为Excel数据格式
+	headers := []string{"ID", "Path", "ApiGroup", "Method", "Description"}
+	var rows [][]string
+
+	for _, api := range *apis {
+		row := []string{
+			fmt.Sprintf("%d", api.ID),
+			api.Path,
+			api.ApiGroup,
+			api.Method,
+			api.Description,
+		}
+		rows = append(rows, row)
+	}
+
+	excelData := &excel.ExcelData{
+		Headers: headers,
+		Rows:    rows,
+	}
+
+	// 创建Excel文件
+	buffer, err := c.ExcelHandler.CreateExcel("APIs", excelData)
+	if err != nil {
+		c.Logger.Error("Error creating Excel file", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.UnknownError)
+		_ = ctx.Error(appError)
+		return
+	}
+
+	// 设置响应头
+	ctx.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	ctx.Header("Content-Disposition", "attachment; filename=apis_export.xlsx")
+	ctx.Header("Content-Length", fmt.Sprintf("%d", buffer.Len()))
+
+	// 发送文件
+	ctx.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer.Bytes())
+
+	c.Logger.Info("APIs exported successfully", zap.Int("count", len(*apis)))
+}
+
+// Import implements IApiController.
+// @Summary import excel
+// @Description import data to excel
+// @Tags excel import
+// @Accept json
+// @Produce json
+// @Success 200 {array} models.User
+// @Router /v1/api/excel/import [post]
+func (c *ApiController) Import(ctx *gin.Context) {
+	c.Logger.Info("Importing APIs from Excel")
+
+	// 获取上传的文件
+	file, err := ctx.FormFile("file")
+	if err != nil {
+		c.Logger.Error("Error getting uploaded file", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+
+	// 打开文件
+	src, err := file.Open()
+	if err != nil {
+		c.Logger.Error("Error opening uploaded file", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.UnknownError)
+		_ = ctx.Error(appError)
+		return
+	}
+	defer src.Close()
+
+	// 读取Excel数据
+	excelData, err := c.ExcelHandler.ReadExcel(src, "APIs")
+	if err != nil {
+		c.Logger.Error("Error reading Excel file", zap.Error(err))
+		appError := domainErrors.NewAppError(err, domainErrors.UnknownError)
+		_ = ctx.Error(appError)
+		return
+	}
+
+	// 验证表头
+	expectedHeaders := []string{"ID", "Path", "ApiGroup", "Method", "Description"}
+	if len(excelData.Headers) != len(expectedHeaders) {
+		c.Logger.Error("Invalid Excel format - header count mismatch")
+		appError := domainErrors.NewAppError(fmt.Errorf("invalid Excel format"), domainErrors.ValidationError)
+		_ = ctx.Error(appError)
+		return
+	}
+
+	// 解析并创建API对象
+	var importedApis []domainApi.Api
+	for rowIndex, row := range excelData.Rows {
+		if len(row) < 5 {
+			c.Logger.Warn("Skipping row due to insufficient columns", zap.Int("row", rowIndex))
+			continue
+		}
+
+		id := 0
+		if row[0] != "" {
+			id, err = strconv.Atoi(row[0])
+			if err != nil {
+				c.Logger.Warn("Invalid ID in row", zap.Int("row", rowIndex), zap.String("id", row[0]))
+				continue
+			}
+		}
+
+		api := domainApi.Api{
+			ID:          id,
+			Path:        row[1],
+			ApiGroup:    row[2],
+			Method:      row[3],
+			Description: row[4],
+		}
+
+		importedApis = append(importedApis, api)
+	}
+
+	// 批量创建或更新API
+	var createdCount, updatedCount int
+	for _, api := range importedApis {
+		if api.ID == 0 {
+			// 创建新API
+			_, err := c.apiService.Create(&api)
+			if err != nil {
+				c.Logger.Error("Error creating API during import", zap.Error(err), zap.String("path", api.Path))
+				continue
+			}
+			createdCount++
+		} else {
+			// 更新现有API
+			updateData := map[string]any{
+				"path":        api.Path,
+				"api_group":   api.ApiGroup,
+				"method":      api.Method,
+				"description": api.Description,
+			}
+
+			_, err := c.apiService.Update(api.ID, updateData)
+			if err != nil {
+				c.Logger.Error("Error updating API during import", zap.Error(err), zap.Int("id", api.ID))
+				continue
+			}
+			updatedCount++
+		}
+	}
+
+	// 返回结果
+	response := controllers.NewCommonResponseBuilder[map[string]int]().
+		Data(map[string]int{
+			"created": createdCount,
+			"updated": updatedCount,
+			"total":   len(importedApis),
+		}).
+		Message("Import completed successfully").
+		Status(0).
+		Build()
+
+	c.Logger.Info("APIs imported successfully",
+		zap.Int("created", createdCount),
+		zap.Int("updated", updatedCount),
+		zap.Int("total", len(importedApis)))
+
+	ctx.JSON(http.StatusOK, response)
+}
+
 // Mappers
 func domainToResponseMapper(domainApi *domainApi.Api) *ResponseApi {
-
 	return &ResponseApi{
 		ID:          domainApi.ID,
 		Path:        domainApi.Path,

@@ -87,6 +87,8 @@ type RabbitMQConfig struct {
 }
 
 type CaptchaConfig struct {
+	Enable bool `yaml:"enable" json:"enable"`
+
 	Complexity    int `yaml:"complexity" json:"complexity"`
 	Width         int `yaml:"width" json:"width"`
 	Height        int `yaml:"height" json:"height"`

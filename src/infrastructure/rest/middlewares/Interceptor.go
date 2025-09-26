@@ -31,7 +31,7 @@ func GinBodyLogMiddleware(db *gorm.DB, logger *logger.Logger) gin.HandlerFunc {
 		var reqBody string
 		var resp string
 		// skip over upload api
-		if strings.HasPrefix(c.Request.RequestURI, "/v1/upload") {
+		if checkURIIsUpload(c.Request.RequestURI) {
 			reqBody = ""
 			resp = ""
 		} else {
@@ -79,4 +79,15 @@ func GinBodyLogMiddleware(db *gorm.DB, logger *logger.Logger) gin.HandlerFunc {
 			"created_at":    time.Now().Format("2006-01-02T15:04:05"),
 		})
 	}
+}
+
+// check uri is upload file
+func checkURIIsUpload(uri string) bool {
+	if strings.HasPrefix(uri, "/v1/upload") {
+		return true
+	}
+	if strings.HasSuffix(uri, "/excel/import") {
+		return true
+	}
+	return false
 }

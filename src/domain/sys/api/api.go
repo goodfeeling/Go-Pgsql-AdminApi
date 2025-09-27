@@ -1,6 +1,8 @@
 package api
 
 import (
+	"bytes"
+	"mime/multipart"
 	"time"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
@@ -28,6 +30,9 @@ type IApiService interface {
 	GetOneByMap(userMap map[string]interface{}) (*Api, error)
 	GetApisGroup(path string) (*[]GroupApiItem, error)
 	SynchronizeRouterToApi(router gin.RoutesInfo) (*int, error)
+	GenerateTemplate() (*bytes.Buffer, error)
+	Export() (*bytes.Buffer, error)
+	Import(src multipart.File) (*[]Api, *int, *int, error)
 }
 
 type GroupApiItem struct {

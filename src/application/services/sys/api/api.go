@@ -1,11 +1,15 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
+	"mime/multipart"
+	"strconv"
 	"strings"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
 	apiDomain "github.com/gbrayhan/microservices-go/src/domain/sys/api"
+	"github.com/gbrayhan/microservices-go/src/infrastructure/lib/excel"
 	logger "github.com/gbrayhan/microservices-go/src/infrastructure/lib/logger"
 	apiRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/api"
 	dictionaryRepo "github.com/gbrayhan/microservices-go/src/infrastructure/repository/psql/sys/dictionary"
@@ -24,12 +28,16 @@ type ISysApiService interface {
 	GetOneByMap(userMap map[string]interface{}) (*apiDomain.Api, error)
 	GetApisGroup(path string) (*[]apiDomain.GroupApiItem, error)
 	SynchronizeRouterToApi(router gin.RoutesInfo) (*int, error)
+	GenerateTemplate() (*bytes.Buffer, error)
+	Export() (*bytes.Buffer, error)
+	Import(src multipart.File) (*[]apiDomain.Api, *int, *int, error)
 }
 
 type SysApiUseCase struct {
 	sysApiRepository     apiRepo.ApiRepositoryInterface
 	dictionaryRepository dictionaryRepo.DictionaryRepositoryInterface
 	Logger               *logger.Logger
+	ExcelHandler         *excel.ExcelHandler
 }
 
 func NewSysApiUseCase(
@@ -40,6 +48,7 @@ func NewSysApiUseCase(
 		sysApiRepository:     sysApiRepository,
 		dictionaryRepository: dictionaryRepository,
 		Logger:               loggerInstance,
+		ExcelHandler:         excel.NewExcelHandler(),
 	}
 }
 
@@ -152,6 +161,132 @@ func (c *SysApiUseCase) SynchronizeRouterToApi(routes gin.RoutesInfo) (*int, err
 	return &count, nil
 }
 
+// GenerateTemplate implements ISysApiService.
+func (s *SysApiUseCase) GenerateTemplate() (*bytes.Buffer, error) {
+	headers := []string{"ID", "Path", "ApiGroup", "Method", "Description"}
+	buffer, err := s.ExcelHandler.CreateApiTemplate(headers, "APIs")
+	if err != nil {
+		s.Logger.Error("Error creating API template", zap.Error(err))
+
+		return nil, err
+	}
+	return buffer, nil
+}
+
+// Export implements ISysApiService.
+func (s *SysApiUseCase) Export() (*bytes.Buffer, error) {
+	// 获取所有API数据
+	apis, err := s.sysApiRepository.GetAll("")
+	if err != nil {
+		s.Logger.Error("Error getting APIs for export", zap.Error(err))
+		return nil, err
+	}
+
+	// 转换为Excel数据格式
+	headers := []string{"ID", "Path", "ApiGroup", "Method", "Description"}
+	var rows [][]string
+
+	for _, api := range *apis {
+		row := []string{
+			fmt.Sprintf("%d", api.ID),
+			api.Path,
+			api.ApiGroup,
+			api.Method,
+			api.Description,
+		}
+		rows = append(rows, row)
+	}
+	s.Logger.Info("Exporting APIs", zap.Int("count", len(*apis)))
+
+	excelData := &excel.ExcelData{
+		Headers: headers,
+		Rows:    rows,
+	}
+
+	// 创建Excel文件
+	buffer, err := s.ExcelHandler.CreateExcel("APIs", excelData)
+	if err != nil {
+		s.Logger.Error("Error creating Excel file", zap.Error(err))
+		return nil, err
+	}
+	return buffer, nil
+}
+
+// Import implements ISysApiService.
+func (s *SysApiUseCase) Import(src multipart.File) (*[]apiDomain.Api, *int, *int, error) {
+	// 读取Excel数据
+	excelData, err := s.ExcelHandler.ReadExcel(src, "APIs")
+	if err != nil {
+		s.Logger.Error("Error reading Excel file", zap.Error(err))
+		return nil, nil, nil, err
+	}
+
+	// 验证表头
+	expectedHeaders := []string{"ID", "Path", "ApiGroup", "Method", "Description"}
+	if len(excelData.Headers) != len(expectedHeaders) {
+		s.Logger.Error("Invalid Excel format - header count mismatch")
+		return nil, nil, nil, err
+	}
+
+	// 解析并创建API对象
+	var importedApis []apiDomain.Api
+	for rowIndex, row := range excelData.Rows {
+		if len(row) < 5 {
+			s.Logger.Warn("Skipping row due to insufficient columns", zap.Int("row", rowIndex))
+			continue
+		}
+
+		id := 0
+		if row[0] != "" {
+			id, err = strconv.Atoi(row[0])
+			if err != nil {
+				s.Logger.Warn("Invalid ID in row", zap.Int("row", rowIndex), zap.String("id", row[0]))
+				continue
+			}
+		}
+
+		api := apiDomain.Api{
+			ID:          id,
+			Path:        row[1],
+			ApiGroup:    row[2],
+			Method:      row[3],
+			Description: row[4],
+		}
+
+		importedApis = append(importedApis, api)
+	}
+
+	// 批量创建或更新API
+	var createdCount, updatedCount int
+	for _, api := range importedApis {
+		if api.ID == 0 {
+			_, err := s.sysApiRepository.Create(&api)
+			if err != nil {
+				s.Logger.Error("Error creating API during import", zap.Error(err), zap.String("path", api.Path))
+				continue
+			}
+			createdCount++
+		} else {
+
+			updateData := map[string]any{
+				"path":        api.Path,
+				"api_group":   api.ApiGroup,
+				"method":      api.Method,
+				"description": api.Description,
+			}
+
+			_, err := s.sysApiRepository.Update(api.ID, updateData)
+			if err != nil {
+				s.Logger.Error("Error updating API during import", zap.Error(err), zap.Int("id", api.ID))
+				continue
+			}
+			updatedCount++
+		}
+	}
+
+	return &importedApis, &createdCount, &updatedCount, nil
+}
+
 func (a *SysApiUseCase) shouldSyncRoute(path string) bool {
 	// 排除一些系统路由
 	excludePaths := []string{"/swagger", "/health"}
@@ -164,20 +299,19 @@ func (a *SysApiUseCase) shouldSyncRoute(path string) bool {
 }
 
 func (a *SysApiUseCase) generateDescription(path, method string) string {
-	// 根据路径和方法生成描述
 	switch method {
 	case "GET":
 		if strings.Contains(path, "/:id") {
-			return "获取单个资源"
+			return "get one resource"
 		}
-		return "获取资源列表"
+		return "get all resources"
 	case "POST":
-		return "创建资源"
+		return "create resource"
 	case "PUT":
-		return "更新资源"
+		return "update resource"
 	case "DELETE":
-		return "删除资源"
+		return "delete resource"
 	default:
-		return "API接口"
+		return "api description"
 	}
 }

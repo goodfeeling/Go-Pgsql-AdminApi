@@ -31,6 +31,6 @@ func ApiRouters(
 		u.POST("/synchronize", controller.SynchronizeRouterToApi)
 		u.GET("/excel/template", controller.DownloadTemplate)
 		u.POST("/excel/import", controller.Import)
-		u.POST("/excel/export", controller.Export)
+		u.GET("/excel/export", controller.Export)
 	}
 }

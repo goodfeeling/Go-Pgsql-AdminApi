@@ -14,6 +14,7 @@ import (
 	"github.com/gbrayhan/microservices-go/src/infrastructure/repository/utils"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // SysApi represents the sys_apis table in the database.
@@ -54,6 +55,7 @@ type ApiRepositoryInterface interface {
 	SearchByProperty(property string, searchText string) (*[]string, error)
 	GetOneByMap(apiMap map[string]interface{}) (*domainApi.Api, error)
 	Upsert(api *SysApi) (bool, error)
+	CreateByCondition(api *SysApi) (bool, error)
 }
 
 type Repository struct {
@@ -162,6 +164,27 @@ func (r *Repository) Delete(ids []int) error {
 	}
 	r.Logger.Info("Successfully deleted api", zap.String("ids", fmt.Sprintf("%v", ids)))
 	return nil
+}
+
+// update or insert
+func (r *Repository) Upsert(api *SysApi) (bool, error) {
+	result := r.DB.Clauses(clause.OnConflict{
+		Columns: []clause.Column{
+			{Name: "path"},
+			{Name: "method"},
+		},
+		DoUpdates: clause.Assignments(map[string]interface{}{
+			"api_group":   api.ApiGroup,
+			"description": api.Description,
+		}),
+	}).Create(api)
+
+	if result.Error != nil {
+		r.Logger.Error("Failed to upsert api", zap.Error(result.Error))
+		return false, result.Error
+	}
+	isUpdate := result.RowsAffected == 0
+	return !isUpdate, nil
 }
 
 func (r *Repository) SearchPaginated(filters domain.DataFilters) (*domain.PaginatedResult[domainApi.Api], error) {
@@ -276,7 +299,7 @@ func (r *Repository) SearchByProperty(property string, searchText string) (*[]st
 	return &coincidences, nil
 }
 
-func (r *Repository) Upsert(api *SysApi) (bool, error) {
+func (r *Repository) CreateByCondition(api *SysApi) (bool, error) {
 	var existingApi SysApi
 
 	// 查找是否已存在

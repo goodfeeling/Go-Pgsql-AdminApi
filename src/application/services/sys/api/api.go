@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"mime/multipart"
-	"strconv"
 	"strings"
 
 	"github.com/gbrayhan/microservices-go/src/domain"
@@ -145,7 +144,7 @@ func (c *SysApiUseCase) SynchronizeRouterToApi(routes gin.RoutesInfo) (*int, err
 				ApiGroup:    "other",
 			}
 
-			ok, err := c.sysApiRepository.Upsert(apiModel)
+			ok, err := c.sysApiRepository.CreateByCondition(apiModel)
 			if err != nil {
 				c.Logger.Error("Failed to sync route",
 					zap.String("path", route.Path),
@@ -163,7 +162,7 @@ func (c *SysApiUseCase) SynchronizeRouterToApi(routes gin.RoutesInfo) (*int, err
 
 // GenerateTemplate implements ISysApiService.
 func (s *SysApiUseCase) GenerateTemplate() (*bytes.Buffer, error) {
-	headers := []string{"ID", "Path", "ApiGroup", "Method", "Description"}
+	headers := []string{"Path", "ApiGroup", "Method", "Description"}
 	buffer, err := s.ExcelHandler.CreateApiTemplate(headers, "APIs")
 	if err != nil {
 		s.Logger.Error("Error creating API template", zap.Error(err))
@@ -183,7 +182,7 @@ func (s *SysApiUseCase) Export() (*bytes.Buffer, error) {
 	}
 
 	// 转换为Excel数据格式
-	headers := []string{"ID", "Path", "ApiGroup", "Method", "Description"}
+	headers := []string{"Path", "ApiGroup", "Method", "Description"}
 	var rows [][]string
 
 	for _, api := range *apis {
@@ -222,35 +221,24 @@ func (s *SysApiUseCase) Import(src multipart.File) (*[]apiDomain.Api, *int, *int
 	}
 
 	// 验证表头
-	expectedHeaders := []string{"ID", "Path", "ApiGroup", "Method", "Description"}
+	expectedHeaders := []string{"Path", "ApiGroup", "Method", "Description"}
 	if len(excelData.Headers) != len(expectedHeaders) {
 		s.Logger.Error("Invalid Excel format - header count mismatch")
 		return nil, nil, nil, err
 	}
-
 	// 解析并创建API对象
 	var importedApis []apiDomain.Api
 	for rowIndex, row := range excelData.Rows {
-		if len(row) < 5 {
+		if len(row) < 4 {
 			s.Logger.Warn("Skipping row due to insufficient columns", zap.Int("row", rowIndex))
 			continue
 		}
 
-		id := 0
-		if row[0] != "" {
-			id, err = strconv.Atoi(row[0])
-			if err != nil {
-				s.Logger.Warn("Invalid ID in row", zap.Int("row", rowIndex), zap.String("id", row[0]))
-				continue
-			}
-		}
-
 		api := apiDomain.Api{
-			ID:          id,
-			Path:        row[1],
-			ApiGroup:    row[2],
-			Method:      row[3],
-			Description: row[4],
+			Path:        row[0],
+			ApiGroup:    row[1],
+			Method:      row[2],
+			Description: row[3],
 		}
 
 		importedApis = append(importedApis, api)
@@ -259,34 +247,28 @@ func (s *SysApiUseCase) Import(src multipart.File) (*[]apiDomain.Api, *int, *int
 	// 批量创建或更新API
 	var createdCount, updatedCount int
 	for _, api := range importedApis {
-		if api.ID == 0 {
-			_, err := s.sysApiRepository.Create(&api)
-			if err != nil {
-				s.Logger.Error("Error creating API during import", zap.Error(err), zap.String("path", api.Path))
-				continue
-			}
+		// 使用upsert操作替换原有的根据ID判断逻辑
+		sysApi := &apiRepo.SysApi{
+			Path:        api.Path,
+			ApiGroup:    api.ApiGroup,
+			Method:      api.Method,
+			Description: api.Description,
+		}
+		isCreated, err := s.sysApiRepository.Upsert(sysApi)
+		if err != nil {
+			s.Logger.Error("Error upserting API during import", zap.Error(err), zap.String("path", api.Path))
+			continue
+		}
+
+		if isCreated {
 			createdCount++
 		} else {
-
-			updateData := map[string]any{
-				"path":        api.Path,
-				"api_group":   api.ApiGroup,
-				"method":      api.Method,
-				"description": api.Description,
-			}
-
-			_, err := s.sysApiRepository.Update(api.ID, updateData)
-			if err != nil {
-				s.Logger.Error("Error updating API during import", zap.Error(err), zap.Int("id", api.ID))
-				continue
-			}
 			updatedCount++
 		}
 	}
 
 	return &importedApis, &createdCount, &updatedCount, nil
 }
-
 func (a *SysApiUseCase) shouldSyncRoute(path string) bool {
 	// 排除一些系统路由
 	excludePaths := []string{"/swagger", "/health"}
